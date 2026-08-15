@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0005-Docs-In-Gallery", Order = 76, Toc = true)]
+    [Story]
     public static StoryResult Adr0005(StoryContext ctx) => $$"""
         # ADR-0005 — ドキュメントとサンプルは Gallery に一本化する
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-04
@@ -44,7 +48,7 @@ public static partial class DocsAdr
 
         - ✅ 正が 1 か所 — 実例は実行可能で golden 回帰に守られ、`StorySource` によりドキュメント上のコードが実装と乖離しない。リンク切れは起動時に検出される
         - ✅ docs 執筆がエンジン自身への品質圧になる — RichTextEditor・mermaid・数式・全文検索は docs の必要から鍛えられた (ドッグフーディング)
-        - ✅ この ADR 章もタダ乗りできた ([ADR-0001](story:Internals/ADR/0001-Record-Architecture-Decisions)) — 検索・リンク検証・テーマ・回帰が最初から付いてくる
+        - ✅ この ADR 章もタダ乗りできた ([ADR-0001](story:Internals/ADR/Adr0001)) — 検索・リンク検証・テーマ・回帰が最初から付いてくる
         - ⚠️ **GitHub 上でそのまま読めない** — docs を読むには Gallery を起動する (かソースを読む)。公開ドキュメントが必要になったら書き出し手段の検討が要る
         - ⚠️ 執筆に C# ビルドが要り、raw string の規約 (`$` の数 = hole の波かっこ数、段落は 1 ソース行、本文に引用符 3 連を含むページは区切りを 4 連に) を覚える必要がある
         - ⚠️ 計画文書のリポジトリ内の置き場が無くなる — 意図的な制約 (現在形の仕様として docs に吸収するか、リポジトリ外へ)

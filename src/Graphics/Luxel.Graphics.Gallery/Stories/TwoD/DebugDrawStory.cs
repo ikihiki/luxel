@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
@@ -14,12 +14,13 @@ namespace Luxel.Gallery.Stories;
 /// <see cref="DebugDraw"/> のカテゴリ "demo" で描く。無効カテゴリ ("disabled") の呼び出しは
 /// 何も出ない (OFF 時ゼロ描画)。2D なのでワールド=スクリーン恒等、3D はここに viewProj を渡す。
 /// </summary>
+[StoryMeta("Examples/Framework")]
 public static class DebugDrawStories
 {
     private static readonly Lazy<VectorFont> Font = new(() => Luxel.Gallery.GalleryFonts.Load(Luxel.Gallery.GalleryFonts.Regular));
     private const float W = 460, H = 260;
 
-    [Story("Examples/Framework/Gizmos", Height = 300, Order = 150)]
+    [Story]
     public static Widget Gizmos(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         s.FillRect(Color2D.Rgba(24, 28, 36), 0, 0, W, H);   // 暗い背景 (ゲーム画面のつもり)

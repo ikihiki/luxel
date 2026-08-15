@@ -1,13 +1,18 @@
 using Luxel.UI;
 
+using static Luxel.Gallery.Story;
+
 namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>ResourceSystemの構築、実行、管理、公開、回復を学ぶコース。</summary>
+[StoryMeta("Learn/Resources")]
 public static class LearnResources
 {
-    [Story("Learn/Resources/Overview", Order = 0, SampleBundle = "resources.scenarios", Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Resources学習ガイド
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Overview", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -28,9 +33,11 @@ public static class LearnResources
         {{ResourceCourseCatalog.LearningRouteMarkdown()}}
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Overview"][0]));
 
-    [Story("Learn/Resources/BuilderAndComposition", Order = 1, Toc = true)]
+    [Story]
     public static StoryResult BuilderAndComposition(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Builderとcomposition
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/BuilderAndComposition", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -51,9 +58,11 @@ public static class LearnResources
         `BuildAsync()`は構成検証、component生成、ready barrierを完了してからimmutableなtableを持つsystemを返します。packageはbuilder extensionを提供し、application composition rootが使用するpackageとIDを決定します。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/BuilderAndComposition"][0]));
 
-    [Story("Learn/Resources/ExecutionDomains", Order = 2, Toc = true)]
+    [Story]
     public static StoryResult ExecutionDomains(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Execution domain
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/ExecutionDomains", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -72,9 +81,11 @@ public static class LearnResources
         cancellationはdispatchとStepの`LoadContext.Token`へ伝播します。domain snapshotからqueue depth、active count、queue/run duration、completed countを取得できます。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/ExecutionDomains"][0]));
 
-    [Story("Learn/Resources/ResourceManagers", Order = 3, Toc = true)]
+    [Story]
     public static StoryResult ResourceManagers(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Resource manager
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/ResourceManagers", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -93,9 +104,11 @@ public static class LearnResources
         `IoResourceManager`と`CpuResourceManager`はcore構成に利用できます。GPUやcompilerなどのmanagerは所有packageがpolicyとlifecycleを実装します。`PumpAsync`とsnapshotはpending retirementやbudget処理をsystemの進行へ接続します。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/ResourceManagers"][0]));
 
-    [Story("Learn/Resources/IdentityAndHandles", Order = 4, Toc = true)]
+    [Story]
     public static StoryResult IdentityAndHandles(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Identityとhandle
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/IdentityAndHandles", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -108,9 +121,11 @@ public static class LearnResources
         `ResourceHandle<T>`は論理nodeへのleaseです。`Ready`、`Status`、`HasValue`、`Value`、`Version`、`LastReloadError`を公開し、generationが交換されても同じhandleを使えます。`ResourceScope`は複数leaseとruntime valueを所有者単位で解放します。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/IdentityAndHandles"][0]));
 
-    [Story("Learn/Resources/SourcesAndSteps", Order = 5, Toc = true)]
+    [Story]
     public static StoryResult SourcesAndSteps(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # SourceとStep
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/SourcesAndSteps", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -129,9 +144,11 @@ public static class LearnResources
         Stepはdependencyを`LoadContext.Load`または`Require`で要求できます。generation固有のownershipや管理情報を返すStep contractが利用可能なpackageでは、結果metadataをmanager adoptionへ渡します。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/SourcesAndSteps"][0]));
 
-    [Story("Learn/Resources/DependenciesAndPublication", Order = 6, Toc = true)]
+    [Story]
     public static StoryResult DependenciesAndPublication(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # 依存関係とpublication
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/DependenciesAndPublication", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -144,9 +161,11 @@ public static class LearnResources
         完了した作業は直接observerへ通知されません。`Pump()`が成功generationの交換、状態通知、`Reloaded`、manager pumpを順序付けます。hostはobserverを実行するthreadまたはowner contextで`Pump()`を呼びます。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/DependenciesAndPublication"][0]));
 
-    [Story("Learn/Resources/OwnershipAndRetirement", Order = 7, Toc = true)]
+    [Story]
     public static StoryResult OwnershipAndRetirement(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Ownershipとretirement
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/OwnershipAndRetirement", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -159,9 +178,11 @@ public static class LearnResources
         scopeとhandleを解放するとleaseが減り、到達不能なgenerationはretirementへ進みます。非同期破棄やGPU fence待ちはmanagerのqueueで処理し、deviceや外部serviceを破棄する前にResourceSystemをshutdownします。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/OwnershipAndRetirement"][0]));
 
-    [Story("Learn/Resources/ReloadAndRecovery", Order = 8, Toc = true)]
+    [Story]
     public static StoryResult ReloadAndRecovery(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Reloadとrecovery
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/ReloadAndRecovery", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -174,9 +195,11 @@ public static class LearnResources
         manager固有の外部状態を再生成した場合は`InvalidateManager(managerId)`でそのmanagerに属するnodeだけを再読み込みできます。device generationやcompiler sessionの回復をResourceSystem全体の再構築から分離できます。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/ReloadAndRecovery"][0]));
 
-    [Story("Learn/Resources/DiagnosticsAndMetrics", Order = 9, Toc = true)]
+    [Story]
     public static StoryResult DiagnosticsAndMetrics(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Diagnosticsとmetrics
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/DiagnosticsAndMetrics", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 
@@ -189,9 +212,11 @@ public static class LearnResources
         診断画面ではnode statusとgeneration、domain saturation、manager memory、retirement backlogを同じ時点で採取します。queue latencyの増加とmemory pressureを分けて表示すると、scheduler調整とbudget回復を適切に選べます。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/DiagnosticsAndMetrics"][0]));
 
-    [Story("Learn/Resources/WasmExecution", Order = 10, Toc = true)]
+    [Story]
     public static StoryResult WasmExecution(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # WASM execution
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/WasmExecution", "中級", "Native / Browser / Headless", "ResourceSystemBuilder", "前章")}}
 

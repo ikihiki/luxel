@@ -1,25 +1,29 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend", Order = 90, Toc = true)]
+    [Story]
     public static StoryResult Adr0019(StoryContext ctx) => $$"""
         # ADR-0019 — portable GPU semantics として WebGPU backend を追加する
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-28
         - **Browser/WASM extension accepted**: 2026-07-29
         - **Deciders**: ikihiki
-        - **Amends**: [ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction)
+        - **Amends**: [ADR-0002](story:Internals/ADR/Adr0002)
 
         ## Context
 
-        [ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction) は Vulkan / DirectX 12 の共通部分を、固定 root arguments、bindless resources、vertex pulling、one-shot command recording、stage barrierへ絞ることで、薄い GPU 抽象を成立させました。一方、その決定は GPU virtual address、永続 map、ユーザー書換 descriptor heap、明示 barrierを portable baseline とみなし、WebGPU 系を「最大公約数」の抽象として却下していました。
+        [ADR-0002](story:Internals/ADR/Adr0002) は Vulkan / DirectX 12 の共通部分を、固定 root arguments、bindless resources、vertex pulling、one-shot command recording、stage barrierへ絞ることで、薄い GPU 抽象を成立させました。一方、その決定は GPU virtual address、永続 map、ユーザー書換 descriptor heap、明示 barrierを portable baseline とみなし、WebGPU 系を「最大公約数」の抽象として却下していました。
 
         native desktop WebGPU を追加するには、それらの native mechanism を sentinel や疑似 GPUVA で模倣するのではなく、上位層が必要とする意味論と backend-specific fast path を分離する必要があります。守るべき *No Graphics API* の原則は、特定 API の命令形ではなく、transient recording、data-oriented な単一 argument block、vertex pulling、明示的な pass、アプリから descriptor 管理を隠すこと、論理依存と tooling-first diagnostics です。
 

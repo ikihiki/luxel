@@ -17,6 +17,7 @@ namespace Luxel.Gallery.Stories;
 /// (<see cref="ParticleGizmos.Emitter"/>)。ゲーム画面 (塗り) を下地に、gizmo を on にした 1 枚を golden 化して
 /// レイヤの回帰を守る (Canvas2D = Skia 可・決定的、worldToScreen は 2D 恒等)。物理 gizmo はステージ③ (Q14)。
 /// </summary>
+[StoryMeta("Examples/2D")]
 public static class Gizmos2DStories
 {
     private static readonly Lazy<VectorFont> Font = new(() => Luxel.Gallery.GalleryFonts.Load(Luxel.Gallery.GalleryFonts.Regular));
@@ -32,7 +33,7 @@ public static class Gizmos2DStories
         return map;
     }
 
-    [Story("Examples/2D/Gizmos2D", Height = 320, Order = 151)]
+    [Story]
     public static Widget Gizmos2DDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         TileMap map = BuildMap();

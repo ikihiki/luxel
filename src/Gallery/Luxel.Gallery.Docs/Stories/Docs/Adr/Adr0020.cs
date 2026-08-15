@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0020-Resource-System-Builder-Domains-And-Managers", Order = 91, Toc = true)]
+    [Story]
     public static StoryResult Adr0020(StoryContext ctx) => $$"""
         # ADR-0020 — ResourceSystemをBuilder・実行Domain・型別Managerで構成する
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-08-09

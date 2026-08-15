@@ -10,11 +10,12 @@ using static Luxel.Gallery.Stories.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Learn/Graphics/2D から埋め込む browser-WASM 対応の決定的な 2D Widget Story。</summary>
+[StoryMeta("Examples/2D")]
 public static class TwoDBrowserStories
 {
     private const string BrowserNote = "Runs through the Gallery browser-WASM WebGPU runtime.";
 
-    [Story("Examples/2D/SceneRender", Width = 480, Height = 300, Order = 109, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget SceneRender(StoryContext ctx)
     {
         var scene = new Scene2D();
@@ -26,7 +27,7 @@ public static class TwoDBrowserStories
         return Snapshot(ctx, RasterView(ctx, 420, 220, scene, Camera2D.Pixels));
     }
 
-    [Story("Examples/2D/Shapes", Width = 480, Height = 300, Order = 110, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget Shapes(StoryContext ctx) => Snapshot(ctx, Canvas2D(420, 220, draw: scene =>
     {
         scene.FillRect(Color2D.Rgba(248, 250, 252), 0, 0, 420, 220);
@@ -38,7 +39,7 @@ public static class TwoDBrowserStories
             new Vector2(178, 202), new Vector2(224, 132), new Vector2(282, 190), new Vector2(398, 126));
     }));
 
-    [Story("Examples/2D/VectorPaths", Width = 360, Height = 330, Order = 112, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget VectorPaths(StoryContext ctx) => Snapshot(ctx, Canvas2D(280, 260, draw: scene =>
     {
         scene.FillRect(Color2D.Rgba(245, 245, 248), 0, 0, 280, 260);
@@ -50,7 +51,7 @@ public static class TwoDBrowserStories
         scene.BeginFill(Color2D.Rgba(40, 185, 105)).MoveTo(24, 32).LineTo(126, 32).LineTo(106, 104).LineTo(42, 88).Close().End();
     }));
 
-    [Story("Examples/2D/CameraRig", Width = 540, Height = 360, Order = 118, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget CameraTransform(StoryContext ctx)
     {
         Scene2D WorldScene()
@@ -79,7 +80,7 @@ public static class TwoDBrowserStories
         ]);
     }
 
-    [Story("Examples/2D/Sprites", Width = 480, Height = 330, Order = 119, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget Sprites(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device) return Snapshot(ctx, Muted("GPU runtime required"));
@@ -115,7 +116,7 @@ public static class TwoDBrowserStories
         ]);
     }
 
-    [Story("Examples/2D/Rasterizer/InputPathsLive", Width = 520, Height = 300, Order = 200, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget InputPaths(StoryContext ctx) => Diagnostic(ctx, "open stroke / closed fill", scene =>
     {
         scene.BeginStroke(Color2D.Rgba(245, 158, 11), 7).MoveTo(26, 168).LineTo(96, 52).LineTo(168, 168).End();
@@ -123,7 +124,7 @@ public static class TwoDBrowserStories
         for (int i = 0; i < 3; i++) scene.FillCircle(Color2D.Rgba(248, 250, 252), 224 + i * 64, i == 1 ? 48 : 174, 5);
     });
 
-    [Story("Examples/2D/Rasterizer/EncodedSceneLive", Width = 520, Height = 300, Order = 201, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget EncodedScene(StoryContext ctx) => Diagnostic(ctx, "shape range → segment range", scene =>
     {
         uint[] colors = [Color2D.Rgba(59, 130, 246), Color2D.Rgba(34, 197, 94), Color2D.Rgba(239, 68, 68)];
@@ -135,14 +136,14 @@ public static class TwoDBrowserStories
         }
     });
 
-    [Story("Examples/2D/Rasterizer/BoundsLive", Width = 520, Height = 300, Order = 202, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget Bounds(StoryContext ctx) => Diagnostic(ctx, "geometry と screen-space bounds", scene =>
     {
         scene.BeginFill(Color2D.Rgba(59, 130, 246)).MoveTo(82, 38).CubicTo(210, 12, 116, 190, 312, 146).LineTo(248, 190).Close().End();
         scene.StrokeRoundedRect(Color2D.Rgba(239, 68, 68), 3, 79, 30, 238, 164, 2);
     });
 
-    [Story("Examples/2D/Rasterizer/TileBinsLive", Width = 520, Height = 300, Order = 203, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget TileBins(StoryContext ctx) => Diagnostic(ctx, "16×16 tile と primitive membership", scene =>
     {
         scene.FillCircle(Color2D.Rgba(59, 130, 246, 180), 180, 108, 72);
@@ -151,7 +152,7 @@ public static class TwoDBrowserStories
         for (int y = 20; y < 220; y += 32) scene.StrokeLine(Color2D.Rgba(148, 163, 184, 130), 1, 16, y, 400, y);
     });
 
-    [Story("Examples/2D/Rasterizer/CoverageLive", Width = 520, Height = 300, Order = 204, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget Coverage(StoryContext ctx) => Diagnostic(ctx, "EvenOdd coverage と 4×4 sample", scene =>
     {
         scene.BeginFill(Color2D.Rgba(59, 130, 246), FillRule.EvenOdd); AddCircle(scene, 132, 112, 78); AddCircle(scene, 132, 112, 38); scene.EndFill();
@@ -159,14 +160,14 @@ public static class TwoDBrowserStories
             scene.FillCircle(Color2D.Rgba(245, 158, 11), 272 + x * 28, 70 + y * 28, 4);
     });
 
-    [Story("Examples/2D/Rasterizer/StrokeLive", Width = 520, Height = 300, Order = 205, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget Stroke(StoryContext ctx) => Diagnostic(ctx, "stroke width と open/closed contour", scene =>
     {
         scene.BeginStroke(Color2D.Rgba(34, 197, 94), 12).MoveTo(28, 58).LineTo(156, 176).LineTo(264, 50).End();
         scene.BeginStroke(Color2D.Rgba(239, 68, 68), 5).MoveTo(290, 54).LineTo(382, 54).LineTo(382, 176).LineTo(290, 176).Close().End();
     });
 
-    [Story("Examples/2D/Rasterizer/CompositeLive", Width = 520, Height = 300, Order = 206, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget Composite(StoryContext ctx) => Diagnostic(ctx, "EvenOdd fill と painter-order source-over", scene =>
     {
         scene.BeginFill(Color2D.Rgba(59, 130, 246, 210), FillRule.EvenOdd);
@@ -177,7 +178,7 @@ public static class TwoDBrowserStories
         scene.FillRoundedRect(Color2D.Rgba(34, 197, 94, 180), 248, 72, 140, 94, 20);
     });
 
-    [Story("Examples/2D/Rasterizer/DispatchLive", Width = 520, Height = 300, Order = 207, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget Dispatch(StoryContext ctx) => Diagnostic(ctx, "bounds → bins → fine → composite", scene =>
     {
         uint[] colors = [Color2D.Rgba(59, 130, 246), Color2D.Rgba(245, 158, 11), Color2D.Rgba(34, 197, 94), Color2D.Rgba(168, 85, 247)];
@@ -189,7 +190,7 @@ public static class TwoDBrowserStories
         }
     });
 
-    [Story("Examples/2D/Rasterizer/RetainedUpdatesLive", Width = 520, Height = 330, Order = 209, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget RetainedUpdates(StoryContext ctx)
     {
         var canvas = new RetainedCanvas();

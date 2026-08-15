@@ -13,6 +13,7 @@ using Rg = Luxel.Graphics.RenderGraph.RenderGraph;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Browser-safe RenderGraph examples shared by native Gallery and the WebAssembly runtime.</summary>
+[StoryMeta("Examples/RenderGraph")]
 public static class BrowserRenderGraphStories
 {
     private const uint Width = 256;
@@ -33,8 +34,7 @@ public static class BrowserRenderGraphStories
     }
 
     /// <summary>UI pattern → separable blur → split composite. Runs in native Gallery and browser WebAssembly.</summary>
-    [Story("Examples/RenderGraph/Blur", Width = 320, Height = 320, Order = 130,
-        CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
+    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
     public static Widget Blur(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device || ctx.ScopedResourcesOrNull is not { } resources)

@@ -1,13 +1,18 @@
 using Luxel.UI;
 
+using static Luxel.Gallery.Story;
+
 namespace Luxel.Gallery.Stories;
 
 /// <summary>ECS state の保存境界と DevTools 向け diagnostics。</summary>
+[StoryMeta("Learn/ECS")]
 public static class LearnEcsPersistenceAndDiagnostics
 {
-    [Story("Learn/ECS/Persistence", Order = 7, Toc = true)]
+    [Story]
     public static StoryResult Persistence(StoryContext ctx) => $$"""
         # Persistence
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Persistence", "Intermediate", "Headless", "CPU / JSON", "ComponentsAndTags")}}
 
@@ -47,9 +52,11 @@ public static class LearnEcsPersistenceAndDiagnostics
         `WorldSave.CurrentVersion` は現在1です。loader は version を読み取りますが、v1 には migration chain がまだありません。schema を変えるときは古い JSON を新形式へ変換する処理を `Deserialize` の前段へ追加してください。
         """;
 
-    [Story("Learn/ECS/Diagnostics", Order = 8, Toc = true)]
+    [Story]
     public static StoryResult Diagnostics(StoryContext ctx) => $$"""
         # Diagnostics
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Diagnostics", "Intermediate", "Headless + DevTools", "CPU", "Queries、SystemsAndPhases")}}
 

@@ -6,9 +6,10 @@ using static Luxel.UI.Gallery.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Navigation state and the NavigationView shell.</summary>
+[StoryMeta("Navigation")]
 public static class NavigationStories
 {
-    [Story("Examples/UI/Navigation", Width = 680, Height = 380)]
+    [Story]
     public static Widget NavigationHistory(StoryContext ctx)
     {
         string[] paths = ["/", "/details", "/saved"];
@@ -28,7 +29,7 @@ public static class NavigationStories
             host]);
     }
 
-    [Story("Controls/NavigationView/Basic", Width = 760, Height = 440)]
+    [Story]
     public static Widget NavigationViewBasic(StoryContext ctx)
     {
         string[] paths = ["/", "/projects", "/settings", "/admin"];

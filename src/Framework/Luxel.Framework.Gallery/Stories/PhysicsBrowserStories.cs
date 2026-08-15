@@ -18,6 +18,7 @@ using Rg = Luxel.Graphics.RenderGraph.RenderGraph;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Browser-safe BepuPhysics samples shared by native Gallery and browser WebAssembly.</summary>
+[StoryMeta("Examples/3D")]
 public static class PhysicsBrowserStories
 {
     private const uint ViewWidth = 256;
@@ -47,7 +48,7 @@ public static class PhysicsBrowserStories
     }
 
     /// <summary>A deterministic box tower simulated by BepuPhysics and rendered from ECS extraction.</summary>
-    [Story("Examples/3D/PhysicsFalling", Width = 320, Height = 320, Order = 127, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget PhysicsFalling(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device)
@@ -73,8 +74,7 @@ public static class PhysicsBrowserStories
     ];
 
     /// <summary>Interactive gravity, bounciness, and deterministic reset controls.</summary>
-    [Story("Examples/3D/PhysicsPlayground", Width = 320, Height = 320, Order = 128,
-        CapabilityNote = BrowserNote, Args = nameof(PhysicsPlaygroundArgs))]
+    [Story(CapabilityNote = BrowserNote, Args = nameof(PhysicsPlaygroundArgs))]
     public static Widget PhysicsPlayground(StoryContext ctx)
     {
         Luxel.UI.Signal<float> gravity = ctx.Arg("gravity", 9.8f,
@@ -242,7 +242,7 @@ public static class PhysicsBrowserStories
     }
 
     /// <summary>Collider shapes and dynamic/static/CCD categories rendered as deterministic gizmos.</summary>
-    [Story("Examples/3D/PhysicsGizmos", Width = 520, Height = 360, Order = 129, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget PhysicsGizmosDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
         CanvasWidth, CanvasHeight, draw: scene =>
         {
@@ -266,7 +266,7 @@ public static class PhysicsBrowserStories
         })));
 
     /// <summary>A falling sphere crosses a trigger and records Begin/End contact events.</summary>
-    [Story("Examples/3D/PhysicsTrigger", Width = 520, Height = 360, Order = 130, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget PhysicsTriggerDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
         CanvasWidth, CanvasHeight, draw: scene =>
         {
@@ -292,7 +292,7 @@ public static class PhysicsBrowserStories
         })));
 
     /// <summary>Static triangle terrain, a primitive sphere, and a dynamic convex hull.</summary>
-    [Story("Examples/3D/PhysicsMesh", Width = 520, Height = 360, Order = 131, CapabilityNote = BrowserNote)]
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget PhysicsMeshDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
         CanvasWidth, CanvasHeight, draw: scene =>
         {

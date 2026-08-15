@@ -104,6 +104,37 @@ public sealed class UiRenderingTests
     }
 
     [Fact]
+    public void DirtyPublishedPresentationTargetIsRasterizedAgainInPlace()
+    {
+        using var canvas = new RetainedCanvas();
+        var registry = new RenderFeatureSetStateRegistry();
+        using var source = new RenderFeatureSetInvalidationSource(RenderFeatureSets.PresentUi, registry);
+        using var output = new PersistentUiOutput<GpuBuffer>();
+        GpuBuffer target = (GpuBuffer)RuntimeHelpers.GetUninitializedObject(typeof(GpuBuffer));
+        int rasterPasses = 0;
+        using var surface = new UiSurfaceState(
+            "present", UiSurfaceRole.Present, canvas, output, source,
+            _ => { }, (graph, _) =>
+            {
+                rasterPasses++;
+                graph.AddPass("present-ui").SideEffect().Execute(_ => { });
+            });
+
+        surface.StagePending(target);
+        using (var graph = new RenderGraph()) Assert.True(surface.AddPasses(graph));
+        surface.CompleteBatch(succeeded: true);
+
+        canvas.Root.Touch();
+        surface.ObserveChanges();
+        using (var graph = new RenderGraph()) Assert.True(surface.AddPasses(graph));
+        surface.CompleteBatch(succeeded: true);
+
+        Assert.Equal(2, rasterPasses);
+        Assert.Same(target, output.Current);
+        Assert.False(surface.IsDirty);
+    }
+
+    [Fact]
     public void LogicalTickContinuesWhileSurfaceIsCleanAndRasterIsThrottled()
     {
         using var canvas = new RetainedCanvas();
@@ -154,6 +185,42 @@ public sealed class UiRenderingTests
 
         Assert.Same(current, output.Current);
         Assert.True(surface.IsDirty);
+    }
+
+    [Fact]
+    public void CompositedFeatureRendersNestedContentBeforePresentSurface()
+    {
+        using var renderer = new UiRendererState();
+        using var presentCanvas = new RetainedCanvas();
+        using var contentCanvas = new RetainedCanvas();
+        using var nestedCanvas = new RetainedCanvas();
+        using var presentOutput = new PersistentUiOutput<GpuBuffer>();
+        using var contentOutput = new PersistentUiOutput<GpuBuffer>();
+        using var nestedOutput = new PersistentUiOutput<GpuBuffer>();
+        GpuBuffer buffer = (GpuBuffer)RuntimeHelpers.GetUninitializedObject(typeof(GpuBuffer));
+        presentOutput.Stage(buffer);
+        contentOutput.Stage(buffer);
+        nestedOutput.Stage(buffer);
+        var order = new List<string>();
+        using var present = new UiSurfaceState("present", UiSurfaceRole.Present, presentCanvas, presentOutput,
+            renderer.CreateInvalidationSource(UiSurfaceRole.Present), _ => { },
+            (graph, _) => { order.Add("present"); graph.AddPass("present").SideEffect().Execute(_ => { }); });
+        using var content = new UiSurfaceState("content", UiSurfaceRole.Content, contentCanvas, contentOutput,
+            renderer.CreateInvalidationSource(UiSurfaceRole.Content), _ => { },
+            (graph, _) => { order.Add("content"); graph.AddPass("content").SideEffect().Execute(_ => { }); });
+        using var nested = new UiSurfaceState("nested", UiSurfaceRole.Content, nestedCanvas, nestedOutput,
+            renderer.CreateInvalidationSource(UiSurfaceRole.Content), _ => { },
+            (graph, _) => { order.Add("nested"); graph.AddPass("nested").SideEffect().Execute(_ => { }); });
+        renderer.Add(present);
+        renderer.Add(content);
+        renderer.Add(nested);
+
+        var feature = new CompositedUiRenderFeature(renderer);
+        using var graph = new RenderGraph();
+        feature.AddPasses(new RenderFeatureContext(graph));
+        feature.CompleteBatch(succeeded: true);
+
+        Assert.Equal(["nested", "content", "present"], order);
     }
 
     private static void AssertGenerationAdvanced(RetainedCanvas canvas, ref ulong previous)

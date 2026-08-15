@@ -13,9 +13,10 @@ namespace Luxel.Gallery.Stories;
 /// プレイヤー (箱) は壁へ右移動する意図量 (アウトライン) と <see cref="TileMap.Sweep"/> で切り詰めた解決位置
 /// (塗り) を並べ、AABB グリッド衝突が壁の手前で止めるのを可視化する。アトラスは手続き生成 (決定的)。
 /// </summary>
+[StoryMeta("Examples/2D")]
 public static class TilemapStories
 {
-    [Story("Examples/2D/Tilemap", Height = 260, Order = 120)]
+    [Story]
     public static Widget Tilemap(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(384, 192, new TilemapScene(), animated: false)));
 
     private sealed class TilemapScene : GpuSceneBase

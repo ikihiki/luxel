@@ -13,11 +13,12 @@ namespace Luxel.Gallery.Stories;
 /// <c>AddAnimation</c> Tick で駆動する (ゲームの ECS system 呼び出しに対する UI 埋め込み版)。
 /// play は固定シード + 固定 dt で <c>Step</c> → <c>Snap</c> なので golden 決定的。
 /// </summary>
+[StoryMeta("Examples/2D")]
 public static class ParticleViewStories
 {
     private const float VW = 360, VH = 168;
 
-    [Story("Examples/2D/ParticleView", Height = 240, Order = 122)]
+    [Story]
     public static Widget View(StoryContext ctx)
     {
         var cfg = new ParticleConfig(

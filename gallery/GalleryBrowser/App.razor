@@ -175,17 +175,6 @@ else
                             }
                             else
                             {
-                                @if (_sampleBundle is not null)
-                                {
-                                    <div class="source-context">
-                                        <strong>このサンプルを実行 · @_sampleBundle.CopyLevel</strong>
-                                        @if (!string.IsNullOrWhiteSpace(_sampleBundle.RunCommand))
-                                        {
-                                            <code>@_sampleBundle.RunCommand</code>
-                                        }
-                                        <span>@string.Join(" · ", _sampleBundle.Files.Select(file => file.Path))</span>
-                                    </div>
-                                }
                                 <pre class="story-source"><code>@SourceText()</code></pre>
                             }
                         </div>
@@ -211,7 +200,6 @@ else
     private string _runtimeSummary = "Storyランタイムを待機しています。";
     private int _revision;
     private StoryInfo _story = null!;
-    private SampleBundleInfo? _sampleBundle;
     private IReadOnlyList<StoryArgDefinition> _argDefinitions = Array.Empty<StoryArgDefinition>();
     private Dictionary<string, JsonElement> _argValues = new(StringComparer.Ordinal);
     private readonly List<OutputEntry> _output = [];
@@ -283,7 +271,6 @@ else
         StoryArgs canonicalArgs = StoryArgs.Parse(_argsJson).WithDefaults(_argDefinitions);
         _argValues = canonicalArgs.Values.ToDictionary(pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
         _argsJson = canonicalArgs.ToJson();
-        _sampleBundle = SampleBundleRegistry.Find(_story.SampleBundle);
         _runtimeInstance = Guid.NewGuid().ToString("N");
         _revision = 0;
         _runtimeState = "loading";
@@ -388,7 +375,7 @@ else
             using var context = new StoryContext(args: args);
             context.SetServices(Services);
             StoryResult result = story.BuildResult(context);
-            return result.Kind == StoryResultKind.Markdown && result.Embeds.Count == 0
+            return result.Kind == StoryResultKind.Markdown
                 ? GalleryMarkdownHtml.Render(story, result)
                 : null;
         }
@@ -472,10 +459,7 @@ else
         _ => kind,
     };
     private string RuntimeStateLabel() => _runtimeState switch { "pass" => "準備完了", "fail" => "失敗", _ => "読み込み中" };
-    private string SourceText() => !string.IsNullOrWhiteSpace(_story.Source) ? _story.Source
-        : _sampleBundle is null
-            ? "ソースを表示できません。Galleryハーネスが必要で、単独実行用のサンプルバンドルは登録されていません。"
-            : $"ソースを表示できません。このサンプルを実行してください（{_sampleBundle.CopyLevel}）：{_sampleBundle.RunCommand}";
+    private string SourceText() => !string.IsNullOrWhiteSpace(_story.Source) ? _story.Source : "ソースを表示できません。";
     private static string MessageErrors(JsonElement message) => message.TryGetProperty("errors", out JsonElement errors)
         ? string.Join("\n", errors.EnumerateArray().Select(error => error.GetString() ?? error.GetRawText()))
         : "引数の更新に失敗しました。";

@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0003-Declarative-Signal-Ui", Order = 74, Toc = true)]
+    [Story]
     public static StoryResult Adr0003(StoryContext ctx) => $$"""
         # ADR-0003 — UI は「宣言的 C# DSL + signals」を自作する
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-08 (記録日 — 決定自体は UI 層の着手時)
@@ -17,7 +21,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        Luxel は自前の GPU 抽象 ([ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction)) と保持型 2D 層 (RetainedCanvas) の上に UI 層を必要としていました。要件と力学:
+        Luxel は自前の GPU 抽象 ([ADR-0002](story:Internals/ADR/Adr0002)) と保持型 2D 層 (RetainedCanvas) の上に UI 層を必要としていました。要件と力学:
 
         - **描画先が自前** — 描画は RetainedCanvas の部分更新に落としたい。既存 UI フレームワークは自分のレンダラ (Skia / Direct2D / 合成ツリー) を前提にしており、そのまま載らない
         - **エンジンとの一体性** — docs・Gallery・ゲーム内 UI・ツール (DevTools) まで全部この UI で書く (ドッグフーディング)。エンジンの Signal/アニメーション/リソース系と反応系を共有したい

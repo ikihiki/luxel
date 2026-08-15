@@ -155,8 +155,9 @@ public sealed class UiSurfaceState : IDisposable
         if (_batchPending || !IsDirty) return false;
         if (Output.Pending is null)
         {
-            if (_createPending is null) return false;
-            Output.Stage(_createPending());
+            if (_createPending is not null) Output.Stage(_createPending());
+            else if (Output.Current is { } current) Output.Stage(current);
+            else return false;
         }
 
         _pendingCanvasGeneration = Canvas.ChangeGeneration;
@@ -268,3 +269,27 @@ public abstract class UiRenderFeature(UiRendererState rendererState, UiSurfaceRo
 public sealed class UiContentRenderFeature(UiRendererState state) : UiRenderFeature(state, UiSurfaceRole.Content);
 public sealed class WorldUiRenderFeature(UiRendererState state) : UiRenderFeature(state, UiSurfaceRole.World);
 public sealed class PresentUiRenderFeature(UiRendererState state) : UiRenderFeature(state, UiSurfaceRole.Present);
+
+/// <summary>
+/// UI-only window composition: render nested content surfaces first, then the window's present surface.
+/// Content surfaces are visited newest-first so nested SurfaceViews publish before their parent surface samples them.
+/// </summary>
+public sealed class CompositedUiRenderFeature(UiRendererState rendererState) : IRenderFeature, IRenderFeatureBatchObserver
+{
+    private readonly List<UiSurfaceState> _batch = [];
+
+    public void AddPasses(RenderFeatureContext context)
+    {
+        _batch.Clear();
+        foreach (UiSurfaceState surface in rendererState.Surfaces
+                     .Where(surface => surface.Role == UiSurfaceRole.Content).Reverse()
+                     .Concat(rendererState.Surfaces.Where(surface => surface.Role == UiSurfaceRole.Present)))
+            if (surface.AddPasses(context.Graph)) _batch.Add(surface);
+    }
+
+    public void CompleteBatch(bool succeeded)
+    {
+        foreach (UiSurfaceState surface in _batch) surface.CompleteBatch(succeeded);
+        _batch.Clear();
+    }
+}

@@ -8,6 +8,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Workbench × 実ファイル (ToDo 26 WS-D の D2) — AssetBrowser → IDocumentStore.Open →
 /// タブで編集 → Ctrl+S で保存 → 外部変更の検知と再読込。ファイル IO は IFileStorage
 /// (デモは MemoryFileStorage、実機は PhysicalFileStorage に差し替えるだけ)。</summary>
+[StoryMeta("Examples/Workbench")]
 public static class WorkbenchFilesStory
 {
     private sealed class TextProvider(string kind, Func<Signal<string>, TextEditorView> viewFactory) : IDocumentProvider
@@ -42,7 +43,7 @@ public static class WorkbenchFilesStory
         _ => "text",
     };
 
-    [Story("Examples/Workbench/Files", Height = 470)]
+    [Story]
     public static Widget Files(StoryContext ctx)
     {
         // ---- ストレージ (デモはメモリ — 決定的。実機は PhysicalFileStorage) ----

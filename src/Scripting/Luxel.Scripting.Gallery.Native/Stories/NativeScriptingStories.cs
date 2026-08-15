@@ -6,9 +6,10 @@ using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 
+[StoryMeta("Examples/Scripting")]
 public static class NativeScriptingStories
 {
-    [Story("Examples/Scripting/Repl", Height = 460, Order = 2033)]
+    [Story]
     public static Widget Repl(StoryContext ctx, ScriptHost host)
     {
         var repl = new ReplConsole(460, host, new ScriptGlobals { Ctx = ctx });

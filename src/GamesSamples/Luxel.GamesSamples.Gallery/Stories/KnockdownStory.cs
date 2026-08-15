@@ -23,9 +23,10 @@ namespace Luxel.Gallery.Stories;
 /// 操作: ドラッグ = カメラ軌道、クリック = 弾を発射 (最初のクリックでシミュレーション開始)。
 /// 初期状態は物理を止めた静止タワー = snap 決定的。
 /// </summary>
+[StoryMeta("Apps/Game")]
 public static class KnockdownStories
 {
-    [Story("Apps/Game/Knockdown3D", Width = 520, Height = 420, Order = 148)]
+    [Story]
     public static Widget Knockdown(StoryContext ctx)
         => ctx.Snap(VStack(8)[
             new StoryAppView<KnockdownScene>(KnockdownScene.W, KnockdownScene.H, (s, bctx) =>

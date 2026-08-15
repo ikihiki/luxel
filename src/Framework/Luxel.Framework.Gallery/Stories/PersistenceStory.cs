@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Friflo.Engine.ECS;
 using Luxel.Ecs;
 using Luxel.Settings;
@@ -13,12 +13,13 @@ namespace Luxel.Gallery.Stories;
 /// **永続化デモ** — ゲーム状態のセーブ/ロード (<see cref="WorldSave"/>) と設定ストア (<see cref="SettingsStore"/>)。
 /// どちらも実物の API を決定的に (wall-clock 非依存) 動かして snap する。
 /// </summary>
+[StoryMeta("Examples/Framework")]
 public static class PersistenceStories
 {
     private const float CW = 460, RowH = 56, Box = 22;
 
     /// <summary>セーブ → 箱を動かす → ロードで元に戻る、を 3 行で見せる (① と ③ が一致)。</summary>
-    [Story("Examples/Framework/SaveLoad", Height = 300, Order = 151)]
+    [Story]
     public static Widget SaveLoad(StoryContext ctx)
     {
         float[] start = { 40, 140, 240, 340 };
@@ -48,7 +49,7 @@ public static class PersistenceStories
     }
 
     /// <summary>設定は SettingsStore の Signal に直結 — 保存済みの値 (0.65 / on) が Slider/Switch に反映される。</summary>
-    [Story("Examples/Framework/Settings", Height = 220, Order = 152)]
+    [Story]
     public static Widget Settings(StoryContext ctx)
     {
         var files = new InMemoryFileStore();

@@ -8,9 +8,10 @@ using static Luxel.Gallery.Stories.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 
+[StoryMeta("Examples/Animation")]
 public static class TransitionStories
 {
-    [Story("Examples/Animation/Transitions", Height = 200)]
+    [Story]
     public static Widget TransitionStates(StoryContext ctx) => ctx.Snap(Frame(
         Button(_ => ctx.Log("click"), "Hover / Press",
                 background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 200, height: 64)

@@ -1,13 +1,18 @@
 using Luxel.UI;
 
+using static Luxel.Gallery.Story;
+
 namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>CPU asset modelとGPU manager integrationを学ぶコース。</summary>
+[StoryMeta("Learn/Resources/Assets")]
 public static class LearnResourceAssets
 {
-    [Story("Learn/Resources/Assets/Overview", Order = 11, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # アセットの概要
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/Overview", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -22,9 +27,11 @@ public static class LearnResourceAssets
         ```
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/Overview"][0]));
 
-    [Story("Learn/Resources/Assets/DocumentAndSceneGraph", Order = 12, Toc = true)]
+    [Story]
     public static StoryResult DocumentAndSceneGraph(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # AssetDocumentとシーングラフ
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/DocumentAndSceneGraph", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -43,9 +50,11 @@ public static class LearnResourceAssets
         ```
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/DocumentAndSceneGraph"][0]));
 
-    [Story("Learn/Resources/Assets/MeshesAndPrimitives", Order = 13, Toc = true)]
+    [Story]
     public static StoryResult MeshesAndPrimitives(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # メッシュとプリミティブ
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/MeshesAndPrimitives", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -56,9 +65,11 @@ public static class LearnResourceAssets
         ```
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/MeshesAndPrimitives"][0]));
 
-    [Story("Learn/Resources/Assets/MaterialsTexturesAndSamplers", Order = 14, Toc = true)]
+    [Story]
     public static StoryResult MaterialsTexturesAndSamplers(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # マテリアル、テクスチャ、サンプラー
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/MaterialsTexturesAndSamplers", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -69,9 +80,11 @@ public static class LearnResourceAssets
         ```
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/MaterialsTexturesAndSamplers"][0]));
 
-    [Story("Learn/Resources/Assets/AnimationSkinCameraAndLight", Order = 15, Toc = true)]
+    [Story]
     public static StoryResult AnimationSkinCameraAndLight(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # アニメーション、スキン、カメラ、ライト
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/AnimationSkinCameraAndLight", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -82,9 +95,11 @@ public static class LearnResourceAssets
         ```
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/AnimationSkinCameraAndLight"][0]));
 
-    [Story("Learn/Resources/Assets/LoadingAndGpu", Order = 16, Toc = true)]
+    [Story]
     public static StoryResult LoadingAndGpu(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # アセットとGPU manager
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/LoadingAndGpu", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -106,9 +121,11 @@ public static class LearnResourceAssets
         GPU package surfaceはdevice generationとGraphics lifecycleへ結び付きます。CPU handleとGPU handleは独立したleaseです。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/LoadingAndGpu"][0]));
 
-    [Story("Learn/Resources/Assets/CustomGpuResourceTypes", Order = 17, Toc = true)]
+    [Story]
     public static StoryResult CustomGpuResourceTypes(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Custom GPU resource types
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/CustomGpuResourceTypes", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -129,9 +146,11 @@ public static class LearnResourceAssets
         logical identityは`ResourceHandle<ParticleBuffer>`が維持し、物理allocationとdevice generationはmanager recordに保存します。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/CustomGpuResourceTypes"][0]));
 
-    [Story("Learn/Resources/Assets/GpuMemoryAndIndexes", Order = 18, Toc = true)]
+    [Story]
     public static StoryResult GpuMemoryAndIndexes(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # GPU memoryとindex
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/GpuMemoryAndIndexes", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -144,9 +163,11 @@ public static class LearnResourceAssets
         compactionはstable logical handleを保ち、allocationとdescriptorを移動してmanagement recordを更新します。snapshotはbudget pressure、pending retirement、index使用率、relocation件数を診断画面へ公開します。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/GpuMemoryAndIndexes"][0]));
 
-    [Story("Learn/Resources/Assets/DeviceLossAndRecovery", Order = 19, Toc = true)]
+    [Story]
     public static StoryResult DeviceLossAndRecovery(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # Device lossとrecovery
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/DeviceLossAndRecovery", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 
@@ -159,9 +180,11 @@ public static class LearnResourceAssets
         owned deviceはcoordinatorがshutdownし、borrowed deviceはhost ownerが管理します。CPU documentとlast-good診断は維持され、GPU generationがreadyになった時点でpublicationされます。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/DeviceLossAndRecovery"][0]));
 
-    [Story("Learn/Resources/Assets/ShaderAbi", Order = 20, Toc = true)]
+    [Story]
     public static StoryResult ShaderAbi(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # アセットのシェーダーABI
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Assets/ShaderAbi", "中級", "Tools / Runtime / GPU", "Resources + Assets", "前章")}}
 

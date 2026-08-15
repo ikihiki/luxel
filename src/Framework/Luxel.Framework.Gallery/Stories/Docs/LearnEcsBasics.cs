@@ -1,14 +1,18 @@
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.Story;
+using static Luxel.Gallery.DocKit.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>ECS の基礎を World から phase 実行まで段階的に説明する。</summary>
+[StoryMeta("Learn/ECS")]
 public static class LearnEcsBasics
 {
-    [Story("Learn/ECS/Overview", Order = 0, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
         # ECS 学習ガイド
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Overview", "Beginner", "Headless + Gallery", "CPU / Friflo ECS", "C# の struct と generics")}}
 
@@ -44,12 +48,13 @@ public static class LearnEcsBasics
 
         ECS、Physics、asset、GPU 抽出を統合した例は Advanced の capstone です。基礎ページを終えてから参照してください。
 
-        {{SampleBundle("game.range")}}
         """;
 
-    [Story("Learn/ECS/WorldAndEntities", Order = 1, Toc = true)]
+    [Story]
     public static StoryResult WorldAndEntities(StoryContext ctx) => $$"""
         # World と Entity
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/WorldAndEntities", "Beginner", "Headless", "CPU / Friflo ECS", "Overview")}}
 
@@ -94,9 +99,11 @@ public static class LearnEcsBasics
         - ECS entity の寿命と外部 resource の寿命を同じだと思い込む。
         """;
 
-    [Story("Learn/ECS/ComponentsAndTags", Order = 2, Toc = true)]
+    [Story]
     public static StoryResult ComponentsAndTags(StoryContext ctx) => $$"""
         # Component と Tag
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/ComponentsAndTags", "Beginner", "Headless", "CPU / Friflo ECS", "WorldAndEntities")}}
 
@@ -139,9 +146,11 @@ public static class LearnEcsBasics
         - render resource の handle を永続データとして保存する。
         """;
 
-    [Story("Learn/ECS/Queries", Order = 3, Toc = true)]
+    [Story]
     public static StoryResult Queries(StoryContext ctx) => $$"""
         # Query
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Queries", "Beginner", "Headless", "CPU / Friflo ECS", "ComponentsAndTags")}}
 
@@ -187,9 +196,11 @@ public static class LearnEcsBasics
         {{StoryRef(ctx, "Examples/3D/EcsCubes")}}
         """;
 
-    [Story("Learn/ECS/SystemsAndPhases", Order = 4, Toc = true)]
+    [Story]
     public static StoryResult SystemsAndPhases(StoryContext ctx) => $$"""
         # System と Phase
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/SystemsAndPhases", "Beginner", "Headless + Frame loop", "CPU / Friflo ECS", "Queries")}}
 

@@ -7,12 +7,13 @@ using static Luxel.Gallery.Stories.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>同じScene2DをGPU/Skiaへ渡し、どちらもGpuView内に表示するbackend比較。</summary>
+[StoryMeta("Examples/2D")]
 public static class TwoDBackendStories
 {
     private const uint Width = 256;
     private const uint Height = 160;
 
-    [Story("Examples/2D/Backends", Width = 560, Height = 250, Order = 120)]
+    [Story]
     public static Widget Backends(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device)

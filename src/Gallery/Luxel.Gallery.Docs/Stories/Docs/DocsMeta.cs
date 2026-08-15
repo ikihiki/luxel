@@ -1,20 +1,22 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.Story;
+using static Luxel.Gallery.DocKit.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>docs — メタ章 (Gallery 自体の使い方・docs の書き方・貢献者向け)。
 /// ページは $$""" (hole = 波かっこ 2 連)。Authoring だけは hole 記法 (2 連) を文章として
 /// 見せるため $$$ (hole = 3 連)。本文に """ を含むページは引用符 4 連。</summary>
+[StoryMeta("Internals")]
 public static class DocsMeta
 {
     private const string SampleImage = "src/Gallery/Luxel.Gallery/assets/sample-sparkline.png";
 
     private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
-    [Story("Internals/Authoring", Order = 91)]
+    [Story]
     public static StoryResult Authoring(StoryContext ctx)
     {
         // snap (静定 1 フレーム) の決定性のため画像を同期 preload — 実アプリでは不要
@@ -37,22 +39,30 @@ public static class DocsMeta
 
             ## ページの骨格
 
-            `[Story("Internals/...")]` + `Kit.Docs` + `WithDocFonts` (日本語/絵文字フォールバック + シンタックスハイライト + mermaid/math widget の配線) が定型です。文字列は `$$"""` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
+            クラスの `[StoryMeta("Internals")]` + メソッドの `[Story]` が定型です。文字列は `$$"""` (hole = 波かっこ 2 連) にすると、C# コード例の波かっこ 1 連がそのままリテラルになります:
 
             ```csharp
-            [Story("Internals/MyPage", Order = 50, Toc = true)]
-            public static StoryResult MyPage(StoryContext ctx) => $$"""
-                # 見出し
+            using static Luxel.Gallery.Story;
 
-                本文。hole にはライブ UI が置けます: {{Button(_ => ctx.Log("hi"), "押す")}}
+            [StoryMeta("Internals")]
+            public static class MyStories
+            {
+                [Story]
+                public static StoryResult MyPage(StoryContext ctx) => $$"""
+                    # 見出し
 
-                コード例の波かっこはリテラルです: new Args { Count = n }
+                    {{Toc()}}
 
-                {{StoryRef(ctx, "Controls/Button/Variants", knobs: true)}}
-                """;
+                    本文。hole にはライブ UI が置けます: {{Button(_ => ctx.Log("hi"), "押す")}}
+
+                    コード例の波かっこはリテラルです: new Args { Count = n }
+
+                    {{StoryRef("Controls/ButtonVariants", knobs: true)}}
+                    """;
+            }
             ```
 
-            `Order` がサイドバーの並び、`toc: true` で H2/H3 の目次が H1 直後に入ります。ページの H2/H3 はサイドバーのツリーにも出るので、節の粒度 = ナビゲーションの粒度です。
+            パスは `StoryMeta.title + "/" + 関数名` です。`Toc()` を書いた位置に H2/H3 の目次が入ります。
 
             ## ライブ UI
 
@@ -64,11 +74,11 @@ public static class DocsMeta
 
             ## 埋め込み + Knobs
 
-            `StoryRef(ctx, path, knobs: true)` でストーリーの下に **Knobs テーブル** (autodoc の Controls 相当) が付きます。操作列を編集すると上の描画が変わります:
+            `StoryRef(path, knobs: true)` でストーリーの下に **Knobs テーブル** (autodoc の Controls 相当) が付きます。`using static Luxel.Gallery.Story;` で導入し、Blazor とネイティブで同じ参照形式を使います:
 
-            {{{StoryRef(ctx, "Examples/2D/Orbit", knobs: true)}}}
+            {{{StoryRef("Examples/Orbit", knobs: true)}}}
 
-            `StorySource(path)` はジェネレーターが公開する **完全な `[Story]` method宣言** (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の **Source** タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helperは含めず、取得したmethod宣言をそのまま表示します。別fileやshaderを含む実行可能sampleを教材の正にする場合は、build時に埋め込んだ実file/regionを表示する`SampleSource(path, region)`を使います。コントロール個別ページでは `DocsApi.ControlApiReference("Button")` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
+            `StorySource(path)` はジェネレーターが公開する **完全な `[Story]` method宣言** (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の **Source** タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helperは含めず、取得したmethod宣言をそのまま表示します。コントロール個別ページでは `DocsApi.ControlApiReference("Button")` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
 
             ## 書けるもの
 
@@ -113,7 +123,7 @@ public static class DocsMeta
         return doc;
     }
 
-    [Story("Internals/Gallery", Order = 90)]
+    [Story]
     public static StoryResult Gallery(StoryContext ctx) => $$"""
         # Gallery — ストーリーの書き方
 
@@ -122,25 +132,26 @@ public static class DocsMeta
         ## [Story] 属性とレジストリ
 
         ```csharp
+        [StoryMeta("Controls")]
         public static class ButtonStories
         {
-            [Story("Controls/Button/Primary", Height = 160)]
-            public static Widget Primary() => Frame(Button(_ => { }, "OK"));
+            [Story]
+            public static Widget ButtonPrimary() => Frame(Button(_ => { }, "OK"));
 
             // signal が要るときは StoryContext から — ctx.Signal(...) は自動で knob になる
-            [Story("Controls/CheckBox/Basic", Height = 160, Toc = true)]
-            public static Widget Check(StoryContext ctx)
+            [Story]
+            public static Widget CheckBasic(StoryContext ctx)
                 => Frame(Check(ctx.Signal("checked", false), "Subscribe"));
         }
         ```
 
-        - パスは**スラッシュ区切りの階層** (本家 Storybook の title 相当、深さ任意) — `"章/コンポーネント/ストーリー名"`。サイドバーはこれをそのまま木にします (章: Docs / Reference / Controls / Demos / Apps / RealWindow)。`Width`/`Height` (既定 480×320 — **両方省略するとプレビュー領域いっぱい (fill)**。docs ページはこれで、全画面モードではメイン全面に、snap では 800×480 固定で描かれます)、`Theme` ("light"/"dark")、`Order` (並び順 — Docs 0〜 / デモ 100〜 / コントロール既定 1000 / 機能デモ 2000〜)
+        - `[StoryMeta("章/コンポーネント")]` が本家 Storybook の `title`、関数名がストーリー名です。サイドバーは `title + "/" + 関数名` をそのまま木にし、自然順で並べます。プレビューは常に利用可能領域いっぱいです
         - 署名は `static Widget M()` か `static Widget M(StoryContext ctx)`
         - 収集は**ソースジェネレーター** (reflection なし) — `[Story]` を走査して module initializer で `StoryRegistry.Register` を焼き込み、**完全なmethod宣言の C# ソース**も `StoryInfo.Source` に保存します
 
         ## Sourceビュー
 
-        通常のstoryは下部Dockの **Source** タブで、属性・signature・本体を含む `[Story]` method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ **Story source** に同じ内容が入ります。Sourceは取得したmethod宣言を加工せずに表示します。別fileやshaderを含む完全な実file/regionを教材にするときは `SampleSource(path, region)` を使います。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。
+        通常のstoryは下部Dockの **Source** タブで、属性・signature・本体を含む `[Story]` method宣言を読み取り専用・行番号・C#ハイライト付きで確認できます。静的Galleryでは各story末尾の折りたたみ **Story source** に同じ内容が入ります。Sourceは取得したmethod宣言を加工せずに表示します。Reference/Overviewなどproviderが実行時登録するstoryには対応するmethodがなく、Source unavailableになる場合があります。
 
         ## StoryContext — ホスト設備の窓口
 
@@ -162,11 +173,11 @@ public static class DocsMeta
 
         ## 実窓専用ストーリー
 
-        音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は `[Story("RealWindow/Audio/Tone", RealWindowOnly = true)]` にします — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。実例は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)。
+        音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は、`[StoryMeta("RealWindow/Audio")]` のクラスで `[Story(RealWindowOnly = true)]` を関数に付けます — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。
 
         ## パスと章
 
-        ストーリーパスは **ID** (golden ファイル名・`story:` リンク・E2E 参照) であると同時に、本家 Storybook の title と同じく**サイドバーの階層そのもの**です — 表示用の別マップはありません。章はパスの先頭セグメント (Docs / Reference / Controls / Demos / Apps / RealWindow)。整理・改名はパスを変えて golden を `git mv` で追従させます (ピクセルはパス非依存 — 再撮影が要るのは、パス文字列を **リンク/StoryRef の見出しとして描画している他ページ** だけ)。
+        ストーリーパスは **ID** (golden ファイル名・`story:` リンク・E2E 参照) であると同時に、`StoryMeta.title + "/" + 関数名` です。整理・改名では title または関数名を変更し、参照を追従させます。
 
         ## 実行モード
 
@@ -179,9 +190,11 @@ public static class DocsMeta
         実窓は `Ctrl+D` でテーマ切替、ツールバーの「全画面」でプレビューをメイン全面に。サイドバーの検索欄は docs 本文の全文検索です。docs ページの書き方は [Internals/Authoring](story:Internals/Authoring) へ。
         """;
 
-    [Story("Internals/Contributing", Order = 92, Toc = true)]
+    [Story]
     public static StoryResult Contributing(StoryContext ctx) => $$"""
         # 貢献者向け — ビルド・テスト・回帰ゲート
+
+        {{Toc()}}
 
         ## ビルドとツール (tools/)
 
@@ -207,9 +220,9 @@ public static class DocsMeta
         ## bench — canvas 更新コストの回帰ゲート
 
         ```powershell
-        dotnet run --project gallery/GalleryNative -- vk bench "Examples/2D/Orbit" 300
+        dotnet run --project gallery/GalleryNative -- vk bench "Examples/Orbit" 300
         dotnet run --project gallery/GalleryNative -- vk bench "Controls/TextEditorView/Basic" 300 --type
-        dotnet run --project gallery/GalleryNative -- vk bench "Controls/ListView/Huge" 300 --wheel 1
+        dotnet run --project gallery/GalleryNative -- vk bench "Controls/ListViewHuge" 300 --wheel 1
         ```
 
         フル再構築回数 / 再構築 CPU / アップロードバイト / マネージド確保を区間計測します。期待値 (増分更新の回帰ゲート): **ライブ波形の再生 = フル再構築 0**、エディタのタイプ連打 = 再構築 ~3% (ブロック増減時のみ)、仮想化リストのスクロール = 再構築 0。

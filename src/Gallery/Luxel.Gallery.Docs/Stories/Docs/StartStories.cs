@@ -1,14 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
+[StoryMeta("Start")]
 public static class StartStories
 {
-    [Story("Start/Welcome", Order = 0, Toc = true)]
+    [Story]
     public static StoryResult Welcome(StoryContext ctx) => $$"""
         # Luxel Gallery — 見て、コピーして、アプリを作る
+
+        {{Toc()}}
 
         Gallery は動く教科書です。説明を読んだら preview を操作し、**検証済み Sample Bundle** の実ファイルをコピーしてください。
 
@@ -16,7 +21,7 @@ public static class StartStories
 
         - **GPU が初めて** — [Graphics](story:Learn/Graphics/Overview) で window、device、surface、三角形まで進む
         - **3D アプリを作る** — Indexed Cube と 3D Camera を組み合わせる
-        - **2D を描画する** — [2D](story:Learn/Graphics/2D/Overview) で path、色、画像、camera transform を使う
+        - **2D を描画する** — [2D](story:Learn/Graphics/First2DScene) で path、色、画像、camera transform を使う
         - **複数passを構成する** — [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) でresource、依存、culling、aliasingを順に学ぶ
         - **Input / Audio / Resources** — [Input](story:Learn/Input/Overview)、[Audio](story:Learn/Audio/Overview)、[Resources](story:Learn/Resources/Overview)でapp runtimeを組む
         - **値・clip・effectを動かす** — [Animation](story:Learn/Animation/Overview)から始め、短命なvisual effectは[Particles](story:Learn/Animation/Particles/Overview)へ進む
@@ -33,24 +38,28 @@ public static class StartStories
         次に [自分のルートを選ぶ](story:Start/ChooseYourPath) か、[Gallery の使い方](story:Start/GalleryGuide) を開いてください。
         """;
 
-    [Story("Start/ChooseYourPath", Order = 1, Toc = true)]
+    [Story]
     public static StoryResult ChooseYourPath(StoryContext ctx) => $$"""
         # 自分のルートを選ぶ
+
+        {{Toc()}}
 
         | 目的 | 開始ページ | 到達物 |
         |---|---|---|
         | 最初の GPU アプリ | [Graphics](story:Learn/Graphics/Overview) | standalone triangle |
         | 実用 3D | Indexed Cube | indexed mesh + perspective camera |
-        | 2D canvas | [2D](story:Learn/Graphics/2D/Overview) | 2D content を構築して描画できる |
+        | 2D canvas | [2D](story:Learn/Graphics/First2DScene) | 2D content を構築して描画できる |
         | 複数pass GPU描画 | [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) | transient resource、自動barrier、culling、aliasing |
         | 実装読解 | [Internal](story:Learn/Graphics/2D/Internal/Overview) | C# から compute pass まで説明できる |
 
         初心者は Graphics 直下のページを順番に進めてください。各ページ末尾の「次」を辿れば前提を飛ばしません。
         """;
 
-    [Story("Start/GalleryGuide", Order = 2, Toc = true)]
+    [Story]
     public static StoryResult GalleryGuide(StoryContext ctx) => $$"""
         # Gallery の使い方
+
+        {{Toc()}}
 
         1. **Learn** で概念を順番に学ぶ
         2. **Build** でコピー可能な block と recipe を探す

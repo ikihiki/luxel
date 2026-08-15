@@ -9,6 +9,7 @@ using static Luxel.Controls.Kit;
 namespace Luxel.Audio.Gallery;
 
 /// <summary>Browser-runnable audio examples embedded at the point where each concept is introduced.</summary>
+[StoryMeta("Examples/Audio")]
 public static class AudioStories
 {
     private static IAudioBackend? _hostBackend;
@@ -40,7 +41,7 @@ public static class AudioStories
         _stateHost = null;
     }
 
-    [Story("Examples/Audio/BackendLifecycle", Width = 700, Height = 300, Order = 0)]
+    [Story]
     public static Widget BackendLifecycle()
     {
         var status = new Signal<string>($"現在の状態: {State}");
@@ -71,7 +72,7 @@ public static class AudioStories
             Text((Func<string>)(() => status.Value), 14, wrap: TextWrap.Word, width: 620));
     }
 
-    [Story("Examples/Audio/WaveformAndVoice", Width = 700, Height = 330, Order = 0)]
+    [Story]
     public static Widget WaveformAndVoice()
     {
         AudioFormat format = AudioFormat.Pcm16Mono44k;
@@ -108,7 +109,7 @@ public static class AudioStories
             Text(DescribeClip(clip), 13, color: Bind.From(() => UiTheme.T.TextMuted)));
     }
 
-    [Story("Examples/Audio/Buses", Width = 700, Height = 360, Order = 1)]
+    [Story]
     public static Widget Buses()
     {
         var master = new AudioBus("Master");
@@ -147,7 +148,7 @@ public static class AudioStories
             Text((Func<string>)(() => status.Value), 14, wrap: TextWrap.Word, width: 620));
     }
 
-    [Story("Examples/Audio/SpatialAttenuation", Width = 700, Height = 380, Order = 2)]
+    [Story]
     public static Widget SpatialAttenuation()
     {
         var listener = new AudioListener { Position = Vector3.Zero };
@@ -182,7 +183,7 @@ public static class AudioStories
             Text((Func<string>)(() => status.Value), 14, wrap: TextWrap.Word, width: 620));
     }
 
-    [Story("Examples/Audio/StreamingQueue", Width = 700, Height = 350, Order = 3)]
+    [Story]
     public static Widget StreamingQueue()
     {
         IAudioVoice? voice = null;

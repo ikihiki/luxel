@@ -13,9 +13,10 @@ namespace Luxel.Gallery.Stories;
 /// <c>Spherical</c> 放出 + 重力で、固定シード + 固定 dt を事前実行。<see cref="OrbitCamera"/> で見下ろす。
 /// 深度テストあり・書き込み無し + アルファブレンド。Skia CPU では描けないので golden は vk のみ。
 /// </summary>
+[StoryMeta("Examples/3D")]
 public static class Particle3DStories
 {
-    [Story("Examples/3D/Particles", Height = 300, Order = 128)]
+    [Story]
     public static Widget Particles(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new Particle3DScene(), animated: false)));
 
     private sealed class Particle3DScene : GpuSceneBase

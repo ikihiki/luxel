@@ -1,13 +1,14 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Luxel.MathText (ブロック数式の組版) のストーリー — 描画回帰用。</summary>
+[StoryMeta("Examples/Embeds/Math")]
 public static class MathStories
 {
-    [Story("Examples/Embeds/Math", Height = 300, Order = 2010)]
+    [Story]
     public static Widget Basic(StoryContext ctx) =>
         ctx.Snap(Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))[
             VStack(20)[

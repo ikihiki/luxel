@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0006-Editor-New-Stack", Order = 77, Toc = true)]
+    [Story]
     public static StoryResult Adr0006(StoryContext ctx) => $$"""
         # ADR-0006 — テキストエディタは Transaction ベースの新スタックを新規に作る
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-08
@@ -49,7 +53,7 @@ public static partial class DocsAdr
         - **既存コントロールの段階移行 (当初案)** — プライマリ/セカンダリ分裂と写像 2 系統を制約として抱え込み、単一カーソル前提の undo ハックも要る。加えて 3 コントロール共有の engine を触るため波及が広い。要件が新機能である以上、綺麗な新スタックの方が良い → 却下
         - **DocumentEditor を native 複数レンジへ改修** — RichTextEditor のブロックモデル・IME/TSF ブリッジ・879 本のテストに波及する大手術 → 却下
         - **CodeEditor を機能ごとに増築し続ける** — 要件の組み合わせのたびに描画パスが増殖し、等幅前提の負債も残る (元の課題そのもの) → 却下
-        - **既存エディタコンポーネントの移植 (AvaloniaEdit 等)** — 自前レンダラ前提で RetainedCanvas に載らない ([ADR-0003](story:Internals/ADR/0003-Declarative-Signal-Ui) と同じ力学) → 却下
+        - **既存エディタコンポーネントの移植 (AvaloniaEdit 等)** — 自前レンダラ前提で RetainedCanvas に載らない ([ADR-0003](story:Internals/ADR/Adr0003) と同じ力学) → 却下
 
         ## Consequences
 

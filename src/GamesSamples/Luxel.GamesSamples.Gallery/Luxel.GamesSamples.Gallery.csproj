@@ -40,10 +40,4 @@
     <Using Include="Luxel.Graphics"/>
     <Using Include="Luxel.Mathematics"/>
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\..\samples\LuxelCavern\LuxelCavern\LuxelCavern.csproj" LogicalName="Luxel.Sample.samples.LuxelCavern.LuxelCavern.LuxelCavern.csproj"/>
-    <EmbeddedResource Include="..\..\..\samples\LuxelCavern\LuxelCavern\CavernRealtimeScene.cs" LogicalName="Luxel.Sample.samples.LuxelCavern.LuxelCavern.CavernRealtimeScene.cs"/>
-    <EmbeddedResource Include="..\..\..\samples\LuxelRange\LuxelRange\LuxelRange.csproj" LogicalName="Luxel.Sample.samples.LuxelRange.LuxelRange.LuxelRange.csproj"/>
-    <EmbeddedResource Include="..\..\..\samples\LuxelRange\LuxelRange\RangeRealtimeScene.cs" LogicalName="Luxel.Sample.samples.LuxelRange.LuxelRange.RangeRealtimeScene.cs"/>
-  </ItemGroup>
 </Project>

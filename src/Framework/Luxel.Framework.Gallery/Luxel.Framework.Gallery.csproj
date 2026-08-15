@@ -43,8 +43,4 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\..\shaders\compiled\cube_forward.*" Link="Shaders\%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\..\samples\LuxelFramework\LuxelFramework.csproj" LogicalName="Luxel.Sample.samples.LuxelFramework.LuxelFramework.csproj"/>
-    <EmbeddedResource Include="..\..\..\samples\LuxelFramework\Program.cs" LogicalName="Luxel.Sample.samples.LuxelFramework.Program.cs"/>
-  </ItemGroup>
 </Project>

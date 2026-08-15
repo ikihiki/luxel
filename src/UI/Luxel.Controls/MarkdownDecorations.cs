@@ -107,6 +107,25 @@ public static class MarkdownDoc
             if (lines[i].StartsWith("# ")) { lines[i] += "\n\n" + block; return string.Join('\n', lines); }
         return block + "\n\n" + md;
     }
+
+    /// <summary><c>Toc()</c> が生成した placeholder の位置へ H2/H3 の目次を展開する。</summary>
+    public static string RenderTocPlaceholder(string md)
+    {
+        const string placeholder = "<!-- luxel-toc-placeholder -->";
+        if (!md.Contains(placeholder, StringComparison.Ordinal)) return md;
+
+        string generated = InsertToc(md.Replace(placeholder, string.Empty, StringComparison.Ordinal));
+        const string marker = "<!-- luxel-toc -->";
+        const string closing = "<!-- /luxel-toc -->";
+        int start = generated.IndexOf(marker, StringComparison.Ordinal);
+        int end = generated.IndexOf(closing, StringComparison.Ordinal);
+        if (start < 0 || end < start)
+            return md.Replace(placeholder, string.Empty, StringComparison.Ordinal);
+
+        end += closing.Length;
+        string block = generated[start..end];
+        return md.Replace(placeholder, block, StringComparison.Ordinal);
+    }
 }
 
 /// <summary>

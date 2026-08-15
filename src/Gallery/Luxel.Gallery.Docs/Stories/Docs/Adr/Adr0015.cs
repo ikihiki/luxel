@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0015-Game-Project-Scene-Format", Order = 86, Toc = true)]
+    [Story]
     public static StoryResult Adr0015(StoryContext ctx) => $$"""
         # ADR-0015 — ゲームプロジェクト/シーン形式はエディタ専用モデル + 一方向コンパイルにする
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-10

@@ -14,9 +14,10 @@ namespace Luxel.Gallery.Stories;
 internal partial class InputBindingsJsonContext : JsonSerializerContext { }
 
 /// <summary>入力アクション、コンテキスト、バインディングを決定的に学ぶStory。</summary>
+[StoryMeta("Examples/Input")]
 public static class InputActionStories
 {
-    [Story("Examples/Input/SourcesAndBus", Width = 700, Height = 460, Order = 0)]
+    [Story]
     public static Widget SourcesAndBus()
     {
         // docs:begin input-sources-bus-setup
@@ -77,7 +78,7 @@ public static class InputActionStories
                 color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 610)]);
     }
 
-    [Story("Examples/Input/Actions", Width = 680, Height = 430, Order = 1)]
+    [Story]
     public static Widget Actions()
     {
         // docs:begin input-actions-setup
@@ -123,7 +124,7 @@ public static class InputActionStories
                 color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590)]);
     }
 
-    [Story("Examples/Input/ContextStack", Width = 650, Height = 390, Order = 2)]
+    [Story]
     public static Widget ContextStack()
     {
         // docs:begin input-context-setup
@@ -178,7 +179,7 @@ public static class InputActionStories
                 Text($"{result}", 14, wrap: TextWrap.Word, width: 500)])]);
     }
 
-    [Story("Examples/Input/Bindings", Width = 680, Height = 440, Order = 3)]
+    [Story]
     public static Widget Bindings()
     {
         // docs:begin input-bindings-setup

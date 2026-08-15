@@ -19,6 +19,7 @@ namespace Luxel.Gallery.Stories;
 /// AnimationClip (CSS @keyframes 由来含む)、StateMachine、AnimationGraph (BlendNode)。
 /// すべて絶対時刻モデル (FixedFrameClock) — 時間はストーリーの累積秒から決める (snap 決定的)。
 /// </summary>
+[StoryMeta("Examples/Animation")]
 public static class AnimationStories
 {
     /// <summary>CoreUI-local adapter for stateful scenes rendered through a browser-safe GpuView.</summary>
@@ -84,7 +85,7 @@ public static class AnimationStories
     }
 
     /// <summary>すべての組み込みcurveと主要presetを同じ入力時刻で比較する。</summary>
-    [Story("Examples/Animation/Curves", Height = 720, Order = 140)]
+    [Story]
     public static Widget Curves()
     {
         (string Name, ICurve Curve, uint Color)[] curves =
@@ -142,7 +143,7 @@ public static class AnimationStories
 
     /// <summary>コード DSL: Sequence(Parallel(slide+fade), Parallel(slide+fade))。
     /// Signal へ SignalAnimationTarget 経由で書き、ループ毎に Play し直す。</summary>
-    [Story("Examples/Animation/Tween", Height = 300, Order = 141)]
+    [Story]
     public static Widget Tween()
     {
         var xA = new Signal<float>(-150f);
@@ -186,12 +187,12 @@ public static class AnimationStories
     }
 
     /// <summary>CSS @keyframes → AnimationClip → RetainedCanvas ノードへ適用 (ループ再生)。</summary>
-    [Story("Examples/Animation/CssKeyframes", Height = 300, Order = 142)]
+    [Story]
     public static Widget CssKeyframes(StoryContext ctx) => ctx.Snap(Frame(AnimationSceneBase.View(256, 128, new CssClipScene())));
 
     /// <summary>StateMachine (idle ⇄ jump、crossfade 0.15s)。ボタンで Trigger を送る —
     /// press でジャンプ (黄)、done で idle (青) へ戻る。</summary>
-    [Story("Examples/Animation/StateMachine", Height = 340, Order = 143)]
+    [Story]
     public static Widget StateMachineDemo(StoryContext ctx)
     {
         var scene = new StateMachineScene();
@@ -204,7 +205,7 @@ public static class AnimationStories
 
     /// <summary>AnimationClipをEcsAnimationTarget経由でLocalTransformへ書き、
     /// ECSの結果を読み取って2D markerとして表示する最小例。</summary>
-    [Story("Examples/Animation/EcsClip", Height = 300, Order = 144)]
+    [Story]
     public static Widget EcsClip()
     {
         var world = new Luxel.Ecs.World();
@@ -236,7 +237,7 @@ public static class AnimationStories
     }
 
     /// <summary>AnimationGraphのBlendNodeで上下clipと左右clipを混ぜる最小2D例。</summary>
-    [Story("Examples/Animation/Graph", Height = 300, Order = 145)]
+    [Story]
     public static Widget Graph(StoryContext ctx)
     {
         Signal<float> weight = ctx.Signal("weight", 0.5f, "Blend: 0 = 上下振動, 1 = 左右振動");

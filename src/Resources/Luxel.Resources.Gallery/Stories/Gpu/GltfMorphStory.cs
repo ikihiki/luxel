@@ -20,6 +20,7 @@ namespace Luxel.Resources.Gallery.Stories;
 /// (<see cref="SceneBuilder"/>) → <see cref="MorphWeights"/> component → <c>scene_pbr_morph</c> シェーダの経路。
 /// アセットは手続き的に構築 (khronos-samples に morph 例が無いため)。glTF ローダの morph パースは単体テストで担保。
 /// </summary>
+[StoryMeta("Examples/Resources/Gltf")]
 public static class GltfMorphStories
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -36,7 +37,7 @@ public static class GltfMorphStories
         public uint VertexCount;
     }
 
-    [Story("Examples/Resources/Gltf/MorphWeights", Height = 320, Order = 128)]
+    [Story]
     public static Widget GltfMorph(StoryContext ctx)
     {
         AssetDocument generated = CreateDocument();

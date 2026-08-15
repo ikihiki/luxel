@@ -11,9 +11,10 @@ namespace Luxel.Gallery.Stories;
 /// <summary>TextEditorView — テキストエディタ新スタック (ADR-0006 / ToDo 22) のビュー。
 /// 編集意味論・座標写像・装飾は canvas 非依存の Luxel.Document が持ち、この widget は入力を Transaction にして
 /// ジオメトリの矩形を塗るだけ。折返し・プロポーショナル・マルチカーソルはジオメトリ由来で最初から正しい。</summary>
+[StoryMeta("Controls/TextEditorView")]
 public static class TextEditorViewStory
 {
-    [Story("Controls/TextEditorView/Basic", Height = 300)]
+    [Story]
     public static Widget Basic(StoryContext ctx)
     {
         Signal<string> value = ctx.Signal("text",
@@ -52,7 +53,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/Code", Height = 320, Order = 2)]
+    [Story]
     public static Widget Code(StoryContext ctx, ICodeLanguage lang)
     {
         Signal<string> code = ctx.Signal("code",
@@ -90,7 +91,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/Edit", Height = 320, Order = 3)]
+    [Story]
     public static Widget Edit(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "int foo = 1;\nint bar = foo + foo;\nreturn foo * bar;");
@@ -159,7 +160,7 @@ public static class TextEditorViewStory
         }
     }
 
-    [Story("Controls/TextEditorView/Strudel", Height = 200, Order = 6)]
+    [Story]
     public static Widget Strudel(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "0.8 bd sd hh");     // "0.8"[0,3) bd[4,6) sd[7,9) hh[10,12)
@@ -191,7 +192,7 @@ public static class TextEditorViewStory
                 root]];
     }
 
-    [Story("Controls/TextEditorView/RichText", Height = 220, Order = 7)]
+    [Story]
     public static Widget RichText(StoryContext ctx)
     {
         // Markdown/リッチ文書の素地 (WS-A / ADR-0012、S(A1)): font-variant Mark で見出し/太字/小サイズを
@@ -221,7 +222,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/Markdown", Height = 320, Order = 8)]
+    [Story]
     public static Widget Markdown(StoryContext ctx)
     {
         // read-only 文書レンダラの核 (WS-A / ADR-0012): MarkdownProvider が Markdown ソースを
@@ -237,10 +238,10 @@ public static class TextEditorViewStory
             "```\n" +
             "let mono = code_block;\n" +
             "```");
-        TextEditorView ed = TextEditorView(md, editorHeight: 240f, editorWidth: 520f);
-        (ed.BoldFont, _, _, ed.MonoFont) = EditorFaces.Value;
-        ed.ReadOnly = true;   // 文書レンダラ = 読み取り専用
-        ed.Providers.Add(new MarkdownProvider(() => UiTheme.T));
+        (VectorFont? bold, _, _, VectorFont? mono) = EditorFaces.Value;
+        TextEditorView ed = MarkdownDoc.Create(md, () => UiTheme.T, width: 520f, height: 240f,
+            bold: bold, mono: mono,
+            highlighter: Luxel.Highlight.TextMateHighlighter.Instance, fonts: JpFallback.Value);
         int clickOff = -1;
         ed.OnClickOffset = o => clickOff = o;   // クリック→ソースオフセット (リンクナビの当たり判定用)
 
@@ -256,11 +257,11 @@ public static class TextEditorViewStory
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("TextEditorView — Markdown (プロバイダ)"),
-                Muted("MarkdownProvider を Providers に足すと見出し/太字/斜体/コードが付く。表示は行、装飾は push = read-only 文書レンダラの核。"),
+                Muted("MarkdownDoc.Create が記法を隠し、見出し/太字/斜体/コードを read-only 文書としてレンダリングする。"),
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/LivePreview", Height = 300, Order = 16)]
+    [Story]
     public static Widget LivePreviewStory(StoryContext ctx)
     {
         // Live Preview 編集モード (WS-A / S(A4)): editable:true でキャレット行だけ記法マーカを raw で見せ、
@@ -289,7 +290,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/MarkdownDoc", Height = 340, Order = 10)]
+    [Story]
     public static Widget MarkdownDocStory(StoryContext ctx)
     {
         // 文書レンダラを 1 ファクトリで (WS-A / ADR-0012、Kit.Docs() 差し替えの部品):
@@ -318,7 +319,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/MarkdownFill", Height = 340, Order = 15)]
+    [Story]
     public static Widget MarkdownFillStory(StoryContext ctx)
     {
         // Fill モード (WS-A / ADR-0012、実 Docs ページ移行の前提):
@@ -344,7 +345,7 @@ public static class TextEditorViewStory
                        width: 440f, height: 240f)[ed]]];
     }
 
-    [Story("Controls/TextEditorView/DocBridge", Height = 420, Order = 14)]
+    [Story]
     public static Widget DocBridge(StoryContext ctx)
     {
         // 移行の本命 (WS-A / ADR-0012 S(A3)): 既存の Docs($"...{Widget}...") 記法 (DocString) を
@@ -378,7 +379,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/DocEmbeds", Height = 460, Order = 13)]
+    [Story]
     public static Widget DocEmbeds(StoryContext ctx)
     {
         // mermaid/数式アダプタ (WS-A / ADR-0012): ```embed mermaid|math フェンス本文を、既存の
@@ -415,7 +416,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/Embed", Height = 320, Order = 12)]
+    [Story]
     public static Widget Embed(StoryContext ctx)
     {
         // 埋め込みライブ UI (WS-A / ADR-0012、Kit.Docs() の目玉を新スタックで): ```embed <key> フェンス →
@@ -456,7 +457,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/BlockWidgetAuto", Height = 300, Order = 11)]
+    [Story]
     public static Widget BlockWidgetAuto(StoryContext ctx)
     {
         // ブロック widget 自動高さ (WS-A / ADR-0012): Height=0 は「宣言しない」= view が widget の自然高さを
@@ -486,7 +487,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/BlockWidget", Height = 300, Order = 9)]
+    [Story]
     public static Widget BlockWidget(StoryContext ctx)
     {
         // 複数ソース行を占有するブロック widget (WS-A S(A2b) / ADR-0012): 表/図/数式/埋め込みの土台。
@@ -515,7 +516,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/MultiCursor", Height = 260, Order = 5)]
+    [Story]
     public static Widget MultiCursor(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "foo = 1;\nfoo = 2;\nfoo = 3;");
@@ -571,7 +572,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story("Controls/TextEditorView/Completion", Height = 320, Order = 4)]
+    [Story]
     public static Widget Completion(StoryContext ctx, ICodeLanguage lang)
     {
         Signal<string> code = ctx.Signal("code", "var s = \"hi\";\ns.");
@@ -636,7 +637,7 @@ public static class TextEditorViewStory
         }
     }
 
-    [Story("Controls/TextEditorView/Widgets", Height = 260, Order = 1)]
+    [Story]
     public static Widget Widgets(StoryContext ctx)
     {
         Signal<string> value = ctx.Signal("text", "牛乳を買う ◯\n卵を買う ◯\nパンを買う ◯");

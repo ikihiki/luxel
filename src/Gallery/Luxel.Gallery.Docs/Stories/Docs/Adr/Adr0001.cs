@@ -1,18 +1,23 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
+[StoryMeta("Internals/ADR")]
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0001-Record-Architecture-Decisions", Order = 72, Toc = true)]
+    [Story]
     public static StoryResult Adr0001(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック (MarkdownDoc) 描画の golden
         return $$"""
         # ADR-0001 — アーキテクチャ決定を ADR として Gallery に記録する
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-08

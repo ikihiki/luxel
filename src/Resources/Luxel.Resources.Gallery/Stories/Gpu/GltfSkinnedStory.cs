@@ -20,6 +20,7 @@ namespace Luxel.Resources.Gallery.Stories;
 /// <see cref="TransformPropagateSystem"/> → <see cref="SkinningSystem"/> が joint 行列 (InverseBind × jointWorld) を
 /// 計算 → joint バッファへ upload → <c>scene_pbr_skinned</c> シェーダで描画。ポーズは決定的 (固定 sample 時刻)。
 /// </summary>
+[StoryMeta("Examples/Resources/Gltf")]
 public static class GltfSkinnedStories
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -35,7 +36,7 @@ public static class GltfSkinnedStories
     }
 
     /// <summary>RiggedSimple.glb (2 ボーンの曲がる棒) を、アニメの途中ポーズで描く。</summary>
-    [Story("Examples/Resources/Gltf/RiggedSimpleSkinning", Height = 320, Order = 127)]
+    [Story]
     public static Widget GltfSkinned(StoryContext ctx)
     {
         var builder = new ResourceSystemBuilder();

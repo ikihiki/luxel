@@ -725,28 +725,23 @@ public sealed class GalleryApp : IDisposable
         _matchTotal.Value = doc.SearchMatchCount;
     }
 
-    /// <summary>プレビューの内容サイズ: 通常はストーリー宣言サイズ、fill ストーリー (W/H 未指定 = 0,0
-    /// — docs ページ等) はメイン領域いっぱい、全画面はメイン全面
+    /// <summary>プレビューの内容サイズ: メイン領域いっぱい、全画面はメイン全面
     /// (いずれもサーフェスサイズが上限 — SetContent 側でも clamp される)。</summary>
     private (int W, int H) PreviewSize(StoryInfo story)
     {
         if (_zen)
             return ((int)MathF.Min(SurfW, _winW - 12 - _sidebarW - Split.Thickness),
                     (int)MathF.Min(SurfH, _winH - 12 - 28));
-        if (story.Width > 0)
-            return (story.Width, story.Height);
-        // fill: 通常モードのメイン領域 (サイドバー/右パネル/Log を除いた実寸)
+        // 通常モードのメイン領域 (サイドバー/右パネル/Log を除いた実寸)
         float w = _winW - 12 - _sidebarW - Split.Thickness * 2 - _rightW;
         float h = _winH - 12 - 28 - Split.Thickness - _logH;
         return ((int)MathF.Min(SurfW, w), (int)MathF.Min(SurfH, h));
     }
 
-    /// <summary>fill/全画面ストーリーの表示中にペイン寸法やウィンドウサイズが変わったら、
-    /// プレビューを新しい領域サイズで実体化し直す。固定サイズのストーリー (通常表示) は何もしない。</summary>
+    /// <summary>ペイン寸法やウィンドウサイズが変わったら、プレビューを新しい領域サイズで実体化し直す。</summary>
     private void RefreshPreviewSize()
     {
         if (_storyRoot is null || _currentStory is not { } s) return;
-        if (!_zen && s.Width > 0) return;
         (int pw, int ph) = PreviewSize(s);
         _preview.SetContent(_storyRoot, pw, ph);
     }
@@ -880,7 +875,7 @@ public sealed class GalleryApp : IDisposable
     private void ShowStoryError(string path, Exception error, int? width = null, int? height = null)
     {
         StoryContext? failedContext = _ctx;
-        StoryInfo story = _currentStory ?? new StoryInfo(path, width ?? (int)PreviewW, height ?? (int)PreviewH, null, _ => Spacer());
+        StoryInfo story = _currentStory ?? new StoryInfo(path, _ => Spacer());
         (int pw, int ph) = width.HasValue && height.HasValue
             ? (width.Value, height.Value)
             : _currentStory is { } current ? PreviewSize(current) : ((int)PreviewW, (int)PreviewH);

@@ -43,6 +43,6 @@ internal static class EcsCourseCatalog
     internal static DocMarkdown Meta(string path, string difficulty, string environment, string backend, string prerequisites)
     {
         (string? previous, string? next) = Navigation(path);
-        return DocsKit.RenderingMeta(difficulty, environment, backend, prerequisites, previous, next);
+        return global::Luxel.Gallery.DocKit.DocsKit.RenderingMeta(difficulty, environment, backend, prerequisites, previous, next);
     }
 }

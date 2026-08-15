@@ -1,13 +1,18 @@
 using Luxel.UI;
 
+using static Luxel.Gallery.Story;
+
 namespace Luxel.Gallery.Stories;
 
+[StoryMeta("Learn/Production")]
 public static class LearnProductionWorkflow
 
 {
-    [Story("Learn/Production/StudioToPlayer", Order = 0, Toc = true)]
+    [Story]
     public static StoryResult StudioToPlayer(StoryContext ctx) => $$"""
         # Studio to Player workflow
+
+        {{Toc()}}
 
         Studioでproject/sceneを編集し、PlayerのPlay-in-Editorで同じdataを実行し、standalone hostへ渡します。editor-only stateをscene dataへ混ぜず、保存前にruntime schemaへ変換します。
 
@@ -15,9 +20,11 @@ public static class LearnProductionWorkflow
         [Play-in-Editor](story:Apps/Player/PlayInEditor)
         """;
 
-    [Story("Learn/Production/Workbench", Order = 1, Toc = true)]
+    [Story]
     public static StoryResult Workbench(StoryContext ctx) => $$"""
         # Workbench workflow
+
+        {{Toc()}}
 
         Workbenchはcode、files、material、inspectorを同じdock shellで扱います。変更はresource/script reload境界へ送り、編集中のdocument stateと実行中runtime stateを分離します。
 
@@ -26,9 +33,11 @@ public static class LearnProductionWorkflow
         [Workbench Material](story:Examples/Workbench/Material)
         """;
 
-    [Story("Learn/Production/ValidateAndShip", Order = 2, Toc = true)]
+    [Story]
     public static StoryResult Ship(StoryContext ctx) => $$"""
         # Validate and ship
+
+        {{Toc()}}
 
         Gallery play/golden、headless logic smoke、GPU one-frame smoke、別cwd publish smokeを順に通します。assets、shader cache、font licenseをoutputへ含め、machine固有のabsolute pathへ依存しないことを確認します。
 

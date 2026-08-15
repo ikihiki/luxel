@@ -12,6 +12,7 @@ namespace Luxel.Gallery.Stories;
 /// 編集意味論・座標写像・装飾・幾何は canvas 非依存の Luxel.NodeGraph が持ち、この widget は入力を Transaction にして
 /// ジオメトリのベジェ/矩形を塗るだけ (テキスト新スタックの TextEditorView と同じ薄さ)。pan/zoom は world コンテナの
 /// Affine2D 変換なのでヒットテストが自動追従する。</summary>
+[StoryMeta("Controls/NodeGraphView")]
 public static class NodeGraphViewStory
 {
     // Input → Process → Output の 3 ノード + 2 辺
@@ -28,7 +29,7 @@ public static class NodeGraphViewStory
              new GraphEdge(11, new PortId(2, 1), new PortId(3, 0))]);
     }
 
-    [Story("Controls/NodeGraphView/Basic", Height = 440)]
+    [Story]
     public static Widget Basic(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: SampleGraph(), viewWidth: 620f, viewHeight: 360f);
@@ -104,7 +105,7 @@ public static class NodeGraphViewStory
         return NodeGraphDoc.Of([a, b, c], [new GraphEdge(10, new PortId(1, 0), new PortId(2, 0))]);
     }
 
-    [Story("Controls/NodeGraphView/Wiring", Height = 460, Order = 2)]
+    [Story]
     public static Widget Wiring(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: WireGraph(), viewWidth: 620f, viewHeight: 380f);
@@ -160,7 +161,7 @@ public static class NodeGraphViewStory
         return new GraphNode(id, kind, title, pos, ports);
     }
 
-    [Story("Controls/NodeGraphView/Widgets", Height = 470, Order = 3)]
+    [Story]
     public static Widget Widgets(StoryContext ctx)
     {
         Signal<float> vol = ctx.Signal("vol", 0.6f);
@@ -223,7 +224,7 @@ public static class NodeGraphViewStory
              new GraphEdge(12, new PortId(3, 2), new PortId(4, 0))]);
     }
 
-    [Story("Controls/NodeGraphView/AutoLayout", Height = 460, Order = 4)]
+    [Story]
     public static Widget AutoLayoutStory(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: ExprGraph(), viewWidth: 620f, viewHeight: 380f);
@@ -264,7 +265,7 @@ public static class NodeGraphViewStory
             [Res(1, "vbuf"), Res(2, "shadow"), Res(3, "color")], 3, 4);
     }
 
-    [Story("Controls/NodeGraphView/RenderGraph", Height = 460, Order = 5)]
+    [Story]
     public static Widget RenderGraph(StoryContext ctx)
     {
         // RenderGraphNodes で診断 → ノードグラフ (整列済み) に変換し、読み取り専用ビューで可視化

@@ -14,9 +14,10 @@ namespace Luxel.Gallery.Stories;
 /// 事前実行し、<see cref="ParticleNode"/> (RetainedCanvas 統合、per-particle 色) で描く。決定的なので golden 安定。
 /// Image と違い塗りなので原理的には Skia でも出るが、GPU/Skia の AA 差を避け golden は vk のみ。
 /// </summary>
+[StoryMeta("Examples/2D")]
 public static class ParticleStories
 {
-    [Story("Examples/2D/Particles", Height = 260, Order = 121)]
+    [Story]
     public static Widget Particles(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(384, 192, new ParticleScene(), animated: false)));
 
     private sealed class ParticleScene : GpuSceneBase

@@ -20,11 +20,12 @@ namespace Luxel.Gallery.Stories;
 /// SceneEditor + Inspector + AssetBrowser + csx TextDocument + PlayerView + Problems を束ねる。
 /// シェルはプロジェクトファイルを直接編集し、保存した内容を Player が読み直す。
 /// </summary>
+[StoryMeta("Apps/Studio")]
 public static class StudioShellStory
 {
     private static readonly Lazy<VectorFont> Font = new(() => GalleryFonts.Load(GalleryFonts.Regular));
 
-    [Story("Apps/Studio/Shell", Height = 720, Order = 154)]
+    [Story]
     public static Widget Shell(StoryContext ctx)
     {
         var storage = new MemoryFileStorage();

@@ -8,6 +8,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>Workbench 基盤コントロール (ADR-0014 / ToDo 26 S(C3)) — DocumentTabs / DockHost / StatusBar。
 /// レイアウトの真実は Luxel.Workbench の DockTree (不変モデル)。DockHost はそれを描き、
 /// タブ操作 (クリック/並べ替え/ドラッグ分割) は tree signal を書き換えて自動で組み直す。</summary>
+[StoryMeta("Controls")]
 public static class WorkbenchStory
 {
     // ---- DocumentTabs 単体 (項目の増減と並べ替えはこのデモ側が所有) ----
@@ -43,7 +44,7 @@ public static class WorkbenchStory
         }
     }
 
-    [Story("Controls/DocumentTabs/Basic", Height = 200)]
+    [Story]
     public static Widget DocumentTabsBasic(StoryContext ctx)
     {
         var dirty = ctx.Signal("dirty", true);
@@ -77,7 +78,7 @@ public static class WorkbenchStory
         Border(background: color, rounded: 4f, padding: new Thickness(10), hAlign: Align.Stretch, vAlign: Align.Stretch)[
             Muted(label)];
 
-    [Story("Controls/DockHost/Basic", Height = 420)]
+    [Story]
     public static Widget DockHostBasic(StoryContext ctx)
     {
         var dirty = ctx.Signal("dirty", true);
@@ -118,7 +119,7 @@ public static class WorkbenchStory
         return host;
     }
 
-    [Story("Controls/DockHost/Floating", Height = 420)]
+    [Story]
     public static Widget DockHostFloating(StoryContext ctx)
     {
         // "graph" を最初から窓内フロートにしたレイアウト
@@ -184,7 +185,7 @@ public static class WorkbenchStory
         [PropertyGroup("配置")] public string Layer { get; set; } = "front";
     }
 
-    [Story("Controls/PropertyGrid/Basic", Height = 420)]
+    [Story]
     public static Widget PropertyGridBasic(StoryContext ctx)
     {
         var cfg = new ParticleConfig();
@@ -208,7 +209,7 @@ public static class WorkbenchStory
 
     // ---- AssetBrowser (IFileStorage × TreeView) ----
 
-    [Story("Controls/AssetBrowser/Basic", Height = 360)]
+    [Story]
     public static Widget AssetBrowserBasic(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();
@@ -238,7 +239,7 @@ public static class WorkbenchStory
 
     // ---- StatusBar ----
 
-    [Story("Controls/StatusBar/Basic", Height = 160)]
+    [Story]
     public static Widget StatusBarBasic(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());

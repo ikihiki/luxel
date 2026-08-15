@@ -1,22 +1,26 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction", Order = 73, Toc = true)]
+    [Story]
     public static StoryResult Adr0002(StoryContext ctx) => $$"""
         # ADR-0002 — 3D グラフィック API は「薄い bindless 抽象」を自作する
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-08 (記録日 — 決定自体はプロジェクト開始時)
         - **Deciders**: ikihiki
 
         > [!NOTE]
-        > この決定の薄い抽象という方向性を維持しつつ、native mechanism を portable semantics と backend fast path に分離する方針を [ADR-0019](story:Internals/ADR/0019-Portable-Gpu-Semantics-WebGPU-Backend) が **Amends** しています。
+        > この決定の薄い抽象という方向性を維持しつつ、native mechanism を portable semantics と backend fast path に分離する方針を [ADR-0019](story:Internals/ADR/Adr0019) が **Amends** しています。
 
         ## Context
 

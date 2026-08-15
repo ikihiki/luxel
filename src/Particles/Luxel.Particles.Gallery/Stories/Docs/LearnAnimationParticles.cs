@@ -1,14 +1,18 @@
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.Story;
+using static Luxel.Gallery.DocKit.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Animation curveと接続しつつparticle simulationと描画adapterを学ぶコース。</summary>
+[StoryMeta("Learn/Animation/Particles")]
 public static class LearnAnimationParticles
 {
-    [Story("Learn/Animation/Particles/Overview", Order = 9, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
         # Particles overview
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/Particles/Overview", "Beginner", "Standalone / Gallery / Browser", "CPU simulation + 2D / UI / 3D adapters", "Animation import and debugging")}}
 
@@ -56,9 +60,11 @@ public static class LearnAnimationParticles
         > 現在の標準simulationはCPUです。`IParticleSimulator`はextension seamですが、標準GPU simulatorが提供されているという意味ではありません。
         """;
 
-    [Story("Learn/Animation/Particles/ValuesAndConfiguration", Order = 10, Toc = true)]
+    [Story]
     public static StoryResult ValuesAndConfiguration(StoryContext ctx) => $$"""
         # Particle values and configuration
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/Particles/ValuesAndConfiguration", "Beginner", "Standalone / Headless", "CPU configuration", "Particles overview")}}
 
@@ -103,9 +109,11 @@ public static class LearnAnimationParticles
         > sampled lifeは最低`1e-4`秒へclampされますが、speedとsizeは同じclampを受けません。2D adapterは負sizeをゼロへclampしますが、3D instanceには値がそのまま渡ります。
         """;
 
-    [Story("Learn/Animation/Particles/EmissionAndSimulation", Order = 11, Toc = true)]
+    [Story]
     public static StoryResult EmissionAndSimulation(StoryContext ctx) => $$"""
         # Emission and simulation
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/Particles/EmissionAndSimulation", "Intermediate", "Game loop / Headless test", "CPU simulator v1", "Particle values and configuration")}}
 
@@ -151,9 +159,11 @@ public static class LearnAnimationParticles
         > overflowは例外になりません。effectの欠落を診断したい場合は`Alive == Capacity`をtelemetryへ記録してください。
         """;
 
-    [Story("Learn/Animation/Particles/ForcesAndDeterminism", Order = 12, Toc = true)]
+    [Story]
     public static StoryResult ForcesAndDeterminism(StoryContext ctx) => $$"""
         # Forces and determinism
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/Particles/ForcesAndDeterminism", "Intermediate", "Headless test / Fixed-step game loop", "CPU SoA", "Emission and simulation")}}
 
@@ -211,9 +221,11 @@ public static class LearnAnimationParticles
         - dragをframerate非依存な指数式だと仮定する。
         """;
 
-    [Story("Learn/Animation/Particles/Rendering2DAndUI", Order = 13, Toc = true)]
+    [Story]
     public static StoryResult Rendering2DAndUI(StoryContext ctx) => $$"""
         # Rendering particles in 2D and UI
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/Particles/Rendering2DAndUI", "Intermediate", "Retained 2D / UI / Browser", "Graphics.TwoD + UI", "Forces and determinism")}}
 
@@ -259,9 +271,11 @@ public static class LearnAnimationParticles
         - UI local座標とworld座標を混同する。
         """;
 
-    [Story("Learn/Animation/Particles/Rendering3D", Order = 14, Toc = true)]
+    [Story]
     public static StoryResult Rendering3D(StoryContext ctx) => $$"""
         # Rendering particles in 3D
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/Particles/Rendering3D", "Advanced", "Native / Browser GPU", "Graphics.ThreeD particle billboards", "Rendering particles in 2D and UI")}}
 
@@ -309,9 +323,11 @@ public static class LearnAnimationParticles
         - unsorted transparencyをopaqueと同じ結果だと期待する。
         """;
 
-    [Story("Learn/Animation/Particles/ResourcesAndDebugging", Order = 15, Toc = true)]
+    [Story]
     public static StoryResult ResourcesAndDebugging(StoryContext ctx) => $$"""
         # Particle resources and debugging
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/Particles/ResourcesAndDebugging", "Intermediate", "Resources / Tools / Headless test", "CPU resource step + optional render adapters", "Rendering particles in 3D")}}
 

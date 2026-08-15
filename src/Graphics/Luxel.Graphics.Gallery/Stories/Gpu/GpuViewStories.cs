@@ -13,10 +13,10 @@ namespace Luxel.Gallery.Stories;
 /// Browser-safe GpuView stories. Files added to this project are automatically included in the
 /// WebAssembly catalog; no browser host or manifest registration is required.
 /// </summary>
+[StoryMeta("Examples/3D")]
 public static class GpuViewStories
 {
-    [Story(CanonicalClearColorRecipe.Story, Width = 320, Height = 240, Order = 119,
-        CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
+    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
     public static Widget ClearColor(StoryContext ctx)
         => ctx.Snap(Frame(GpuView(
             320,
@@ -33,8 +33,7 @@ public static class GpuViewStories
             },
             animated: false)));
 
-    [Story(CanonicalTriangleRecipe.Story, Width = 320, Height = 240, Order = 120,
-        CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
+    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
     public static Widget Triangle(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
@@ -119,8 +118,7 @@ public static class GpuViewStories
             animated: false)));
     }
 
-    [Story("Examples/3D/BuffersAndBindings", Width = 320, Height = 240, Order = 121,
-        CapabilityNote = "Renders an indexed quad from separate position, index, and color buffers.")]
+    [Story(CapabilityNote = "Renders an indexed quad from separate position, index, and color buffers.")]
     public static Widget BuffersAndBindings(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device || ctx.ScopedResourcesOrNull is not { } resources)
@@ -203,8 +201,7 @@ public static class GpuViewStories
             dispose: buffers.Dispose)));
     }
 
-    [Story("Examples/3D/Textures", Width = 680, Height = 430, Order = 122,
-        CapabilityNote = "Compares point/linear filtering and clamp/repeat addressing with a generated texture.")]
+    [Story(CapabilityNote = "Compares point/linear filtering and clamp/repeat addressing with a generated texture.")]
     public static Widget Textures(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)

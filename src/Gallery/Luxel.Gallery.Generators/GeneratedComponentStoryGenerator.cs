@@ -518,11 +518,11 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             WidgetModel widget = components[index];
             string category = widget.FactoryName;
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Overview"))
-                .Append(", 0, 0, null, static _ => throw new global::System.InvalidOperationException(\"Overview is Markdown. Use BuildResult.\"), 0, ")
+                .Append(", static _ => throw new global::System.InvalidOperationException(\"Overview is Markdown. Use BuildResult.\"), Source: ")
                 .Append(Lit("Generated overview for " + widget.TypeFq)).Append(", ResultBuild: static _ => Overview_").Append(index).Append("()")
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index).AppendLine("]));");
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Basic"))
-                .Append(", 480, 320, null, static ctx => Basic_").Append(index).Append("(ctx), 10, ")
+                .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
                 .Append(Lit("Generated direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
                 .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget)))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index).AppendLine("]));");

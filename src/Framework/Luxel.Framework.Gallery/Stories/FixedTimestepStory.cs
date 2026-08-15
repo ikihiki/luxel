@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Luxel.Controls;
 using Luxel.Ecs;
 using Luxel.Framework.Game;
@@ -22,6 +22,7 @@ namespace Luxel.Gallery.Stories;
 ///   1 ステップ分の遅延と引き換えにフレーム間のガタつきが消える。</item>
 /// </list>
 /// </summary>
+[StoryMeta("Examples/Framework")]
 public static class FixedTimestepStories
 {
     private const float CanvasW = 460, RowH = 92;
@@ -30,7 +31,7 @@ public static class FixedTimestepStories
     private const int Ratio = 4;          // 表示レート / 固定レート (1 ステップ = 4 表示フレーム)
     private const int Warmup = Ratio, CaptureN = 16;
 
-    [Story("Examples/Framework/DrawInterpolation", Height = 300, Order = 149)]
+    [Story]
     public static Widget DrawInterpolation(StoryContext ctx)
     {
         // 実物の蓄積器で決定的にシミュレーション (固定ステップ = StopDist/step、表示 = その 4 倍レート)。
