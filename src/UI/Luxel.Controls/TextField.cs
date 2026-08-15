@@ -134,7 +134,6 @@ public sealed partial class TextField : Widget, ITextInput, ISlotted<TextFieldSl
         _textNode = ctx.Canvas.AddChild(node); _textNode.Z = 2;
         _textNode.Clip = textClip;
         _caretNode = ctx.Canvas.AddChild(node); _caretNode.Z = 3;
-        _caretNode.Clip = textClip;
         var caret = new Scene2D(); caret.FillRect(Color2D.White, 0, _topY, 2, _fontH); _caretNode.Content = caret;
         ctx.Effect(() => _caretNode.Color = _theme.Value.Primary);
         ctx.Effect(() => _caretNode.Opacity = Focused.Value && _caretOn.Value ? 1f : 0f);

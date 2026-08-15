@@ -47,6 +47,7 @@ public sealed class GalleryApp : IDisposable
     // ウィンドウの論理クライアントサイズ (ホストが毎フレーム SetWindowSize で同期 — リサイズで chrome 再構築)
     private float _winW = 1280, _winH = 801;
     private ScrollViewer? _sidebarScroll;   // サイドバーのスクロールは chrome 再構築をまたいで位置を保つ
+    private TextField? _searchField;         // 絞り込み再構築をまたいで focus/caret を保つ
     private bool _dark;
     private StoryContext? _ctx;
     private Widget? _storyRoot;
@@ -382,12 +383,14 @@ public sealed class GalleryApp : IDisposable
             },
             selected: _currentPath ?? "", filter: _search);
         // Blazor 版と同じ検索 chrome。
-        Widget searchInput = TextField(_search, "Storyを検索", width: _sidebarW - 28,
+        _searchField ??= TextField(_search, "Storyを検索", width: _sidebarW - 28,
             background: GalleryChromeTheme.Search, fontSize: 13)[
-            TextFieldSlot.Leading(() => Icon(IconKind.Search, iconSize: 16, stroke: 1.5f,
-                color: Bind.From(() => UiTheme.T.TextMuted))),
-            TextFieldSlot.Trailing(() => Icon(IconKind.Close, iconSize: 14, stroke: 1.5f,
-                color: Bind.From(() => UiTheme.T.TextMuted), onClick: _ => _search.Value = ""))];
+                TextFieldSlot.Leading(() => Icon(IconKind.Search, iconSize: 16, stroke: 1.5f,
+                    color: Bind.From(() => UiTheme.T.TextMuted))),
+                TextFieldSlot.Trailing(() => Icon(IconKind.Close, iconSize: 14, stroke: 1.5f,
+                    color: Bind.From(() => UiTheme.T.TextMuted), onClick: _ => _search.Value = ""))];
+        _searchField.Width.SetOverride(_sidebarW - 28);
+        Widget searchInput = _searchField;
         Widget searchBar = Border(padding: new Thickness(14, 0, 14, 12))[searchInput];
 
         Widget mark = Border(background: Bind.From(() => UiTheme.T.Primary), rounded: 9,
