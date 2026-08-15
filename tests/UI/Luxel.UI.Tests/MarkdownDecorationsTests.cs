@@ -73,6 +73,40 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void Appearance_Overrides_Block_Style_From_One_View_Setting()
+    {
+        var appearance = new TextEditorAppearance(fontSize: 16, lineHeight: 1.7f)
+            .WithBlock(MarkdownBlockKinds.Heading(1), new TextEditorBlockAppearance(
+                FontSize: 34f,
+                FontVariant: FontVariant.Italic,
+                Foreground: 0xff3366ff,
+                Background: 0x101820ff));
+
+        DecorationSet set = MarkdownDecorations.Build("# Title", T, appearance: appearance);
+        MarkDecoration heading = At(set, 2, 7);
+
+        Assert.Equal(34f / 16f, heading.FontScale);
+        Assert.Equal(FontVariant.Italic, heading.Variant);
+        Assert.Equal(0xff3366ffu, heading.Foreground);
+        Assert.Contains(set.OfKind<LineDecoration>(), line => line.At == 0 && line.Background == 0x101820ffu);
+    }
+
+    [Fact]
+    public void Provider_Rebuilds_When_View_Appearance_Is_Replaced()
+    {
+        TextEditorAppearance appearance = TextEditorAppearance.Default;
+        var provider = new MarkdownProvider(() => T, appearance: () => appearance);
+        EditorState state = EditorState.Create("# Title");
+
+        Assert.Equal(1.9f, At(provider.Provide(state), 2, 7).FontScale);
+
+        appearance = appearance.WithBlock(MarkdownBlockKinds.Heading(1),
+            new TextEditorBlockAppearance(FontScale: 2.2f));
+
+        Assert.Equal(2.2f, At(provider.Provide(state), 2, 7).FontScale);
+    }
+
+    [Fact]
     public void Bold_StylesInner_NotDelimiters()
     {
         var set = Build("a **b** c");                   // '*'=2,3 'b'=4 '*'=5,6

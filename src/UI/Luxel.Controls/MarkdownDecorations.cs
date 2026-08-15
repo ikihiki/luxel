@@ -17,6 +17,17 @@ public readonly record struct MarkdownLink(int From, int To, string Text, string
 /// が種別で実 Widget を作る (例 mermaid/数式は Body を図/式ソースとして解決)。</summary>
 public readonly record struct EmbedRef(string Key, string Body);
 
+/// <summary><see cref="TextEditorAppearance"/> で上書きできる Markdown ブロック種別キー。</summary>
+public static class MarkdownBlockKinds
+{
+    public const string Paragraph = "markdown.paragraph";
+    public const string Quote = "markdown.quote";
+    public const string CodeBlock = "markdown.code-block";
+    public const string BulletList = "markdown.list.bullet";
+    public const string OrderedList = "markdown.list.ordered";
+    public static string Heading(int level) => $"markdown.heading.{Math.Clamp(level, 1, 6)}";
+}
+
 /// <summary>Markdown を「文書として描く」ワンショット (WS-A / ADR-0012) — <see cref="TextEditorView"/> に
 /// <see cref="MarkdownProvider"/> を付け、read-only + 折返しで束ねる。表示は行、装飾は provider。
 /// Gallery の docs レンダラ (旧 <c>Kit.Docs</c> の後継) はこれ。</summary>
@@ -26,7 +37,8 @@ public static class MarkdownDoc
     public static TextEditorView Create(Signal<string> markdown, Func<Theme> theme, float width, float height,
         VectorFont? body = null, VectorFont? bold = null, VectorFont? italic = null,
         VectorFont? boldItalic = null, VectorFont? mono = null, bool wrap = true, ISyntaxHighlighter? highlighter = null,
-        IReadOnlyCollection<string>? embedKinds = null, FontCollection? fonts = null, bool fill = false, bool editable = false)
+        IReadOnlyCollection<string>? embedKinds = null, FontCollection? fonts = null, bool fill = false, bool editable = false,
+        TextEditorAppearance? appearance = null)
     {
         TextEditorView ed = Kit.TextEditorView(markdown, editorHeight: height, editorWidth: width);
         if (body is not null) ed.EditorFont = body;
@@ -36,12 +48,14 @@ public static class MarkdownDoc
         ed.ItalicFont = italic;
         ed.BoldItalicFont = boldItalic;
         ed.MonoFont = mono;
+        ed.Appearance = appearance ?? TextEditorAppearance.Default;
         ed.WrapText = wrap;
         ed.WrapLineHeight = 1.3f;   // 段落内はブロック間 (1.5) より詰める
         ed.ReadOnly = !editable;    // editable=true は Live Preview 編集モード (キャレット行のみマーカを見せる)
         ed.DocSource = markdown.Peek();   // docs 索引用 (realize 不要で本文/見出し/リンクを取れる)
         // 文書レンダラ: マーカ非表示 + コード色分け + 埋め込み。editable なら live-preview (キャレット行だけ raw)。
-        ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter, embedKinds, livePreview: editable));
+        ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter, embedKinds, livePreview: editable,
+            appearance: () => ed.Appearance));
         return ed;
     }
 
@@ -189,12 +203,36 @@ public static class MarkdownDecorations
     /// <paramref name="hideMarkers"/> = true (read-only 文書レンダラ) で記法マーカ (#/**/`/&gt;/-/[]() 等) を
     /// 淡色化ではなく**非表示** (幅0) にする。false (編集/live-preview) は従来どおり淡色。</summary>
     public static DecorationSet Build(string text, Theme t, bool hideMarkers = false, ISyntaxHighlighter? highlighter = null,
-        IReadOnlyCollection<string>? embedKinds = null, Func<int, bool>? reveal = null)
+        IReadOnlyCollection<string>? embedKinds = null, Func<int, bool>? reveal = null,
+        TextEditorAppearance? appearance = null)
     {
         var marks = new List<Decoration>();
         var consumed = new bool[text.Length];
         uint muted = t.TextMuted;
         uint codeBg = Styles.WithAlpha(t.Text, 22);
+        TextEditorBlockAppearance Resolve(string kind, TextEditorBlockAppearance fallback)
+        {
+            TextEditorBlockAppearance? value = appearance?.Block(kind);
+            return value is null ? fallback : new TextEditorBlockAppearance(
+                FontSize: value.FontSize ?? fallback.FontSize,
+                FontScale: value.FontScale ?? fallback.FontScale,
+                FontVariant: value.FontVariant ?? fallback.FontVariant,
+                Foreground: value.Foreground ?? fallback.Foreground,
+                Background: value.Background ?? fallback.Background,
+                Accent: value.Accent ?? fallback.Accent,
+                Indent: value.Indent ?? fallback.Indent,
+                BarWidth: value.BarWidth ?? fallback.BarWidth);
+        }
+        void AddTextStyle(List<Decoration> target, int from, int to, TextEditorBlockAppearance style)
+        {
+            if (to <= from) return;
+            float? scale = style.FontSize is { } size
+                ? size / (appearance?.FontSize ?? t.FontSm)
+                : style.FontScale;
+            if (scale is null && style.FontVariant is null && style.Foreground is null) return;
+            target.Add(new MarkDecoration(from, to, Foreground: style.Foreground,
+                Variant: style.FontVariant, FontScale: scale));
+        }
         // live-preview: reveal(pos)=true の行 (キャレット行) はマーカを畳まず淡色で見せる (Typora 風)。
         bool Hide(int pos) => hideMarkers && reveal?.Invoke(pos) != true;
         Decoration Marker(int from, int to) => Hide(from)
@@ -266,8 +304,10 @@ public static class MarkdownDecorations
             }
             if (inFence)
             {
-                marks.Add(new LineDecoration(lineStart, codeBg));                        // 行背景
-                if (end > lineStart) marks.Add(new MarkDecoration(lineStart, end, Variant: FontVariant.Mono));
+                TextEditorBlockAppearance codeStyle = Resolve(MarkdownBlockKinds.CodeBlock,
+                    new TextEditorBlockAppearance(FontVariant: FontVariant.Mono, Background: codeBg));
+                if (codeStyle.Background is { } codeBackground) marks.Add(new LineDecoration(lineStart, codeBackground));
+                AddTextStyle(marks, lineStart, end, codeStyle);
                 // シンタックスハイライトを装飾で (実テキストのまま = 選択可能・widget 化しない)
                 if (highlighter is { } hl && fenceLang.Length > 0 && hl.Supports(fenceLang))
                     foreach (SyntaxToken tk in hl.Tokenize(fenceLang, line))
@@ -285,9 +325,11 @@ public static class MarkdownDecorations
             if (h is >= 1 and <= 6 && h < line.Length && line[h] == ' ')
             {
                 int content = lineStart + h + 1;
+                TextEditorBlockAppearance headingStyle = Resolve(MarkdownBlockKinds.Heading(h),
+                    new TextEditorBlockAppearance(FontScale: HeadingScale(h), FontVariant: FontVariant.Bold, Foreground: t.Text));
                 marks.Add(Marker(lineStart, content));                                    // "# " マーカ
-                marks.Add(new MarkDecoration(content, end, Foreground: t.Text,
-                    Variant: FontVariant.Bold, FontScale: HeadingScale(h)));
+                if (headingStyle.Background is { } headingBackground) marks.Add(new LineDecoration(lineStart, headingBackground));
+                AddTextStyle(marks, content, end, headingStyle);
                 Consume(consumed, lineStart, end);                                       // 本文のインライン再走査は行わない
                 lineStart = end + 1;
                 continue;
@@ -296,10 +338,14 @@ public static class MarkdownDecorations
             // 引用 (> ...): 左縦バー + インデント、マーカは淡色。本文のインラインは効かせる
             if (trimmed.StartsWith("> ") || trimmed == ">")
             {
-                if (end > lineStart) marks.Add(new BlockDecoration(lineStart, end, BarColor: muted, Indent: 12f));
+                TextEditorBlockAppearance quoteStyle = Resolve(MarkdownBlockKinds.Quote,
+                    new TextEditorBlockAppearance(Accent: muted, Indent: 12f, BarWidth: 3f));
+                if (end > lineStart) marks.Add(new BlockDecoration(lineStart, end, Background: quoteStyle.Background,
+                    BarColor: quoteStyle.Accent, BarWidth: quoteStyle.BarWidth ?? 3f, Indent: quoteStyle.Indent ?? 0f));
                 int gt = lineStart + indent;
                 int after = Math.Min(gt + (trimmed.StartsWith("> ") ? 2 : 1), end);
                 marks.Add(Marker(gt, after));
+                AddTextStyle(marks, after, end, quoteStyle);
                 lineStart = end + 1;
                 continue;
             }
@@ -309,8 +355,12 @@ public static class MarkdownDecorations
             // 編集モード (hideMarkers=false) は従来どおりマーカを淡色化 (本文はそのまま)。
             if (trimmed.Length >= 2 && trimmed[1] == ' ' && trimmed[0] is '-' or '*' or '+')
             {
-                if (Hide(lineStart)) ListBullet(marks, lineStart, lineStart + indent + 2, indent, "• ", muted);
+                TextEditorBlockAppearance listStyle = Resolve(MarkdownBlockKinds.BulletList,
+                    new TextEditorBlockAppearance(Accent: muted));
+                if (listStyle.Background is { } listBackground) marks.Add(new LineDecoration(lineStart, listBackground));
+                if (Hide(lineStart)) ListBullet(marks, lineStart, lineStart + indent + 2, indent, "• ", listStyle.Accent ?? muted);
                 else marks.Add(Marker(lineStart + indent, lineStart + indent + 2));
+                AddTextStyle(marks, lineStart + indent + 2, end, listStyle);
             }
             else
             {
@@ -318,8 +368,18 @@ public static class MarkdownDecorations
                 while (d < line.Length && char.IsAsciiDigit(line[d])) d++;
                 if (d > indent && d + 1 < line.Length && line[d] == '.' && line[d + 1] == ' ')
                 {
-                    if (Hide(lineStart)) ListBullet(marks, lineStart, lineStart + d + 2, indent, line[indent..(d + 1)] + " ", muted);
+                    TextEditorBlockAppearance listStyle = Resolve(MarkdownBlockKinds.OrderedList,
+                        new TextEditorBlockAppearance(Accent: muted));
+                    if (listStyle.Background is { } listBackground) marks.Add(new LineDecoration(lineStart, listBackground));
+                    if (Hide(lineStart)) ListBullet(marks, lineStart, lineStart + d + 2, indent, line[indent..(d + 1)] + " ", listStyle.Accent ?? muted);
                     else marks.Add(Marker(lineStart + indent, lineStart + d + 2));
+                    AddTextStyle(marks, lineStart + d + 2, end, listStyle);
+                }
+                else
+                {
+                    TextEditorBlockAppearance paragraphStyle = Resolve(MarkdownBlockKinds.Paragraph, new TextEditorBlockAppearance());
+                    if (paragraphStyle.Background is { } paragraphBackground) marks.Add(new LineDecoration(lineStart, paragraphBackground));
+                    AddTextStyle(marks, lineStart, end, paragraphStyle);
                 }
             }
             lineStart = end + 1;   // +1 = '\n'
@@ -400,11 +460,13 @@ public static class MarkdownDecorations
 /// <summary>Markdown ソースを装飾に変換する <see cref="IDecorationProvider"/> — <see cref="TextEditorView.Providers"/>
 /// に足すと見出し/太字/斜体/コードが付く。テキストとテーマが変わらない限りキャッシュを返す。</summary>
 public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false, ISyntaxHighlighter? highlighter = null,
-    IReadOnlyCollection<string>? embedKinds = null, bool livePreview = false) : IDecorationProvider
+    IReadOnlyCollection<string>? embedKinds = null, bool livePreview = false,
+    Func<TextEditorAppearance>? appearance = null) : IDecorationProvider
 {
     private string? _lastText;
     private uint _lastDisc;
     private string _lastReveal = "";
+    private TextEditorAppearance? _lastAppearance;
     private DecorationSet _cache = DecorationSet.Empty;
 
     /// <inheritdoc/>
@@ -414,6 +476,7 @@ public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false
     public DecorationSet Provide(EditorState state)
     {
         Theme t = theme();
+        TextEditorAppearance currentAppearance = appearance?.Invoke() ?? TextEditorAppearance.Default;
         uint disc = t.Text ^ (t.TextMuted << 1) ^ CodeDecorations.TokenColor(t, TokenKind.Keyword);   // テーマ変化の検出子
         string text = state.Doc.Text;
         // live-preview: キャレット/選択のある行を reveal (マーカを畳まず淡色で見せる = Typora 風の編集モード)
@@ -426,10 +489,11 @@ public sealed class MarkdownProvider(Func<Theme> theme, bool hideMarkers = false
                 for (int l = state.Doc.LineOf(r.From); l <= state.Doc.LineOf(r.To); l++) revealLines.Add(l);
             revealSig = string.Join(",", revealLines.Order());
         }
-        if (text == _lastText && disc == _lastDisc && revealSig == _lastReveal) return _cache;
-        _lastText = text; _lastDisc = disc; _lastReveal = revealSig;
+        if (text == _lastText && disc == _lastDisc && revealSig == _lastReveal
+            && ReferenceEquals(currentAppearance, _lastAppearance)) return _cache;
+        _lastText = text; _lastDisc = disc; _lastReveal = revealSig; _lastAppearance = currentAppearance;
         Func<int, bool>? reveal = revealLines is null ? null : pos => revealLines.Contains(state.Doc.LineOf(pos));
-        _cache = MarkdownDecorations.Build(text, t, hideMarkers, highlighter, embedKinds, reveal);
+        _cache = MarkdownDecorations.Build(text, t, hideMarkers, highlighter, embedKinds, reveal, currentAppearance);
         return _cache;
     }
 }
