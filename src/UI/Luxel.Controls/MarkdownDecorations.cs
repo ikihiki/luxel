@@ -25,6 +25,9 @@ public static class MarkdownBlockKinds
     public const string CodeBlock = "markdown.code-block";
     public const string BulletList = "markdown.list.bullet";
     public const string OrderedList = "markdown.list.ordered";
+    public const string TaskList = "markdown.list.task";
+    public const string HorizontalRule = "markdown.horizontal-rule";
+    public const string Table = "markdown.table";
     public static string Heading(int level) => $"markdown.heading.{Math.Clamp(level, 1, 6)}";
 }
 
@@ -53,6 +56,9 @@ public static class MarkdownDoc
         ed.WrapLineHeight = 1.3f;   // 段落内はブロック間 (1.5) より詰める
         ed.ReadOnly = !editable;    // editable=true は Live Preview 編集モード (キャレット行のみマーカを見せる)
         ed.DocSource = markdown.Peek();   // docs 索引用 (realize 不要で本文/見出し/リンクを取れる)
+        ed.BlockProvider = MarkdownEditorFeatures.BlockProvider;
+        ed.InsertItems = MarkdownEditorFeatures.InsertItems;
+        ed.SelectionActions = MarkdownEditorFeatures.SelectionActions;
         // 文書レンダラ: マーカ非表示 + コード色分け + 埋め込み。editable なら live-preview (キャレット行だけ raw)。
         ed.Providers.Add(new MarkdownProvider(theme, hideMarkers: true, highlighter, embedKinds, livePreview: editable,
             appearance: () => ed.Appearance));
@@ -350,10 +356,40 @@ public static class MarkdownDecorations
                 continue;
             }
 
+            // 水平線。read-only ではソースを畳み、行 prefix でテーマ色の罫線として見せる。
+            if (MarkdownEditorFeatures.IsHorizontalRule(trimmed))
+            {
+                TextEditorBlockAppearance ruleStyle = Resolve(MarkdownBlockKinds.HorizontalRule,
+                    new TextEditorBlockAppearance(Accent: muted));
+                if (Hide(lineStart))
+                {
+                    marks.Add(new MarkDecoration(lineStart, end, Hidden: true));
+                    marks.Add(new LinePrefixDecoration(lineStart, "────────────────", ruleStyle.Accent ?? muted));
+                }
+                else marks.Add(Marker(lineStart, end));
+                Consume(consumed, lineStart, end);
+                lineStart = end + 1;
+                continue;
+            }
+
             // 箇条書き / 番号付きリスト。read-only (hideMarkers) は源の "- " を畳んで
             // 行頭 prefix で "• " (番号は "N. " のまま) を出す = マーカ非表示でも箇条書きに見える。
             // 編集モード (hideMarkers=false) は従来どおりマーカを淡色化 (本文はそのまま)。
-            if (trimmed.Length >= 2 && trimmed[1] == ' ' && trimmed[0] is '-' or '*' or '+')
+            if (MarkdownEditorFeatures.IsTask(trimmed))
+            {
+                TextEditorBlockAppearance taskStyle = Resolve(MarkdownBlockKinds.TaskList,
+                    new TextEditorBlockAppearance(Accent: muted));
+                int markerEnd = lineStart + indent + 6;
+                if (taskStyle.Background is { } taskBackground) marks.Add(new LineDecoration(lineStart, taskBackground));
+                if (Hide(lineStart))
+                {
+                    string glyph = trimmed[3] is 'x' or 'X' ? "☑ " : "☐ ";
+                    ListBullet(marks, lineStart, markerEnd, indent, glyph, taskStyle.Accent ?? muted);
+                }
+                else marks.Add(Marker(lineStart + indent, markerEnd));
+                AddTextStyle(marks, markerEnd, end, taskStyle);
+            }
+            else if (trimmed.Length >= 2 && trimmed[1] == ' ' && trimmed[0] is '-' or '*' or '+')
             {
                 TextEditorBlockAppearance listStyle = Resolve(MarkdownBlockKinds.BulletList,
                     new TextEditorBlockAppearance(Accent: muted));

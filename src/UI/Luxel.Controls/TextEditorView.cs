@@ -91,6 +91,15 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     public IList<IDecorationProvider> Providers => _providers;
     private readonly List<IDecorationProvider> _providers = new();
 
+    /// <summary>文書形式が提供するブロック境界。Editor のドラッグハンドル等はこの情報だけを使う。</summary>
+    public IEditorBlockProvider? BlockProvider { get; set; }
+    /// <summary>現在の文書から得たブロック。UI を持たないためテストや任意の Editor chrome からも利用できる。</summary>
+    public IReadOnlyList<EditorBlock> Blocks => BlockProvider?.GetBlocks(_state.Doc) ?? [];
+    /// <summary>ブロック追加ボタン／スラッシュメニューに出す文書形式側の候補。</summary>
+    public IReadOnlyList<EditorInsertItem> InsertItems { get; set; } = [];
+    /// <summary>選択ツールバーに出す文書形式側の操作。</summary>
+    public IReadOnlyList<EditorSelectionAction> SelectionActions { get; set; } = [];
+
     // ---- モデル (canvas 非依存) ----
     private EditorState _state = EditorState.Create();
     private readonly History _history = new();
@@ -147,6 +156,12 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
     public bool HasSelection => !_state.Selection.Main.Empty;
     /// <summary>カーソル (選択レンジ) の本数 — マルチカーソルの観測用。</summary>
     public int CursorCount => _state.Selection.Ranges.Count;
+
+    /// <summary>Editor の汎用 UI から挿入候補を実行する。</summary>
+    public void Execute(EditorInsertItem item) => Apply(EditorContributionCommands.Insert(_state, item));
+
+    /// <summary>Editor の汎用 UI から選択操作を実行する。</summary>
+    public void Execute(EditorSelectionAction action) => Apply(EditorContributionCommands.Apply(_state, action));
 
     /// <summary>owner の装飾を外部から差し替える (毎フレーム更新も可 — 再生囲みのような
     /// レイアウト非依存装飾は行キャッシュに触れず 60fps で回せる)。プロバイダを使わない push 型。</summary>

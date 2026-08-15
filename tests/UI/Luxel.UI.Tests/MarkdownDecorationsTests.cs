@@ -67,6 +67,46 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void ReadOnlyTaskList_ShowsCheckboxPrefix()
+    {
+        DecorationSet set = MarkdownDecorations.Build("- [ ] todo\n- [x] done", T, hideMarkers: true);
+        LinePrefixDecoration[] prefixes = set.OfKind<LinePrefixDecoration>().ToArray();
+
+        Assert.Equal(["☐ ", "☑ "], prefixes.Select(x => x.Text));
+        Assert.Contains(set.OfKind<MarkDecoration>(), x => x is { From: 0, To: 6, Hidden: true });
+        Assert.Contains(set.OfKind<MarkDecoration>(), x => x is { From: 11, To: 17, Hidden: true });
+    }
+
+    [Fact]
+    public void ReadOnlyHorizontalRule_HidesSourceAndShowsRule()
+    {
+        DecorationSet set = MarkdownDecorations.Build("---", T, hideMarkers: true);
+
+        Assert.True(At(set, 0, 3).Hidden);
+        Assert.StartsWith("──", set.OfKind<LinePrefixDecoration>().Single().Text);
+    }
+
+    [Fact]
+    public void EditorFeatures_ExposeMarkdownMenusAndBlockBoundaries()
+    {
+        Assert.Contains(MarkdownEditorFeatures.InsertItems, x => x.Id == "table");
+        Assert.Contains(MarkdownEditorFeatures.InsertItems, x => x.Id == "task-list");
+        Assert.Contains(MarkdownEditorFeatures.SelectionActions, x => x.Id == "bold");
+        Assert.Contains(MarkdownEditorFeatures.SelectionActions, x => x.Id == "link");
+
+        TextDoc doc = TextDoc.Of("# Title\n\nparagraph\ncontinued\n\n- [ ] todo\n\n```csharp\ncode\n```");
+        IReadOnlyList<EditorBlock> blocks = MarkdownEditorFeatures.BlockProvider.GetBlocks(doc);
+
+        Assert.Equal(4, blocks.Count);
+        Assert.Equal(MarkdownBlockKinds.Heading(1), blocks[0].Kind);
+        Assert.Equal(MarkdownBlockKinds.Paragraph, blocks[1].Kind);
+        Assert.Equal(MarkdownBlockKinds.TaskList, blocks[2].Kind);
+        Assert.Equal(MarkdownBlockKinds.CodeBlock, blocks[3].Kind);
+        Assert.Equal("paragraph\ncontinued", doc.Slice(blocks[1].From, blocks[1].To));
+        Assert.Equal("```csharp\ncode\n```", doc.Slice(blocks[3].From, blocks[3].To));
+    }
+
+    [Fact]
     public void Heading_Level_ScalesDown()
     {
         Assert.Equal(MarkdownDecorations.HeadingScale(2), At(Build("## Sub"), 3, 6).FontScale!.Value, 3);
