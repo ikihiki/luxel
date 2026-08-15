@@ -1,11 +1,15 @@
+using static Luxel.Gallery.Story;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>GpuDevice の共通 API が各 graphics backend へ変換される過程を、resource 単位で説明する。</summary>
+[StoryMeta("Learn/Graphics/Internal")]
 public static class LearnGraphicsBackendInternals
 {
-    [Story("Learn/Graphics/Internal/DirectX12", Order = 9, Toc = true)]
+    [Story]
     public static StoryResult DirectX12() => $$"""
         # DirectX 12 backend の resource 実装
+
+        {{Toc()}}
 
         > [!WARNING]
         > このページは `Luxel.Graphics.DirectX12` の内部実装を説明します。アプリケーションからは backend 型を直接操作せず、原則として `GpuDevice`、`GpuBuffer`、`GpuTexture`、`GpuPipeline`、`GpuCommandBuffer` を使います。
@@ -117,9 +121,11 @@ public static class LearnGraphicsBackendInternals
         5. `D3D12Queue.cs` / `D3D12Surface.cs`
         """;
 
-    [Story("Learn/Graphics/Internal/Vulkan", Order = 10, Toc = true)]
+    [Story]
     public static StoryResult Vulkan() => $$"""
         # Vulkan backend の resource 実装
+
+        {{Toc()}}
 
         > [!WARNING]
         > このページは `Luxel.Graphics.Vulkan` の内部実装を説明します。公開 API の利用方法ではなく、共通 resource が Vulkan object と synchronization へ変換される過程が対象です。
@@ -239,14 +245,16 @@ public static class LearnGraphicsBackendInternals
         5. `VulkanQueue.cs` / `VulkanSurface.cs` / `VulkanPresentationSource.cs`
         """;
 
-    [Story("Learn/Graphics/Internal/WebGPU", Order = 11, Toc = true)]
+    [Story]
     public static StoryResult WebGpu() => $$"""
         # WebGPU backend の resource 実装
+
+        {{Toc()}}
 
         > [!WARNING]
         > WebGPU には native (`Luxel.Graphics.WebGPU`) と browser (`Luxel.Graphics.WebGPU.Browser`) の2実装があります。共通 API は同じですが、native handle を直接呼ぶ経路と JavaScript interop を通る経路では lifetime と完了通知が異なります。
 
-        {{RenderingCourseCatalog.Meta("Learn/Graphics/Internal/WebGPU", "Advanced", "Windows / Linux native + Browser WASM", "WebGPU", "Buffers / Textures / Shaders / PipelineState / Synchronization")}}
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/Internal/WebGpu", "Advanced", "Windows / Linux native + Browser WASM", "WebGPU", "Buffers / Textures / Shaders / PipelineState / Synchronization")}}
 
         ## 2つの backend への入口
 

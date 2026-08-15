@@ -11,6 +11,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>SceneEditorView — シーンエディタ (ADR-0016 / ToDo 27 GE-1) のビュー。エンティティの選択/移動/複製/削除を
 /// 編集する。編集意味論は canvas 非依存の Luxel.SceneEdit (Transaction スタック 3 本目)、空間の知識 (座標変換/ヒット/
 /// カメラ/描画) は ISceneSpaceAdapter に閉じる — M11 は 2D アダプタ、3D アダプタは M12 でシェル無改修で足す。</summary>
+[StoryMeta("Controls/SceneEditorView")]
 public static class SceneEditorViewStory
 {
     // Player / Enemy / Coin の 3 エンティティ (transform2d のみ — 見た目はプレースホルダボックス)
@@ -22,7 +23,7 @@ public static class SceneEditorViewStory
         return SceneDoc.Of(SceneSpace.TwoD, [E(1, "Player", 120, 100), E(2, "Enemy", 300, 180), E(3, "Coin", 470, 120)]);
     }
 
-    [Story("Controls/SceneEditorView/Basic", Height = 440)]
+    [Story]
     public static Widget Basic(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: SampleScene(), viewWidth: 620f, viewHeight: 360f);
@@ -95,7 +96,7 @@ public static class SceneEditorViewStory
             [TileLayer.Of(1, "ground", "res://atlas/tiles.json", 32, 18, 9, cells)]);
     }
 
-    [Story("Controls/SceneEditorView/Tiles", Height = 470, Order = 2)]
+    [Story]
     public static Widget Tiles(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: TileScene(), viewWidth: 620f, viewHeight: 320f);
@@ -172,7 +173,7 @@ public static class SceneEditorViewStory
             [E(1, "Player", 0, 0, 0), E(2, "Crate", 2.2f, 0, 0.6f), E(3, "Gate", -2.1f, 0, -1.4f, new Vector3(1.4f, 1.5f, 0.4f))]);
     }
 
-    [Story("Controls/SceneEditorView/ThreeD", Height = 440, Order = 5)]
+    [Story]
     public static Widget ThreeD(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: SampleScene3D(), viewWidth: 620f, viewHeight: 360f);
@@ -206,7 +207,7 @@ public static class SceneEditorViewStory
         [new SceneFieldDef("color", SceneFieldType.Color, SceneValue.Of(new Vector4(1, 1, 1, 1)))]);
 
     // snap は幅 480 なので、golden に写したいもの (インスペクタ) を左に置く
-    [Story("Controls/SceneEditorView/Inspector", Height = 480, Order = 3)]
+    [Story]
     public static Widget Inspector(StoryContext ctx)
     {
         SchemaRegistry reg = SceneSchemas.BuiltIns().Add(EnemySchema).Add(TintSchema);
@@ -257,7 +258,7 @@ public static class SceneEditorViewStory
                 HStack(12)[insp, ed]]];
     }
 
-    [Story("Controls/SceneEditorView/Assets", Height = 480, Order = 4)]
+    [Story]
     public static Widget Assets(StoryContext ctx)
     {
         // プロジェクトフォルダ相当 (golden は実 FS watch を持ち込まない = MemoryFileStorage)

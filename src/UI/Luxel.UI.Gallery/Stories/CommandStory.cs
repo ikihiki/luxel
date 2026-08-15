@@ -7,6 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>メニュー/コマンド (ADR-0013 / ToDo 26 WS-M) — CommandRegistry を単一の真実に、
 /// MenuBar / CommandPalette / Toolbar / Keymap をその純粋ビューとして生成する。</summary>
+[StoryMeta("Controls")]
 public static class CommandStory
 {
     /// <summary>共通のデモ用レジストリ。log へ実行を記録する。</summary>
@@ -30,7 +31,7 @@ public static class CommandStory
         return null;
     }
 
-    [Story("Controls/MenuBar/Basic", Height = 300)]
+    [Story]
     public static Widget MenuBarBasic(StoryContext ctx)
     {
         string ran = "";
@@ -61,7 +62,7 @@ public static class CommandStory
                  13, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8, 10, 0, 0))];
     }
 
-    [Story("Controls/CommandPalette/Basic", Height = 380)]
+    [Story]
     public static Widget CommandPaletteBasic(StoryContext ctx)
     {
         string ran = "";
@@ -102,7 +103,7 @@ public static class CommandStory
             => OpenButton = Button(_ => { if (_ctx is not null) OnOpen(_ctx); }, "パレットを開く (Ctrl+Shift+P)");
     }
 
-    [Story("Controls/Toolbar/Basic", Height = 200)]
+    [Story]
     public static Widget ToolbarBasic(StoryContext ctx)
     {
         string ran = "";

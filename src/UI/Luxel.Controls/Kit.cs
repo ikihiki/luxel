@@ -2,10 +2,10 @@ using Luxel.Graphics.TwoD;
 using Luxel.UI;
 namespace Luxel.Controls;
 
-/// <summary>Controls/Button/Counter の Gallery/browser 共通 widget recipe。</summary>
+/// <summary>Controls/ButtonCounter の Gallery/browser 共通 widget recipe。</summary>
 public static class CanonicalCounterRecipe
 {
-    public const string Story = "Controls/Button/Counter";
+    public const string Story = "Controls/ButtonCounter";
     public const string Recipe = "canonical-counter-v1";
 
     public sealed record Result(Widget Root, Button Minus, Widget Text, Button Plus, Signal<int> Count);

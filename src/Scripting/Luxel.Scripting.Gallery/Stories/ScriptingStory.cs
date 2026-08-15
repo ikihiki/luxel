@@ -17,6 +17,7 @@ namespace Luxel.Gallery.Stories;
 /// コンパイルエラーは行番号付きでインライン表示、実行時例外もスクリプト行へマップされる。
 /// 初期状態は未実行 (コード表示のみ) — snap/E2E 決定的。
 /// </summary>
+[StoryMeta("Examples/Scripting")]
 public static class ScriptingStory
 {
     // ScriptHost / ScriptWorkspace / 言語サービスは **DI で共有** (GalleryServices が登録)。
@@ -114,7 +115,7 @@ public static class ScriptingStory
         public void Dispose() => (_output as IDisposable)?.Dispose();
     }
 
-    [Story(PlaygroundContract.StoryPath, Height = 700, Order = 2031)]
+    [Story]
     public static Widget Playground(StoryContext ctx, ICodeLanguage lang, Luxel.Settings.IFileStore files, INativePlaygroundRunner runner)
     {
         var template = new PlaygroundTemplate(
@@ -169,7 +170,7 @@ public static class ScriptingStory
                 workspace]];
     }
 
-    [Story("Examples/Scripting/LiveCsx", Height = 520, Order = 2032)]
+    [Story]
     public static Widget LiveCsx(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage lang)
     {
         var block = new CsxBlock(
@@ -280,7 +281,7 @@ public static class ScriptingStory
         "return Kit.HStack(6)[Kit.Badge(\"Ready\", Intent.Success), " +
         "Kit.Button(_ => Log(\"cell!\"), \"押す\")];";
 
-    [Story("Examples/Scripting/Notebook", Height = 620, Order = 2034)]
+    [Story]
     public static Widget Notebook(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage lang)
     {
         var sumCell = new NotebookCell(SumCellCode, 560f, ctx, runtime, lang);

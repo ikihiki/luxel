@@ -10,6 +10,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>新ドメインを「構成だけ」で追加 (ToDo 26 WS-D の D3) — **マテリアルグラフ**
 /// (NodeGraphDocument + INodeCatalog) と **Slang シェーダ** (TextDocument + hlsl 文法) が、
 /// 新しいエディタ実装ゼロで Workbench に載る。エディタ＝構成の実証。</summary>
+[StoryMeta("Examples/Workbench")]
 public static class WorkbenchMaterialStory
 {
     // ---- マテリアルグラフのドメイン定義 (カタログ = ノード種別の宣言だけ) ----
@@ -76,7 +77,7 @@ public static class WorkbenchMaterialStory
         _ => "slang",
     };
 
-    [Story("Examples/Workbench/Material", Height = 470)]
+    [Story]
     public static Widget Material(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();

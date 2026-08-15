@@ -12,6 +12,7 @@ namespace Luxel.Gallery.Stories;
 /// 2D ベクターの描画デモ — compute ラスタライザ (三角形分割なし) が塗る EvenOdd パス、
 /// ストローク、ベクターテキスト (日本語含む)。
 /// </summary>
+[StoryMeta("Examples/2D")]
 public static class Vector2DStories
 {
     private static readonly Lazy<VectorFont> EnFont = new(() => GalleryFonts.Load(GalleryFonts.Regular));
@@ -19,7 +20,7 @@ public static class Vector2DStories
 
     /// <summary>地図風シーン (日本語ラベル) + ズーム knob。ベクターなので拡大しても
     /// エッジが崩れない (実アプリでは Camera2D — 再エンコードなしのスムーズズーム)。</summary>
-    [Story("Examples/2D/Map", Width = 560, Height = 460, Order = 113)]
+    [Story]
     public static Widget Map(StoryContext ctx)
     {
         Signal<float> zoom = ctx.Signal("zoom", 1f, "拡大率 (1 = 等倍、(300,150) 中心)");

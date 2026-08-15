@@ -65,7 +65,7 @@ public sealed class UiContent : IWindowContent
     private readonly GpuDevice _device;
     private readonly UiRendererState _rendererState = new();
     private readonly PersistentUiOutput<GpuBuffer> _output = new();
-    private readonly PresentUiRenderFeature _feature;
+    private readonly CompositedUiRenderFeature _feature;
     private readonly UiSurfaceState _surface;
     private uint _paddedWidth, _height;
     private float _scale = 1f;
@@ -90,7 +90,7 @@ public sealed class UiContent : IWindowContent
             Host.Tick,
             AddRasterPass);
         _rendererState.Add(_surface);
-        _feature = new PresentUiRenderFeature(_rendererState);
+        _feature = new CompositedUiRenderFeature(_rendererState);
         Host.SetRoot(root);
     }
 
@@ -110,6 +110,10 @@ public sealed class UiContent : IWindowContent
     {
         if (Host.NeedsLogicalTick) _rendererState.Tick(dt);
         else _rendererState.ObserveChanges();
+        // WindowHost owns a single presentation cadence. A nested SurfaceView invalidates UiContent,
+        // so bridge that dirtiness to PresentUi and execute both in one ordered render graph.
+        if (_rendererState.Surfaces.Any(surface => surface.Role == UiSurfaceRole.Content && surface.IsDirty))
+            _rendererState.FeatureSetStates.Invalidate(RenderFeatureSets.PresentUi);
     }
 
     public void SetPresentationTarget(PresentationTarget target, float scale)

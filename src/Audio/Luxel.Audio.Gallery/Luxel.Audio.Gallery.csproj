@@ -23,9 +23,4 @@
   <ItemGroup>
     <Using Include="Luxel.Gallery" />
   </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\LuxelAudio.csproj" LogicalName="Luxel.Sample.samples.LuxelAudio.LuxelAudio.csproj" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\AudioConceptSamples.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.AudioConceptSamples.cs" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelAudio\Program.cs" LogicalName="Luxel.Sample.samples.LuxelAudio.Program.cs" />
-  </ItemGroup>
 </Project>

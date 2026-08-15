@@ -17,8 +17,6 @@ public sealed class BrowserStoryCatalogSourceTests
 
         string solution = File.ReadAllText(Path.Combine(root, "Luxel.slnx"));
         string resourceProject = File.ReadAllText(Path.Combine(root, "src", "Resources", "Luxel.Resources.Gallery", "ResourceGalleryProject.cs"));
-        string resourceBundles = File.ReadAllText(Path.Combine(root, "src", "Resources", "Luxel.Resources.Gallery", "ResourceSampleBundles.cs"));
-        string compatibilityProject = File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Stories", "Luxel.Gallery.Stories.csproj"));
         string fixtureTargets = File.ReadAllText(Path.Combine(root, "assets", "Luxel.KhronosBox.targets"));
         string dependencyChecker = File.ReadAllText(Path.Combine(root, "eng", "check-project-dependencies.py"));
 
@@ -28,8 +26,12 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("BrowserRoslynGalleryRuntime.LoadReferencesAsync(http)", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddSingleton<ICodeLanguage>(scripting.Language)", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddSingleton<INativePlaygroundRunner>(scripting.Playground)", entryPoint, StringComparison.Ordinal);
-        Assert.Contains("wwwroot\\references\\manifest.json", project, StringComparison.Ordinal);
-        Assert.Contains("CopyGalleryRoslynMetadataReferencesToPublish", project, StringComparison.Ordinal);
+        Assert.Contains("PrepareGalleryBrowserStaticWebAssets", project, StringComparison.Ordinal);
+        Assert.Contains("BeforeTargets=\"GenerateComputedBuildStaticWebAssets\"", project, StringComparison.Ordinal);
+        Assert.Contains("<DefineStaticWebAssets", project, StringComparison.Ordinal);
+        Assert.Contains("<DefineStaticWebAssetEndpoints", project, StringComparison.Ordinal);
+        Assert.Contains("<WriteLinesToFile File=\"$(_GalleryBrowserManifestPath)\"", project, StringComparison.Ordinal);
+        Assert.DoesNotContain("CopyGalleryRoslynMetadataReferencesToPublish", project, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddResourceGallery()", entryPoint, StringComparison.Ordinal);
         Assert.DoesNotContain("AddCoreUiStory", entryPoint, StringComparison.Ordinal);
         Assert.Contains("builder.Services.AddUiGallery()", entryPoint, StringComparison.Ordinal);
@@ -42,8 +44,6 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("src/Resources/Luxel.Resources.Gallery/Luxel.Resources.Gallery.csproj", solution, StringComparison.Ordinal);
         Assert.DoesNotContain("Luxel.Gallery.Resources.Stories", solution, StringComparison.Ordinal);
         Assert.Contains("StoryRegistration_Luxel_Resources_Gallery", resourceProject, StringComparison.Ordinal);
-        Assert.Contains("\"resources.scenarios\", \"Resource scenarios\"", resourceBundles, StringComparison.Ordinal);
-        Assert.DoesNotContain("\"resources.scenarios\", \"Resource scenarios\"", compatibilityProject, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\Box\\Box.gltf", project, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\BoxAnimated\\BoxAnimated.glb", project, StringComparison.Ordinal);
         Assert.Contains("wwwroot\\tools\\khronos-samples\\RiggedSimple\\RiggedSimple.glb", project, StringComparison.Ordinal);
@@ -67,9 +67,12 @@ public sealed class BrowserStoryCatalogSourceTests
         Assert.Contains("--blazor-load-percentage", styles, StringComparison.Ordinal);
         Assert.Contains("--blazor-load-percentage-text", styles, StringComparison.Ordinal);
         Assert.Contains("GalleryMarkdownHtml.Render(story, result)", app, StringComparison.Ordinal);
+        Assert.DoesNotContain("result.Embeds.Count == 0", app, StringComparison.Ordinal);
         Assert.Contains("Markdig", project, StringComparison.Ordinal);
         Assert.Contains("Markdown.ToHtml", markdown, StringComparison.Ordinal);
         Assert.Contains("markdown-story-embed", markdown, StringComparison.Ordinal);
+        Assert.Contains("WidgetEmbed(result, match)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("DocEmbedKind.StoryRef", markdown, StringComparison.Ordinal);
         Assert.Contains(".gallery-sidebar", styles, StringComparison.Ordinal);
         Assert.Contains("JSHost.ImportAsync(\"luxel-browser-host\", \"../main.js\")", app, StringComparison.Ordinal);
         Assert.Contains("Catalog.Find(path)", runtime, StringComparison.Ordinal);

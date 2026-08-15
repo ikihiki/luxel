@@ -25,10 +25,11 @@ namespace Luxel.Gallery.Stories;
 /// 初期は物理停止 (最初のクリックまで) = snap 決定的。
 /// メッシュアリーナ (05) / 動く的 (09) / パーティクル・音・UI・Title/Result は後続スライス。
 /// </summary>
+[StoryMeta("Apps/Game")]
 public static class RangeStories
 {
     private const string FoxAssetUri = "tools/khronos-samples/Fox.glb";
-    [Story("Apps/Game/Range", Width = 520, Height = 420, Order = 149)]
+    [Story]
     public static Widget Range(StoryContext ctx)
         => ctx.Snap(VStack(8)[
             new StoryAppView<RangeScene>(RangeScene.W, RangeScene.H, (s, bctx) =>

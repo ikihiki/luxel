@@ -81,8 +81,8 @@ public static partial class BrowserGalleryApplication
                 AudioStories.ConfigureRuntime(audio, () => audio.ResumeAsync(), () => audio.SuspendAsync(), () => audio.State.ToString());
             }
             using var windows = new WindowSystem(web);
-            int initialWidth = story.Width > 0 ? story.Width : 640;
-            int initialHeight = story.Height > 0 ? story.Height : 360;
+            const int initialWidth = 640;
+            const int initialHeight = 360;
             Window window = windows.CreateWindow(new WindowDesc("Luxel " + path, initialWidth, initialHeight));
             windows.Pump();
 
@@ -279,9 +279,7 @@ public static partial class BrowserGalleryApplication
         if (authored.Kind == StoryResultKind.Widget)
             return authored.Widget ?? throw new InvalidOperationException($"Widget story '{story.Path}' returned no Widget.");
 
-        StoryResult result = story.Toc
-            ? authored.WithMarkdown(MarkdownDoc.InsertToc(authored.Markdown))
-            : authored;
+        StoryResult result = authored.WithMarkdown(MarkdownDoc.RenderTocPlaceholder(authored.Markdown));
         var fences = new Dictionary<string, Func<string, Widget>>
         {
             ["mermaid"] = body => Luxel.Diagram.Factories.DiagramBlock(body, Math.Max(320f, width - 32f)),

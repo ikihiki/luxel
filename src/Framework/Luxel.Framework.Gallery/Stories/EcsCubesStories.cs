@@ -15,6 +15,7 @@ using Rg = Luxel.Graphics.RenderGraph.RenderGraph;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Browser-safe ECS + 3D extraction example shared by native Gallery and browser WebAssembly.</summary>
+[StoryMeta("Examples/3D")]
 public static class EcsCubesStories
 {
     private const uint Width = 256;
@@ -31,8 +32,7 @@ public static class EcsCubesStories
     }
 
     /// <summary>5×5 cube grid extracted from ECS and drawn through a browser-safe RenderGraph pass.</summary>
-    [Story("Examples/3D/EcsCubes", Width = 320, Height = 320, Order = 122,
-        CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
+    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
     public static Widget EcsCubes(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device)

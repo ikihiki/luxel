@@ -1,14 +1,18 @@
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.Story;
+using static Luxel.Gallery.DocKit.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Curve、Tween、Clip、Graph、StateMachineを現在の実装契約に沿って学ぶコース。</summary>
+[StoryMeta("Learn/Animation")]
 public static class LearnAnimation
 {
-    [Story("Learn/Animation/Overview", Order = 0, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
         # Animation 学習ガイド
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/Overview", "Beginner", "Standalone / Gallery / Browser", "Backend neutral; adapters write to UI / 2D / ECS", "なし")}}
 
@@ -59,9 +63,11 @@ public static class LearnAnimation
         - particleで長寿命の状態やsemanticなUI transitionを表現しようとする。
         """;
 
-    [Story("Learn/Animation/CurvesAndTweens", Order = 1, Toc = true)]
+    [Story]
     public static StoryResult CurvesAndTweens(StoryContext ctx) => $$"""
         # Curves and Tweens
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/CurvesAndTweens", "Beginner", "Standalone / Headless / Browser", "Backend neutral", "Animation overview")}}
 
@@ -114,9 +120,11 @@ public static class LearnAnimation
         - packed colorのbyte orderを確認せず独自tweenを書く。
         """;
 
-    [Story("Learn/Animation/PlayerAndTiming", Order = 2, Toc = true)]
+    [Story]
     public static StoryResult PlayerAndTiming(StoryContext ctx) => $$"""
         # Player and timing
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/PlayerAndTiming", "Intermediate", "App frame loop / Headless test", "Backend neutral", "Curves and tweens")}}
 
@@ -165,9 +173,11 @@ public static class LearnAnimation
         - `Stop`を正常完了通知として使う。
         """;
 
-    [Story("Learn/Animation/SequenceAndParallel", Order = 3, Toc = true)]
+    [Story]
     public static StoryResult SequenceAndParallel(StoryContext ctx) => $$"""
         # Sequence and Parallel
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/SequenceAndParallel", "Intermediate", "Standalone / Gallery / Browser", "Backend neutral", "Player and timing")}}
 
@@ -210,9 +220,11 @@ public static class LearnAnimation
         - 長い再利用データまでDSLへ埋め込み、clipとして共有できなくする。
         """;
 
-    [Story("Learn/Animation/ClipsAndTracks", Order = 4, Toc = true)]
+    [Story]
     public static StoryResult ClipsAndTracks(StoryContext ctx) => $$"""
         # Clips and Tracks
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/ClipsAndTracks", "Intermediate", "Standalone / Gallery / Game", "Backend neutral", "Sequence and parallel")}}
 
@@ -265,9 +277,11 @@ public static class LearnAnimation
         - 多数keyframeでlinear searchのcostを無視する。
         """;
 
-    [Story("Learn/Animation/TargetsAndBindings", Order = 5, Toc = true)]
+    [Story]
     public static StoryResult TargetsAndBindings(StoryContext ctx) => $$"""
         # Targets and bindings
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/TargetsAndBindings", "Intermediate", "UI / 2D retained canvas / ECS", "Adapter specific", "Clips and tracks")}}
 
@@ -308,9 +322,11 @@ public static class LearnAnimation
         - 同じpropertyをSignal transitionとclipから同時に駆動する。
         """;
 
-    [Story("Learn/Animation/GraphsAndBlending", Order = 6, Toc = true)]
+    [Story]
     public static StoryResult GraphsAndBlending(StoryContext ctx) => $$"""
         # Graphs and blending
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/GraphsAndBlending", "Advanced", "Game / Gallery / Headless test", "Backend neutral", "Targets and bindings")}}
 
@@ -359,9 +375,11 @@ public static class LearnAnimation
         - additive clipを通常clipと同じ基準値でauthoringする。
         """;
 
-    [Story("Learn/Animation/StateMachines", Order = 7, Toc = true)]
+    [Story]
     public static StoryResult StateMachines(StoryContext ctx) => $$"""
         # State machines
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/StateMachines", "Advanced", "Game / UI interaction / Headless test", "Backend neutral", "Graphs and blending")}}
 
@@ -407,9 +425,11 @@ public static class LearnAnimation
         - crossfade秒をanimation clipの正規化weightと混同する。
         """;
 
-    [Story("Learn/Animation/ImportAndDebugging", Order = 8, Toc = true)]
+    [Story]
     public static StoryResult ImportAndDebugging(StoryContext ctx) => $$"""
         # Import and debugging
+
+        {{Toc()}}
 
         {{AnimationCourseCatalog.Meta("Learn/Animation/ImportAndDebugging", "Intermediate", "Tools / Gallery / Headless test", "Backend neutral", "State machines")}}
 

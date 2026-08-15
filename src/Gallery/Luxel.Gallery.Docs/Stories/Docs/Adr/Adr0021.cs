@@ -1,14 +1,18 @@
 using Luxel.Controls;
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0021-Separate-Game-Scene-And-Render-Execution", Order = 92, Toc = true)]
+    [Story]
     public static StoryResult Adr0021(StoryContext ctx) => $$"""
         # ADR-0021 — game sceneとrender executionを分離する
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-08-14

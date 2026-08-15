@@ -15,11 +15,12 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>実ウィンドウ専用ストーリー ([Story(RealWindowOnly = true)] — snap 回帰は SKIP)。
 /// 音声再生・実デバイス入力・第 2 ウィンドウなど、offscreen の決定的描画にならない機能のデモを置く。</summary>
+[StoryMeta("RealWindow")]
 public static class RealWindowStories
 {
     private static AudioMixer? _mixer;   // プロセスで 1 個 (XAudio2 マスタリングボイス)
 
-    [Story("RealWindow/Audio/Tone", Height = 220, RealWindowOnly = true)]
+    [Story(RealWindowOnly = true)]
     public static Widget AudioTone(StoryContext ctx)
     {
         void Play(float freq, string name)
@@ -43,7 +44,7 @@ public static class RealWindowStories
                 Button(_ => Play(659.26f, "E5"), "E5")]]);
     }
 
-    [Story("RealWindow/Input/Gamepad", Height = 400, RealWindowOnly = true)]
+    [Story(RealWindowOnly = true)]
     public static Widget Gamepad(StoryContext ctx)
     {
         // 物理層: XInput を毎フレーム Poll して差分イベントを bus へ
@@ -109,7 +110,7 @@ public static class RealWindowStories
     private static WindowSystem? _secondWindows;
     private static WindowManager? _secondManager;
 
-    [Story("RealWindow/Platform/SecondWindow", Height = 280, RealWindowOnly = true)]
+    [Story(RealWindowOnly = true)]
     public static Widget SecondWindow(StoryContext ctx)
     {
         Signal<string> state = new(_secondManager is null ? "未作成" : "表示中");

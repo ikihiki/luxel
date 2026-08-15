@@ -16,9 +16,9 @@ public sealed class ScriptingStoryTests : Microsoft.Playwright.Xunit.PageTest
     public async Task LiveCsxCompilesAndRendersWithRoslynWeb()
     {
         const string story = "Examples/Scripting/LiveCsx";
-        await Page.GotoAsync($"/?story={Uri.EscapeDataString("Learn/Scripting/Overview")}");
+        await Page.GotoAsync($"/?story={Uri.EscapeDataString("Learn/Scripting/ScriptingOverview")}");
         await Page.FrameLocator(".story-runtime-frame")
-            .ExpectRuntimeStoryAsync("Learn/Scripting/Overview", noCapabilityFallback: true);
+            .ExpectRuntimeStoryAsync("Learn/Scripting/ScriptingOverview", noCapabilityFallback: true);
 
         await VerifyInteractionAsync(story, "Run", "こんにちは Luxel + Roslyn + csx");
     }

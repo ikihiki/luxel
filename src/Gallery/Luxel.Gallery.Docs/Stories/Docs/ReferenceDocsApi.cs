@@ -12,9 +12,9 @@ internal static class ReferenceDocsApi
         foreach (string ns in TypeApiRegistry.Namespaces)
         {
             string captured = ns;
-            builder.Add(new StoryInfo($"Reference/{captured}", 0, 0, null,
-                static _ => Spacer(), Order: 60, Source: "Generated API reference page.",
-                ResultBuild: ctx => NamespacePage(ctx, captured), Toc: true));
+            builder.Add(new StoryInfo($"Reference/{captured}",
+                static _ => Spacer(), Source: "Generated API reference page.",
+                ResultBuild: ctx => NamespacePage(ctx, captured)));
         }
     }
 
@@ -22,7 +22,7 @@ internal static class ReferenceDocsApi
     {
         IReadOnlyList<TypeApi> types = TypeApiRegistry.InNamespace(ns);
         var document = new DocString(512, types.Count);
-        document.AppendLiteral($"# {ns}\n\n");
+        document.AppendLiteral($"# {ns}\n\n<!-- luxel-toc-placeholder -->\n\n");
         document.AppendLiteral("この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから生成します。\n");
         foreach (TypeApi type in types)
         {

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Luxel.UI;
 using Luxel.Gallery;
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Tests;
 
@@ -20,6 +21,44 @@ public sealed class StoryResultTests
         Assert.Equal("Controls/Button/Playground", reference.Path);
         Assert.Equal("Save", reference.Args.Values["label"].GetString());
         Assert.Contains("```luxel-story", result.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Shared_story_ref_uses_the_canonical_story_reference_fence()
+    {
+        StoryResult result = $$"""
+            # Embedded story
+
+            {{StoryRef("Examples/Input/Actions", knobs: true)}}
+            """;
+
+        StoryReference reference = Assert.Single(result.References);
+        Assert.Equal("Examples/Input/Actions", reference.Path);
+        Assert.True(reference.ShowControls);
+        Assert.Empty(result.Embeds);
+        Assert.Contains("```luxel-story", result.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("```luxel-ui", result.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Toc_uses_a_canonical_markdown_placeholder_at_the_interpolation_position()
+    {
+        StoryResult result = $$"""
+            # Guide
+
+            before
+
+            {{Toc()}}
+
+            after
+            """;
+
+        int before = result.Markdown.IndexOf("before", StringComparison.Ordinal);
+        int placeholder = result.Markdown.IndexOf("<!-- luxel-toc-placeholder -->", StringComparison.Ordinal);
+        int after = result.Markdown.IndexOf("after", StringComparison.Ordinal);
+        Assert.True(before < placeholder && placeholder < after);
+        Assert.Empty(result.References);
+        Assert.Empty(result.Embeds);
     }
 
     [Fact]
@@ -77,7 +116,7 @@ public sealed class StoryResultTests
     {
         var first = new StoryCatalogBuilder();
         var second = new StoryCatalogBuilder();
-        first.Add(new StoryInfo("Test/One", 10, 10, null, _ => Luxel.Controls.Kit.Text("one")));
+        first.Add(new StoryInfo("Test/One", _ => Luxel.Controls.Kit.Text("one")));
 
         StoryCatalog firstCatalog = first.Build();
         StoryCatalog secondCatalog = second.Build();

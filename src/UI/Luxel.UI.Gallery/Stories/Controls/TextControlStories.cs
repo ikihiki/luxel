@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.Typography;
 using Luxel.UI;
 using Luxel.UI.Tailwind;
@@ -8,9 +8,10 @@ using static Luxel.UI.Gallery.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>テキスト表示/編集系コントロールのストーリー。</summary>
+[StoryMeta("Controls")]
 public static class TextControlStories
 {
-    [Story("Controls/TextField/Basic", Height = 160)]
+    [Story]
     public static Widget TextFieldBasic(StoryContext ctx)
     {
         Signal<string> text = ctx.Signal("text", "Hello");
@@ -27,7 +28,7 @@ public static class TextControlStories
         return Frame(tf);
     }
 
-    [Story("Controls/SearchField/Basic", Height = 320)]
+    [Story]
     public static Widget SearchFieldBasic(StoryContext ctx)
     {
         // CompositeControl の見本: タイプで候補が絞り込まれ (構造状態 → Rebuild)、行クリックで確定
@@ -35,7 +36,7 @@ public static class TextControlStories
         return Frame(SearchField(ctx.Signal("query", ""), langs));
     }
 
-    [Story("Controls/Text/EllipsisVAlign", Height = 360)]
+    [Story]
     public static Widget TextEllipsisVAlign()
     {
         const string lng = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn evenings.";
@@ -51,7 +52,7 @@ public static class TextControlStories
                 verticalAlign: TextVAlign.Bottom, textAlign: Luxel.Typography.TextAlign.Right))]);
     }
 
-    [Story("Controls/RichText/Basic", Height = 280)]
+    [Story]
     public static Widget RichTextBasic()
     {
         var spans = new[]
@@ -69,7 +70,7 @@ public static class TextControlStories
                             padding: new Thickness(10), width: 380)[rtv]);
     }
 
-    [Story("Controls/Text/Multiline", Height = 480)]
+    [Story]
     public static Widget TextMultiline()
     {
         const string en = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn.";
@@ -83,7 +84,7 @@ public static class TextControlStories
             Case("Justify (末行は左)", Text(en + " " + en, 13, wrap: Luxel.Typography.TextWrap.Word, textAlign: Luxel.Typography.TextAlign.Justify))]);
     }
 
-    [Story("Controls/Text/Styles", Height = 220)]
+    [Story]
     public static Widget TextStyles(StoryContext ctx) => ctx.Snap(Frame(VStack(6)[
         Text("Large 28px", 28, color: Bind.From(() => UiTheme.T.Text)),
         Text("Body 16px", 16, color: Bind.From(() => UiTheme.T.Text)),
@@ -91,7 +92,7 @@ public static class TextControlStories
         Text("Tailwind colored", 16, color: Tw.Blue500),
         Text("Half opacity", 16, color: Bind.From(() => UiTheme.T.Text), opacity: 0.5f)]));
 
-    [Story("Controls/Text/Japanese", Height = 380)]
+    [Story]
     public static Widget Japanese(StoryContext ctx)
     {
         // 同梱フォント (BIZ UDGothic / UDEV Gothic) で日本語が出ることを 1 画面で確認する:

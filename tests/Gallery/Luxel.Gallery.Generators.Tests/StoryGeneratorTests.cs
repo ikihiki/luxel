@@ -13,7 +13,7 @@ public sealed class StoryGeneratorTests
     public void Source_CapturesFullExpressionBodiedMethod()
     {
         const string story = """
-            [Story("Controls/Button/Basic", Height = 160)]
+            [Story]
             public static Widget Basic(StoryContext ctx)
                 => new Widget("quoted <tag> & value");
             """;
@@ -21,7 +21,7 @@ public sealed class StoryGeneratorTests
         string source = GeneratedStorySource(story);
 
         Assert.Equal(CapturedMethodSyntax(story), source);
-        Assert.Contains("[Story(\"Controls/Button/Basic\", Height = 160)]", source);
+        Assert.Contains("[Story]", source);
         Assert.Contains("public static Widget Basic(StoryContext ctx)", source);
         Assert.Contains("=> new Widget(\"quoted <tag> & value\");", source);
     }
@@ -30,7 +30,7 @@ public sealed class StoryGeneratorTests
     public void Source_PreservesCapturedBlockBodyWhitespaceParametersAndComments()
     {
         const string story = """
-            [Story("Examples/Block")]
+            [Story]
             internal static Widget Block(StoryContext ctx, DemoService service)
             {
                 // source contract
@@ -49,21 +49,21 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
-    public void SampleBundle_IsEmittedIntoStoryInfo()
+    public void Story_path_uses_meta_title_and_method_name()
     {
         GeneratorDriverRunResult result = Run("""
-            [Story("Build/Triangle", SampleBundle = "rendering.triangle")]
+            [Story]
             public static Widget Triangle() => new Widget();
-            """);
+            """, "Build");
         string generated = Assert.Single(result.GeneratedTrees).ToString();
-        Assert.Contains("\"rendering.triangle\"", generated);
+        Assert.Contains("\"Build/Triangle\"", generated);
     }
 
     [Fact]
     public void Runtime_descriptor_schema_is_emitted_without_building_the_story()
     {
         GeneratorDriverRunResult result = Run("""
-            [Story("Controls/Demo/Basic", Args = nameof(Args), CapabilityNote = "fixture")]
+            [Story(Args = nameof(Args), CapabilityNote = "fixture")]
             public static Widget Demo() => new Widget();
             public static System.Collections.Generic.IReadOnlyList<StoryArgDefinition> Args() => System.Array.Empty<StoryArgDefinition>();
             """);
@@ -74,16 +74,16 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
-    public void Direct_markdown_story_and_toc_metadata_are_emitted_from_the_return_type()
+    public void Direct_markdown_story_is_emitted_from_the_return_type()
     {
         GeneratorDriverRunResult result = Run("""
-            [Story("Learn/Graphics/2D/Overview", Toc = true)]
+            [Story]
             public static StoryResult Overview() => new StoryResult();
             """);
 
         string generated = Assert.Single(result.GeneratedTrees).ToString();
         Assert.Contains("ResultBuild: static ctx => global::Demo.Stories.Overview()", generated, StringComparison.Ordinal);
-        Assert.Contains("Toc: true", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Toc:", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("DocNew", generated, StringComparison.Ordinal);
     }
 
@@ -91,7 +91,7 @@ public sealed class StoryGeneratorTests
     public void Explicit_semantic_result_provider_is_emitted_without_invoking_story_dependencies()
     {
         GeneratorDriverRunResult result = Run("""
-            [Story("Examples/Document", Result = nameof(DocumentResult))]
+            [Story(Result = nameof(DocumentResult))]
             public static Widget Document(StoryContext ctx, DemoService service) => new Widget(service.Name);
             internal static StoryResult DocumentResult() => new StoryResult();
             """);
@@ -104,7 +104,7 @@ public sealed class StoryGeneratorTests
     public void InvalidStorySignature_ReportsNgui010()
     {
         GeneratorDriverRunResult result = Run("""
-            [Story("Invalid")]
+            [Story]
             public Widget Invalid() => new Widget("bad");
             """);
 
@@ -127,11 +127,13 @@ public sealed class StoryGeneratorTests
         ObjectCreationExpressionSyntax registration = Assert.Single(
             root.DescendantNodes().OfType<ObjectCreationExpressionSyntax>(),
             node => node.Type.ToString().Contains("StoryInfo", StringComparison.Ordinal));
-        LiteralExpressionSyntax literal = Assert.IsType<LiteralExpressionSyntax>(registration.ArgumentList!.Arguments[6].Expression);
+        ArgumentSyntax sourceArgument = Assert.Single(registration.ArgumentList!.Arguments,
+            argument => argument.NameColon?.Name.Identifier.ValueText == "Source");
+        LiteralExpressionSyntax literal = Assert.IsType<LiteralExpressionSyntax>(sourceArgument.Expression);
         return literal.Token.ValueText;
     }
 
-    private static GeneratorDriverRunResult Run(string storyMethod)
+    private static GeneratorDriverRunResult Run(string storyMethod, string title = "Demo")
     {
         string source = $$"""
             using System;
@@ -149,19 +151,15 @@ public sealed class StoryGeneratorTests
             namespace Luxel.Gallery
             {
                 [AttributeUsage(AttributeTargets.Method)]
-                public sealed class StoryAttribute(string path) : Attribute
+                public sealed class StoryAttribute : Attribute
                 {
-                    public int Width { get; set; }
-                    public int Height { get; set; }
-                    public int Order { get; set; }
-                    public string? Theme { get; set; }
                     public bool RealWindowOnly { get; set; }
-                    public bool Toc { get; set; }
-                    public string? SampleBundle { get; set; }
                     public string? Args { get; set; }
                     public string? Result { get; set; }
                     public string? CapabilityNote { get; set; }
                 }
+                [AttributeUsage(AttributeTargets.Class)]
+                public sealed class StoryMeta(string title) : Attribute { public string Title { get; } = title; }
                 public sealed class StoryContext
                 {
                     public T Require<T>() => default!;
@@ -171,18 +169,18 @@ public sealed class StoryGeneratorTests
                 {
                     public static implicit operator StoryResult(Widget widget) => new();
                 }
-                public sealed record StoryInfo(string Path, int Width, int Height, string? Theme,
-                    Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
+                public sealed record StoryInfo(string Path, Func<StoryContext, Widget> Build,
+                    string? Source = null, bool RealWindowOnly = false,
                     Func<StoryContext, StoryResult>? ResultBuild = null,
                     System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
-                    string? CapabilityNote = null, bool Toc = false);
+                    string? CapabilityNote = null);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
             }
 
             namespace Demo
             {
                 public sealed class DemoService { public string Name => "demo"; }
-                public static class Stories
+                [StoryMeta("{{title}}")] public static class Stories
                 {
             {{Indent(storyMethod, 8)}}
                 }

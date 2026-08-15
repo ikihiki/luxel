@@ -34,8 +34,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Luxel.Gallery.Site.Tests" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelResources\LuxelResources.csproj" LogicalName="Luxel.Sample.samples.LuxelResources.LuxelResources.csproj" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelResources\Program.cs" LogicalName="Luxel.Sample.samples.LuxelResources.Program.cs" />
     <EmbeddedResource Include="$(KhronosBoxGltfPath)" LogicalName="Luxel.Gallery.Resources.Fixtures.Box.gltf" />
     <EmbeddedResource Include="$(KhronosBoxBinPath)" LogicalName="Luxel.Gallery.Resources.Fixtures.Box0.bin" />
     <EmbeddedResource Include="$(KhronosBoxAnimatedPath)" LogicalName="Luxel.Gallery.Resources.Fixtures.BoxAnimated.glb" />

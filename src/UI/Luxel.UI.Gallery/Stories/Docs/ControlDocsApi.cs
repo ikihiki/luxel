@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
@@ -29,11 +29,11 @@ internal static class ControlDocsApi
             string? category = ExistingControlCategory(api.Name);
             if (category is null || !categories.Add(category)) continue;
             builder.Add(api.Name == "Button"
-                ? new StoryInfo("Controls/Button/Overview", 0, 0, null,
-                    static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
+                ? new StoryInfo("Controls/Button/Overview",
+                    static _ => Spacer(), Source: "Generated control API overview.",
                     ResultBuild: static _ => ButtonOverview())
-                : new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                    static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
+                : new StoryInfo($"Controls/{category}/Overview",
+                    static _ => Spacer(), Source: "Generated control API overview.",
                     ResultBuild: ctx => ControlPage(ctx, api)), replaceGenerated: true);
         }
 
@@ -46,7 +46,7 @@ internal static class ControlDocsApi
         string category, Func<StoryContext, StoryResult> build)
     {
         if (!categories.Add(category)) return;
-        builder.Add(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
+        builder.Add(new StoryInfo($"Controls/{category}/Overview", static _ => Spacer(), Source: "Generated control API overview.",
             ResultBuild: build), replaceGenerated: true);
     }
 
@@ -62,8 +62,8 @@ internal static class ControlDocsApi
                 if (api.Namespace != "Luxel.Controls") continue;
                 string? category = ExistingControlCategory(api.Name);
                 if (category is null || !RegisteredControlCategories.Add(category)) continue;
-                StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null,
-                    static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
+                StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview",
+                    static _ => Spacer(), Source: "Generated control API overview.",
                     ResultBuild: ctx => ControlPage(ctx, api)));
             }
 
@@ -76,7 +76,7 @@ internal static class ControlDocsApi
     private static void RegisterSpecialControlPage(string category, Func<StoryContext, StoryResult> build)
     {
         if (!RegisteredControlCategories.Add(category)) return;
-        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", 0, 0, null, static _ => Spacer(), Order: 0, Source: "Generated control API overview.",
+        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", static _ => Spacer(), Source: "Generated control API overview.",
             ResultBuild: build));
     }
 
@@ -113,7 +113,7 @@ internal static class ControlDocsApi
         the canonical interactive counter story; component-playground hosting remains native until the
         generated component catalog can be linked into the browser-safe dependency closure.
 
-        {{StoryReference.To("Controls/Button/Counter", new { count = 0 })}}
+        {{StoryReference.To("Controls/ButtonCounter", new { count = 0 })}}
 
         The interactive reference above is isolated in its own browser runtime iframe; the surrounding
         overview remains semantic HTML.
@@ -158,7 +158,7 @@ internal static class ControlDocsApi
         Border Breadcrumb(params string[] crumbs)
         ```
 
-        実例は [Badges](story:Controls/Kit/Badges) / [Alert](story:Controls/Kit/Alert) / [Typography](story:Controls/Kit/Typography) へ。
+        実例は [Badges](story:Controls/Badges) / [Alert](story:Controls/AlertStory) / [Typography](story:Controls/Typography) へ。
         """;
 
     private static StoryResult CommandPalettePage(StoryContext ctx) => $$"""

@@ -7,9 +7,10 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>Knob の全型 (bool/int/float/string/color/enum/length) を 1 画面で見せるストーリー。
 /// 右パネルの Knobs テーブルから編集すると即座に反映される (KT/KT2 の実演 + E2E 用)。</summary>
+[StoryMeta("Controls/KnobsTable")]
 public static class KnobStories
 {
-    [Story("Controls/KnobsTable/Kinds", Height = 240, Order = 2000)]
+    [Story]
     public static Widget Kinds(StoryContext ctx)
     {
         Signal<bool> visible = ctx.Signal("visible", true, "チップの表示 (false で淡色化)");

@@ -19,18 +19,18 @@ public sealed class ResourceStoryTests : Microsoft.Playwright.Xunit.PageTest
         "Examples/Resources/TypedManagerBinding", "Examples/Resources/SharedRequestIdentity", "Examples/Resources/CustomSourceAndStep",
         "Examples/Resources/DependencyPublication", "Examples/Resources/ScopedRetirement", "Examples/Resources/ReloadKeepsLastGood",
         "Examples/Resources/DomainAndManagerMetrics", "Examples/Resources/WasmCooperativeScheduling",
-        "Examples/Resources/Assets/GpuManagerInstallation", "Examples/Resources/Assets/CustomGpuParticleBuffers",
-        "Examples/Resources/Assets/CustomGpuStructRetirement", "Examples/Resources/Assets/GpuIndexRecycling",
-        "Examples/Resources/Assets/GpuCompaction", "Examples/Resources/Assets/DeviceLostRecovery",
-        "Examples/Resources/Assets/DocumentInspector", "Examples/Resources/Assets/MeshPrimitiveInspector",
-        "Examples/Resources/Assets/MaterialTextureInspector", "Examples/Resources/Assets/AnimatedSceneGraph",
-        "Examples/Resources/Assets/ShaderBufferInspector", "Examples/Resources/Gltf/BoxDocumentLoad",
-        "Examples/Resources/Gltf/ExternalBufferTrace", "Examples/Resources/Gltf/MalformedAccessorDiagnostics",
-        "Examples/Resources/Gltf/ExternalDependencyReload");
+        "Examples/Resources/GpuManagerInstallation", "Examples/Resources/CustomGpuParticleBuffers",
+        "Examples/Resources/CustomGpuStructRetirement", "Examples/Resources/GpuIndexRecycling",
+        "Examples/Resources/GpuCompaction", "Examples/Resources/DeviceLostRecovery",
+        "Examples/Resources/DocumentInspector", "Examples/Resources/MeshPrimitiveInspector",
+        "Examples/Resources/MaterialTextureInspector", "Examples/Resources/AnimatedSceneGraph",
+        "Examples/Resources/ShaderBufferInspector", "Examples/Resources/BoxDocumentLoad",
+        "Examples/Resources/ExternalBufferTrace", "Examples/Resources/MalformedAccessorDiagnostics",
+        "Examples/Resources/ExternalDependencyReload");
 
     public static TheoryData<string> GpuResourceStories => Data(
-        "Examples/Resources/Gltf/BoxScene", "Examples/Resources/Gltf/AnimatedBox",
-        "Examples/Resources/Gltf/RiggedSimpleSkinning", "Examples/Resources/Gltf/MorphWeights");
+        "Examples/Resources/Gltf/GltfBox", "Examples/Resources/Gltf/GltfAnimated",
+        "Examples/Resources/Gltf/GltfSkinned", "Examples/Resources/Gltf/GltfMorph");
 
     [Fact]
     public async Task ResourceLearnRendersNavigationLiveExampleAndBack()
@@ -63,6 +63,20 @@ public sealed class ResourceStoryTests : Microsoft.Playwright.Xunit.PageTest
     }
 
     [Fact]
+    public async Task InterpolatedMarkdownRendersCanonicalStoryRefEmbed()
+    {
+        var failures = Page.CollectFailures(responses: true);
+        const string story = "Learn/Input/Overview";
+        await Page.GotoAsync($"/?story={Uri.EscapeDataString(story)}");
+        await Expect(Page.Locator(".markdown-document h1")).ToHaveTextAsync("入力システムの概要");
+        var embeds = Page.Locator(".markdown-story-embed");
+        await Expect(embeds).ToHaveCountAsync(1);
+        await Expect(embeds.Locator("header")).ToContainTextAsync("Examples/Input/Actions");
+        await Expect(Page.Locator(".markdown-embed-unavailable")).ToHaveCountAsync(0);
+        failures.AssertEmpty();
+    }
+
+    [Fact]
     public async Task AssetsLearnEmbedsOneCpuExample()
     {
         var failures = Page.CollectFailures(responses: true);
@@ -71,7 +85,7 @@ public sealed class ResourceStoryTests : Microsoft.Playwright.Xunit.PageTest
         await Expect(Page.Locator(".markdown-document h1")).ToHaveTextAsync("アセットの概要");
         var embeds = Page.Locator(".markdown-story-embed");
         await Expect(embeds).ToHaveCountAsync(1);
-        await Expect(embeds.Locator("header")).ToContainTextAsync("Examples/Resources/Assets/DocumentInspector");
+        await Expect(embeds.Locator("header")).ToContainTextAsync("Examples/Resources/DocumentInspector");
         await Expect(Page.Locator(".markdown-story-embed iframe").First.ContentFrame.Locator("#status"))
             .ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
         await embeds.GetByRole(AriaRole.Link, new() { Name = "Storyを開く" }).ClickAsync();
@@ -89,18 +103,18 @@ public sealed class ResourceStoryTests : Microsoft.Playwright.Xunit.PageTest
         await Page.GotoAsync($"/?story={Uri.EscapeDataString("Learn/Resources/Gltf/RegistrationAndLoading")}");
         await Expect(Page.Locator(".markdown-document h1")).ToHaveTextAsync("glTFの登録と読み込み");
         await Expect(Page.Locator(".markdown-story-embed")).ToHaveCountAsync(1);
-        await Expect(Page.Locator(".markdown-story-embed header")).ToContainTextAsync("Examples/Resources/Gltf/BoxDocumentLoad");
+        await Expect(Page.Locator(".markdown-story-embed header")).ToContainTextAsync("Examples/Resources/BoxDocumentLoad");
         await Expect(Page.Locator(".markdown-story-embed iframe").First.ContentFrame.Locator("#status"))
             .ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
         await Page.GotoAsync($"/?story={Uri.EscapeDataString("Learn/Resources/Gltf/ExternalBuffersImagesAndUris")}");
         await Expect(Page.Locator(".markdown-document h1")).ToHaveTextAsync("外部バッファ、画像、URI");
         await Expect(Page.Locator(".markdown-story-embed")).ToHaveCountAsync(1);
-        await Expect(Page.Locator(".markdown-story-embed header")).ToContainTextAsync("Examples/Resources/Gltf/ExternalBufferTrace");
+        await Expect(Page.Locator(".markdown-story-embed header")).ToContainTextAsync("Examples/Resources/ExternalBufferTrace");
         await Expect(Page.Locator(".markdown-story-embed iframe").First.ContentFrame.Locator("#status"))
             .ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
         await Page.GotoAsync($"/?story={Uri.EscapeDataString("Learn/Resources/Gltf/ValidationAndDiagnostics")}");
         await Expect(Page.Locator(".markdown-document h1")).ToHaveTextAsync("検証と診断");
-        await Expect(Page.Locator(".markdown-story-embed header").First).ToContainTextAsync("Examples/Resources/Gltf/MalformedAccessorDiagnostics");
+        await Expect(Page.Locator(".markdown-story-embed header").First).ToContainTextAsync("Examples/Resources/MalformedAccessorDiagnostics");
         await Expect(Page.Locator(".markdown-story-embed iframe").First.ContentFrame.Locator("#status"))
             .ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
         failures.AssertEmpty();
@@ -142,7 +156,7 @@ public sealed class ResourceStoryTests : Microsoft.Playwright.Xunit.PageTest
         var failures = Page.CollectFailures(responses: true);
         await Page.GotoAsync(story.StoryPath());
         await Page.ExpectRuntimeStoryAsync(story, webGpu: true, gpuView: true);
-        if (story == "Examples/Resources/Gltf/AnimatedBox")
+        if (story == "Examples/Resources/Gltf/GltfAnimated")
         {
             var revision = await Page.EvaluateAsync<int>("() => globalThis.luxelBrowserState.renderRevision");
             await GalleryPolling.EventuallyAsync(async () => await Page.EvaluateAsync<int>("() => globalThis.luxelBrowserState.renderRevision") > revision + 9);

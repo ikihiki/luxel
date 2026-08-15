@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0008-Custom-Ime-Candidates", Order = 79, Toc = true)]
+    [Story]
     public static StoryResult Adr0008(StoryContext ctx) => $$"""
         # ADR-0008 — IME 候補ウインドウを自前描画する (排他モード対応)
+
+        {{Toc()}}
 
         - **Status**: Proposed
         - **Date**: 2026-07-08
@@ -27,7 +31,7 @@ public static partial class DocsAdr
 
         ## Decision
 
-        TSF の `ITfUIElementMgr` に **`ITfUIElementSink` を advise** し、候補リスト UI 要素で `BeginUIElement` の `pbShow=false` を返して**OS 描画を抑制**、`ITfCandidateListUIElement` から候補文字列・選択・ページを読み、UI 層へ渡します。UI 層は候補を **[ADR-0007](story:Internals/ADR/0007-Floating-Ui-Placement) の Popup** として `CaretRect` にアンカーして自前描画します。
+        TSF の `ITfUIElementMgr` に **`ITfUIElementSink` を advise** し、候補リスト UI 要素で `BeginUIElement` の `pbShow=false` を返して**OS 描画を抑制**、`ITfCandidateListUIElement` から候補文字列・選択・ページを読み、UI 層へ渡します。UI 層は候補を **[ADR-0007](story:Internals/ADR/Adr0007) の Popup** として `CaretRect` にアンカーして自前描画します。
 
         - 抑制は**排他モード時 (またはオプトイン) のみ**。通常ウインドウでは OS 描画を既定にする (OS の絵文字候補等の利点を残す)
         - 失敗時・非 TSF (IMM フォールバック) は OS 描画へフォールバック

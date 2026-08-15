@@ -17,6 +17,7 @@ namespace Luxel.Gallery.Stories;
 /// 旧ロジックが生き続け診断が出る (ゲームが止まらない)。箱はスクリプトの Update を固定 dt で N ステップ
 /// 回した位置に描く (Canvas2D = 決定的、golden 安定)。
 /// </summary>
+[StoryMeta("Examples/Scripting")]
 public static class ScriptHotReloadStory
 {
     /// <summary>スクリプトが動かす箱の状態 (globals 経由でスクリプトから触る)。</summary>
@@ -129,7 +130,7 @@ public static class ScriptHotReloadStory
         public override string? DebugDetail => $"hot reload (box x={BoxX:0})";
     }
 
-    [Story("Examples/Scripting/NativeHotReload", Height = 420, Order = 2035)]
+    [Story]
     public static Widget NativeHotReload(StoryContext ctx, ScriptHostRegistry scripts)
     {
         var block = new HotReloadBlock(460, scripts);

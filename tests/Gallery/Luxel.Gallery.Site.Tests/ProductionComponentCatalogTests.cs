@@ -114,25 +114,25 @@ public sealed class ProductionComponentCatalogTests
             "Examples/Resources/ReloadKeepsLastGood",
             "Examples/Resources/DomainAndManagerMetrics",
             "Examples/Resources/WasmCooperativeScheduling",
-            "Examples/Resources/Assets/GpuManagerInstallation",
-            "Examples/Resources/Assets/CustomGpuParticleBuffers",
-            "Examples/Resources/Assets/CustomGpuStructRetirement",
-            "Examples/Resources/Assets/GpuIndexRecycling",
-            "Examples/Resources/Assets/GpuCompaction",
-            "Examples/Resources/Assets/DeviceLostRecovery",
-            "Examples/Resources/Assets/DocumentInspector",
-            "Examples/Resources/Assets/MeshPrimitiveInspector",
-            "Examples/Resources/Assets/MaterialTextureInspector",
-            "Examples/Resources/Assets/AnimatedSceneGraph",
-            "Examples/Resources/Assets/ShaderBufferInspector",
-            "Examples/Resources/Gltf/BoxDocumentLoad",
-            "Examples/Resources/Gltf/ExternalBufferTrace",
-            "Examples/Resources/Gltf/MalformedAccessorDiagnostics",
-            "Examples/Resources/Gltf/ExternalDependencyReload",
-            "Examples/Resources/Gltf/BoxScene",
-            "Examples/Resources/Gltf/AnimatedBox",
-            "Examples/Resources/Gltf/RiggedSimpleSkinning",
-            "Examples/Resources/Gltf/MorphWeights",
+            "Examples/Resources/GpuManagerInstallation",
+            "Examples/Resources/CustomGpuParticleBuffers",
+            "Examples/Resources/CustomGpuStructRetirement",
+            "Examples/Resources/GpuIndexRecycling",
+            "Examples/Resources/GpuCompaction",
+            "Examples/Resources/DeviceLostRecovery",
+            "Examples/Resources/DocumentInspector",
+            "Examples/Resources/MeshPrimitiveInspector",
+            "Examples/Resources/MaterialTextureInspector",
+            "Examples/Resources/AnimatedSceneGraph",
+            "Examples/Resources/ShaderBufferInspector",
+            "Examples/Resources/BoxDocumentLoad",
+            "Examples/Resources/ExternalBufferTrace",
+            "Examples/Resources/MalformedAccessorDiagnostics",
+            "Examples/Resources/ExternalDependencyReload",
+            "Examples/Resources/Gltf/GltfBox",
+            "Examples/Resources/Gltf/GltfAnimated",
+            "Examples/Resources/Gltf/GltfSkinned",
+            "Examples/Resources/Gltf/GltfMorph",
         ];
 
         StoryCatalog resourceCatalog = ResourceGalleryProject.CreateCatalog();
@@ -196,7 +196,7 @@ public sealed class ProductionComponentCatalogTests
         StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         StoryInfo ready = Assert.IsType<StoryInfo>(catalog.Find("Examples/Resources/ReadyBuilder"));
 
-        Assert.Contains("[Story(\"Examples/Resources/ReadyBuilder\"", ready.Source, StringComparison.Ordinal);
+        Assert.Contains("[Story]", ready.Source, StringComparison.Ordinal);
         Assert.Contains("public static Widget ReadyBuilder", ready.Source, StringComparison.Ordinal);
         Assert.Contains("builder.Sources.Add", ready.Source, StringComparison.Ordinal);
         Assert.Contains("builder.Steps.Add", ready.Source, StringComparison.Ordinal);
@@ -205,10 +205,10 @@ public sealed class ProductionComponentCatalogTests
 
         string[] gpuRoutes =
         [
-            "Examples/Resources/Gltf/BoxScene",
-            "Examples/Resources/Gltf/AnimatedBox",
-            "Examples/Resources/Gltf/RiggedSimpleSkinning",
-            "Examples/Resources/Gltf/MorphWeights",
+            "Examples/Resources/Gltf/GltfBox",
+            "Examples/Resources/Gltf/GltfAnimated",
+            "Examples/Resources/Gltf/GltfSkinned",
+            "Examples/Resources/Gltf/GltfMorph",
         ];
         foreach (string route in gpuRoutes)
         {
@@ -232,7 +232,7 @@ public sealed class ProductionComponentCatalogTests
         {
             StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(route));
             Assert.False(string.IsNullOrWhiteSpace(story.Source), $"{route} needs automatically captured source.");
-            Assert.Contains("[Story(", story.Source, StringComparison.Ordinal);
+            Assert.Contains("[Story]", story.Source, StringComparison.Ordinal);
         });
     }
 
@@ -242,10 +242,10 @@ public sealed class ProductionComponentCatalogTests
         StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         string[] gpuExamples =
         [
-            "Examples/Resources/Gltf/BoxScene",
-            "Examples/Resources/Gltf/AnimatedBox",
-            "Examples/Resources/Gltf/RiggedSimpleSkinning",
-            "Examples/Resources/Gltf/MorphWeights",
+            "Examples/Resources/Gltf/GltfBox",
+            "Examples/Resources/Gltf/GltfAnimated",
+            "Examples/Resources/Gltf/GltfSkinned",
+            "Examples/Resources/Gltf/GltfMorph",
         ];
         string[] executableExamples = ResourceLearnExamples.Routes.Values
             .SelectMany(routes => routes)
@@ -297,10 +297,10 @@ public sealed class ProductionComponentCatalogTests
         StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         string[] gpuExamples =
         [
-            "Examples/Resources/Gltf/BoxScene",
-            "Examples/Resources/Gltf/AnimatedBox",
-            "Examples/Resources/Gltf/RiggedSimpleSkinning",
-            "Examples/Resources/Gltf/MorphWeights",
+            "Examples/Resources/Gltf/GltfBox",
+            "Examples/Resources/Gltf/GltfAnimated",
+            "Examples/Resources/Gltf/GltfSkinned",
+            "Examples/Resources/Gltf/GltfMorph",
         ];
 
         foreach (string route in gpuExamples)
@@ -321,10 +321,10 @@ public sealed class ProductionComponentCatalogTests
         StoryCatalog catalog = ResourceGalleryProject.CreateCatalog();
         string[] gpuExamples =
         [
-            "Examples/Resources/Gltf/BoxScene",
-            "Examples/Resources/Gltf/AnimatedBox",
-            "Examples/Resources/Gltf/RiggedSimpleSkinning",
-            "Examples/Resources/Gltf/MorphWeights",
+            "Examples/Resources/Gltf/GltfBox",
+            "Examples/Resources/Gltf/GltfAnimated",
+            "Examples/Resources/Gltf/GltfSkinned",
+            "Examples/Resources/Gltf/GltfMorph",
         ];
         string[] cpuExamples = ResourceLearnExamples.Routes.Values
             .SelectMany(routes => routes)
@@ -393,9 +393,9 @@ public sealed class ProductionComponentCatalogTests
     public void AddResourceGallery_registers_the_resource_catalog_in_service_registration_order()
     {
         var services = new ServiceCollection();
-        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("Before/Resource", 1, 1, null, _ => null!)));
+        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("Before/Resource", _ => null!)));
         services.AddResourceGallery();
-        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("After/Resource", 1, 1, null, _ => null!)));
+        services.AddStoryCatalog(builder => builder.Add(new StoryInfo("After/Resource", _ => null!)));
         using ServiceProvider provider = services.BuildServiceProvider();
 
         StoryCatalog catalog = provider.GetRequiredService<StoryCatalog>();
@@ -413,7 +413,7 @@ public sealed class ProductionComponentCatalogTests
         string resourceRoot = Path.Combine(root, "src", "Resources");
         string galleryRoot = Path.Combine(resourceRoot, "Luxel.Resources.Gallery");
         string[] storyFiles = Directory.EnumerateFiles(resourceRoot, "*.cs", SearchOption.AllDirectories)
-            .Where(path => File.ReadAllText(path).Contains("[Story(", StringComparison.Ordinal))
+            .Where(path => File.ReadAllText(path).Contains("[Story", StringComparison.Ordinal))
             .ToArray();
 
         Assert.NotEmpty(storyFiles);
@@ -429,14 +429,11 @@ public sealed class ProductionComponentCatalogTests
         string sources = string.Join("\n", Directory.EnumerateFiles(docsRoot, "*.cs", SearchOption.AllDirectories)
             .Select(File.ReadAllText));
         string sample = File.ReadAllText(Path.Combine(root, "samples", "LuxelResources", "Program.cs"));
-        string bundle = File.ReadAllText(Path.Combine(galleryRoot, "ResourceSampleBundles.cs"));
 
         string[] removedApis = ["Executor", ".AddStep", ".AddSource", "new ResourceSystem(", "InstallAssetGpu"];
         Assert.All(removedApis, api => Assert.DoesNotContain(api, sources, StringComparison.Ordinal));
         Assert.Contains("new ResourceSystemBuilder()", sample, StringComparison.Ordinal);
         Assert.Contains("architecture=builder-domain-manager, scenarios=10", sample, StringComparison.Ordinal);
-        Assert.Contains("architecture=builder-domain-manager, scenarios=10", bundle, StringComparison.Ordinal);
-        Assert.Contains("Ten headless scenarios", bundle, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -445,7 +442,7 @@ public sealed class ProductionComponentCatalogTests
         StoryInfo generated = Assert.IsType<StoryInfo>(UiGalleryProject.CreateProductionCatalog().Find("Controls/Button/Basic"));
         var builder = new StoryCatalogBuilder();
         builder.Add(generated);
-        var authored = new StoryInfo(generated.Path, generated.Width, generated.Height, generated.Theme,
+        var authored = new StoryInfo(generated.Path,
             _ => new StoryCapabilityFallback("Button", "Authored exact-path implementation."),
             Source: "authored Button Basic");
 

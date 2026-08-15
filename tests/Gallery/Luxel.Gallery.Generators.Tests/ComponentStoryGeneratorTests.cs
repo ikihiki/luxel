@@ -70,7 +70,7 @@ public sealed class ComponentStoryGeneratorTests
                 public sealed class Signal<T> { public T Value => default!; }
                 public sealed class StoryContext { public Signal<T> Arg<T>(string name, T value, StoryArgOptions<T>? options = null) => new(); }
                 public sealed class StoryArgOptions<T> { public string? Description { get; init; } public int Order { get; init; } public double? Min { get; init; } public double? Max { get; init; } public double? Step { get; init; } }
-                public sealed record StoryInfo(string Path, int Width, int Height, string? Theme, Func<StoryContext, Widget> Build, int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null);
+                public sealed record StoryInfo(string Path, Func<StoryContext, Widget> Build, string? Source = null, bool RealWindowOnly = false, System.Collections.Generic.IReadOnlyList<object>? ArgDefinitions = null);
                 public sealed class StoryCatalog { public System.Collections.Generic.IReadOnlyList<StoryInfo> All => Array.Empty<StoryInfo>(); }
                 public sealed class StoryCatalogBuilder { public StoryCatalogBuilder Add(StoryInfo story) => this; public StoryCatalog Build() => new(); }
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
@@ -82,8 +82,7 @@ public sealed class ComponentStoryGeneratorTests
                 public sealed class ComponentStoryAttribute(Type componentType, string path) : Attribute
                 {
                     public Type? Factory { get; set; } public string? FactoryMethod { get; set; } public string? Template { get; set; }
-                    public int Width { get; set; } public int Height { get; set; } public string? Theme { get; set; }
-                    public int Order { get; set; } = 1000; public bool RealWindowOnly { get; set; } public string? SampleBundle { get; set; }
+                    public bool RealWindowOnly { get; set; }
                 }
                 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
                 public sealed class ComponentArgAttribute(string member, object? defaultValue) : Attribute

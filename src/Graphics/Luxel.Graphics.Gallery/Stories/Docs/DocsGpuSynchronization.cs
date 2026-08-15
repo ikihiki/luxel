@@ -1,13 +1,18 @@
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
+[StoryMeta("Internals/Gpu")]
 public static partial class DocsGpu
 {
-    [Story("Internals/Gpu/Synchronization", Order = 69, Toc = true)]
+    [Story]
     public static StoryResult GpuSynchronizationInternals(StoryContext ctx) => $$"""
         # GPU同期の内部実装
+
+        {{Toc()}}
 
         公開APIの`GpuCommandBuffer.Barrier`と`GpuQueue`は、Vulkan、DirectX 12、native WebGPU、browser WebGPUの異なる同期機構へlowerされます。利用側の説明は[同期](story:Learn/Graphics/Synchronization)を参照してください。このページでは現在の実装が実際にどのnative operationを使うかを説明します。
 

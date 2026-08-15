@@ -27,9 +27,10 @@ namespace Luxel.Gallery.Stories;
 /// - <b>Storybook Platform</b>: GPU はホスト借用、ペーシング/提示/入力は <see cref="StoryAppView{TScene}"/>
 /// 操作: マウス移動 = パドル、クリック = 開始/発射/リスタート。
 /// </summary>
+[StoryMeta("Apps/Game")]
 public static class BreakoutStories
 {
-    [Story("Apps/Game/Breakout", Width = 520, Height = 430, Order = 147)]
+    [Story]
     public static Widget Breakout(StoryContext ctx)
         => ctx.Snap(VStack(8)[
             new StoryAppView<BreakoutScene>(BreakoutScene.FieldW, BreakoutScene.FieldH, (s, bctx) =>

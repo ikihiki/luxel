@@ -52,7 +52,7 @@ public sealed class StoryResourceLifecycleTests
             return Kit.Text("scoped");
         }
 
-        var story = new StoryInfo("Test/Scoped", 120, 60, null, Build);
+        var story = new StoryInfo("Test/Scoped", Build);
         var builder = new StoryCatalogBuilder();
         builder.Add(story);
         using VectorFont font = GalleryFonts.Load(GalleryFonts.Regular);

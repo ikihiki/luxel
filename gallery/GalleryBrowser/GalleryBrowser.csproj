@@ -45,7 +45,27 @@
     <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\samples\LuxelPlaygroundBrowser\wwwroot\references\manifest.json" Link="wwwroot\references\manifest.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <_GalleryBrowserLinkedAsset Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js">
+      <TargetPath>slang-browser.js</TargetPath>
+    </_GalleryBrowserLinkedAsset>
+    <_GalleryBrowserLinkedAsset Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser-runtime.js">
+      <TargetPath>slang-browser-runtime.js</TargetPath>
+    </_GalleryBrowserLinkedAsset>
+    <_GalleryBrowserLinkedAsset Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-worker.js">
+      <TargetPath>slang-worker.js</TargetPath>
+    </_GalleryBrowserLinkedAsset>
+    <_GalleryBrowserLinkedAsset Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*">
+      <TargetPath>slang\%(RecursiveDir)%(Filename)%(Extension)</TargetPath>
+    </_GalleryBrowserLinkedAsset>
+    <_GalleryBrowserLinkedAsset Include="..\..\src\Audio\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js">
+      <TargetPath>luxel-audio-browser.js</TargetPath>
+    </_GalleryBrowserLinkedAsset>
+    <_GalleryBrowserLinkedAsset Include="..\..\src\Graphics\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js">
+      <TargetPath>luxel-webgpu-browser.js</TargetPath>
+    </_GalleryBrowserLinkedAsset>
+    <_GalleryBrowserLinkedAsset Include="..\..\src\Platform\Luxel.Platform.Web\wwwroot\luxel-platform-web.js">
+      <TargetPath>luxel-platform-web.js</TargetPath>
+    </_GalleryBrowserLinkedAsset>
   </ItemGroup>
   <Target Name="CollectGalleryRoslynMetadataReferences" DependsOnTargets="ResolveReferences">
     <ItemGroup>
@@ -53,13 +73,64 @@
         Condition="'%(Filename)' == 'mscorlib' Or '%(Filename)' == 'netstandard' Or '%(Filename)' == 'System.Runtime' Or '%(Filename)' == 'System.Console' Or '%(Filename)' == 'System.Collections' Or '%(Filename)' == 'System.Linq' Or '%(Filename)' == 'System.Memory' Or '%(Filename)' == 'System.Numerics.Vectors' Or '%(Filename)' == 'Luxel.Scripting.Roslyn.Web' Or '%(Filename)' == 'Luxel.Scripting' Or '%(Filename)' == 'Luxel.UI' Or '%(Filename)' == 'Luxel.Controls' Or '%(Filename)' == 'Luxel.Graphics' Or '%(Filename)' == 'Luxel.Graphics.TwoD'" />
     </ItemGroup>
   </Target>
-  <Target Name="CopyGalleryRoslynMetadataReferencesToOutput" AfterTargets="Build" DependsOnTargets="CollectGalleryRoslynMetadataReferences">
-    <MakeDir Directories="$(OutDir)wwwroot/references" />
-    <Copy SourceFiles="@(_GalleryRoslynMetadataReference)" DestinationFolder="$(OutDir)wwwroot/references" SkipUnchangedFiles="true" />
-  </Target>
-  <Target Name="CopyGalleryRoslynMetadataReferencesToPublish" AfterTargets="Publish" DependsOnTargets="CollectGalleryRoslynMetadataReferences">
-    <MakeDir Directories="$(PublishDir)wwwroot/references" />
-    <Copy SourceFiles="@(_GalleryRoslynMetadataReference)" DestinationFolder="$(PublishDir)wwwroot/references" SkipUnchangedFiles="true" />
+  <Target Name="PrepareGalleryBrowserStaticWebAssets"
+          BeforeTargets="GenerateComputedBuildStaticWebAssets"
+          DependsOnTargets="CollectGalleryRoslynMetadataReferences">
+    <PropertyGroup>
+      <_GalleryBrowserStaticRoot>$(IntermediateOutputPath)gallery-browser-static\</_GalleryBrowserStaticRoot>
+      <_GalleryBrowserManifestPath>$(_GalleryBrowserStaticRoot)references\manifest.json</_GalleryBrowserManifestPath>
+      <_GalleryBrowserManifestAssemblies>@(_GalleryRoslynMetadataReference->'    &quot;%(Filename)%(Extension)&quot;', ',&#x0D;&#x0A;')</_GalleryBrowserManifestAssemblies>
+      <_GalleryBrowserManifest>{
+  &quot;version&quot;: 1,
+  &quot;assemblies&quot;: [
+$(_GalleryBrowserManifestAssemblies)
+  ]
+}</_GalleryBrowserManifest>
+    </PropertyGroup>
+    <ItemGroup>
+      <_GalleryBrowserStagedAsset Include="@(_GalleryBrowserLinkedAsset)">
+        <Destination>$(_GalleryBrowserStaticRoot)%(_GalleryBrowserLinkedAsset.TargetPath)</Destination>
+      </_GalleryBrowserStagedAsset>
+      <_GalleryBrowserStagedReference Include="@(_GalleryRoslynMetadataReference)">
+        <Destination>$(_GalleryBrowserStaticRoot)references\%(_GalleryRoslynMetadataReference.Filename)%(_GalleryRoslynMetadataReference.Extension)</Destination>
+      </_GalleryBrowserStagedReference>
+      <_GalleryBrowserStageDirectory Include="@(_GalleryBrowserStagedAsset->'$([System.IO.Path]::GetDirectoryName(%(Destination)))')" />
+      <_GalleryBrowserStageDirectory Include="@(_GalleryBrowserStagedReference->'$([System.IO.Path]::GetDirectoryName(%(Destination)))')" />
+      <_GalleryBrowserStageDirectory Include="$([System.IO.Path]::GetDirectoryName('$(_GalleryBrowserManifestPath)'))" />
+    </ItemGroup>
+    <MakeDir Directories="@(_GalleryBrowserStageDirectory)" />
+    <Copy SourceFiles="@(_GalleryBrowserStagedAsset)"
+          DestinationFiles="@(_GalleryBrowserStagedAsset->'%(Destination)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_GalleryBrowserStagedReference)"
+          DestinationFiles="@(_GalleryBrowserStagedReference->'%(Destination)')"
+          SkipUnchangedFiles="true" />
+    <WriteLinesToFile File="$(_GalleryBrowserManifestPath)"
+                      Lines="$(_GalleryBrowserManifest)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true"
+                      Encoding="ASCII" />
+    <ItemGroup>
+      <_GalleryBrowserStaticAsset Include="@(_GalleryBrowserStagedAsset->'%(Destination)');@(_GalleryBrowserStagedReference->'%(Destination)');$(_GalleryBrowserManifestPath)"
+                                  CopyToOutputDirectory="PreserveNewest"
+                                  CopyToPublishDirectory="PreserveNewest" />
+      <FileWrites Include="@(_GalleryBrowserStaticAsset)" />
+    </ItemGroup>
+    <DefineStaticWebAssets CandidateAssets="@(_GalleryBrowserStaticAsset)"
+                           FingerprintCandidates="$(StaticWebAssetsFingerprintContent)"
+                           FingerprintPatterns="@(StaticWebAssetFingerprintPattern)"
+                           RelativePathPattern="**"
+                           SourceType="Computed"
+                           SourceId="$(PackageId)"
+                           ContentRoot="$(_GalleryBrowserStaticRoot)"
+                           BasePath="$(StaticWebAssetBasePath)">
+      <Output TaskParameter="Assets" ItemName="StaticWebAsset" />
+      <Output TaskParameter="Assets" ItemName="_GalleryBrowserComputedStaticWebAsset" />
+    </DefineStaticWebAssets>
+    <DefineStaticWebAssetEndpoints CandidateAssets="@(_GalleryBrowserComputedStaticWebAsset)"
+                                   ContentTypeMappings="@(StaticWebAssetContentTypeMapping)">
+      <Output TaskParameter="Endpoints" ItemName="StaticWebAssetEndpoint" />
+    </DefineStaticWebAssetEndpoints>
   </Target>
   <ItemGroup>
     <TrimmerRootAssembly Include="Luxel.Physics" />
@@ -67,15 +138,6 @@
     <TrimmerRootAssembly Include="BepuPhysics" />
     <TrimmerRootAssembly Include="BepuUtilities" />
     <TrimmerRootAssembly Include="Luxel.AssetRuntime" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js" Link="wwwroot\slang-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser-runtime.js" Link="wwwroot\slang-browser-runtime.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-worker.js" Link="wwwroot\slang-worker.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang\**\*" Link="wwwroot\slang\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Audio\Luxel.Audio.Browser\wwwroot\luxel-audio-browser.js" Link="wwwroot\luxel-audio-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Graphics\Luxel.Graphics.WebGPU.Browser\wwwroot\luxel-webgpu-browser.js" Link="wwwroot\luxel-webgpu-browser.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="..\..\src\Platform\Luxel.Platform.Web\wwwroot\luxel-platform-web.js" Link="wwwroot\luxel-platform-web.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <Import Project="..\..\assets\Luxel.KhronosBox.targets" />
   <ItemGroup>

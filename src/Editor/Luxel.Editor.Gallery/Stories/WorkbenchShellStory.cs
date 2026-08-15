@@ -12,6 +12,7 @@ namespace Luxel.Gallery.Stories;
 /// NodeGraph) を IEditorDocument でラップし、MenuBar + Toolbar + DockHost + StatusBar の
 /// 1 シェルに束ねる最小構成。レイアウトの真実 = DockTree、コマンドの真実 = CommandRegistry、
 /// ドキュメントの真実 = 各アダプタ (エディタ＝構成、内部モデルは統一しない)。</summary>
+[StoryMeta("Examples/Workbench")]
 public static class WorkbenchShellStory
 {
     private static TextEditorView CodeView(Signal<string> text)
@@ -47,7 +48,7 @@ public static class WorkbenchShellStory
         [new GraphEdge(10, new PortId(1, 0), new PortId(2, 0)),
          new GraphEdge(11, new PortId(2, 1), new PortId(3, 0))]);
 
-    [Story("Examples/Workbench/Shell", Height = 470)]
+    [Story]
     public static Widget Shell(StoryContext ctx)
     {
         // ---- ドキュメント 4 種 (エディタ＝構成: 同じ TextDocument でも viewFactory が違うだけ) ----

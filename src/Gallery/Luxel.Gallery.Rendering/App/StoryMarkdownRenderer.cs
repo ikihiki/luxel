@@ -10,7 +10,7 @@ namespace Luxel.Gallery;
 public static class StoryMarkdownRenderer
 {
     public static string EffectiveMarkdown(StoryInfo story, string markdown)
-        => story.Toc ? MarkdownDoc.InsertToc(markdown) : markdown;
+        => MarkdownDoc.RenderTocPlaceholder(markdown);
 
     public static Widget Build(StoryInfo story, StoryContext context, StoryResult authored)
     {
@@ -45,14 +45,28 @@ public static class StoryMarkdownRenderer
     {
         StoryInfo? story = StoryRegistry.Find(reference.Path);
         if (story is null) return Alert($"ストーリーが見つかりません: {reference.Path}", Intent.Danger);
+        int before = context.Knobs.Count;
         bool suppressed = context.SuppressPlays;
         context.SuppressPlays = true;
         try
         {
             StoryResult result = story.BuildResult(context);
-            return result.Kind == StoryResultKind.Widget && result.Widget is not null
+            Widget body = result.Kind == StoryResultKind.Widget && result.Widget is not null
                 ? result.Widget
                 : Build(story, context, result);
+            var parts = new List<Widget>
+            {
+                Text(reference.Path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
+                body,
+            };
+            if (reference.ShowControls)
+            {
+                StoryKnob[] owned = context.Knobs.Skip(before).ToArray();
+                parts.Add(Divider());
+                parts.Add(global::Luxel.Gallery.UI.Kit.KnobsTable(owned, width: 640,
+                    onEdit: (_, knob, value) => context.QueueKnobEdit(knob, value)));
+            }
+            return VStack(6)[parts.ToArray()];
         }
         finally { context.SuppressPlays = suppressed; }
     }

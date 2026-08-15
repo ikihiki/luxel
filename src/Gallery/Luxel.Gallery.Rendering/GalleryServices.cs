@@ -15,7 +15,7 @@ namespace Luxel.Gallery;
 /// 同じ <see cref="IServiceProvider"/> を <c>ctx.SetServices</c> で結線する。ストーリー関数は
 /// ASP.NET minimal API と同じく引数で受け取る:
 /// <code>
-/// [Story("...")]
+/// [Story]
 /// public static Widget Foo(StoryContext ctx, ScriptHost host) => ...;   // host は DI 注入
 /// </code>
 /// これで各ストーリーが <c>static Lazy&lt;ScriptHost&gt;</c> を個別に抱える重複が消える。

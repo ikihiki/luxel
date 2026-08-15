@@ -164,6 +164,16 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void RenderTocPlaceholder_ExpandsAtTheAuthoredPosition()
+    {
+        string md = "# Title\n\nintro\n\n<!-- luxel-toc-placeholder -->\n\noutro\n\n## Section";
+        string rendered = MarkdownDoc.RenderTocPlaceholder(md);
+
+        Assert.Contains("intro\n\n<!-- luxel-toc -->\n- [Section](#section)\n<!-- /luxel-toc -->\n\noutro", rendered);
+        Assert.DoesNotContain("luxel-toc-placeholder", rendered);
+    }
+
+    [Fact]
     public void LivePreview_RevealedLineShowsMarkerRaw_OthersHidden()
     {
         // reveal(pos)=true の行 (キャレット行) はマーカを淡色 raw、他行は非表示 — Typora 風編集モード

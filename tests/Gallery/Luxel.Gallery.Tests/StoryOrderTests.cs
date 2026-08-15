@@ -7,15 +7,15 @@ namespace Luxel.Tests;
 /// <summary>StoryはOrder属性ではなく登録順で列挙される。</summary>
 public class StoryOrderTests
 {
-    private static StoryInfo S(string path, int order) => new(path, 1, 1, null, _ => null!, order);
+    private static StoryInfo S(string path) => new(path, _ => null!);
 
     [Fact]
     public void All_PreservesRegistrationOrder_AndReplacementPosition()
     {
-        StoryRegistry.Register(S("OrdTestB/Second", 2));
-        StoryRegistry.Register(S("OrdTestB/First", 1));
-        StoryRegistry.Register(S("OrdTestA/Late", 50));
-        StoryRegistry.Register(S("OrdTestB/Second", 999));
+        StoryRegistry.Register(S("OrdTestB/Second"));
+        StoryRegistry.Register(S("OrdTestB/First"));
+        StoryRegistry.Register(S("OrdTestA/Late"));
+        StoryRegistry.Register(S("OrdTestB/Second"));
 
         IReadOnlyList<StoryInfo> all = StoryRegistry.All;
         int second = IndexOf(all, "OrdTestB/Second");
@@ -24,16 +24,15 @@ public class StoryOrderTests
 
         Assert.True(second < first);
         Assert.True(first < late);
-        Assert.Equal(999, all[second].Order);
     }
 
     [Fact]
     public void CatalogBuilder_PreservesRegistrationOrder()
     {
         StoryCatalog catalog = new StoryCatalogBuilder()
-            .Add(S("Order/Z", 0))
-            .Add(S("Order/A", -100))
-            .Add(S("Order/M", 1000))
+            .Add(S("Order/Z"))
+            .Add(S("Order/A"))
+            .Add(S("Order/M"))
             .Build();
 
         Assert.Equal(["Order/Z", "Order/A", "Order/M"], catalog.All.Select(story => story.Path));

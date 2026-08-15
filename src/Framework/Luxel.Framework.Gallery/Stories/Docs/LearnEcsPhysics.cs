@@ -1,14 +1,18 @@
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.Story;
+using static Luxel.Gallery.DocKit.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>ECS の上に PhysicsWorld と PhysicsStepSystem を接続する学習経路。</summary>
+[StoryMeta("Learn/ECS/Physics")]
 public static class LearnEcsPhysics
 {
-    [Story("Learn/ECS/Physics/Overview", Order = 9, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
         # ECS Physics overview
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Physics/Overview", "Intermediate", "Headless + Gallery", "CPU / BepuPhysics v2", "Diagnostics までの ECS 基礎")}}
 
@@ -49,9 +53,11 @@ public static class LearnEcsPhysics
         {{StoryRef(ctx, "Examples/3D/PhysicsFalling")}}
         """;
 
-    [Story("Learn/ECS/Physics/BodiesAndShapes", Order = 10, Toc = true)]
+    [Story]
     public static StoryResult BodiesAndShapes(StoryContext ctx) => $$"""
         # Body と Shape
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Physics/BodiesAndShapes", "Intermediate", "Headless + Gallery", "CPU / BepuPhysics v2", "Physics Overview")}}
 
@@ -95,9 +101,11 @@ public static class LearnEcsPhysics
         {{StoryRef(ctx, "Examples/3D/PhysicsPlayground")}}
         """;
 
-    [Story("Learn/ECS/Physics/FixedStep", Order = 11, Toc = true)]
+    [Story]
     public static StoryResult FixedStep(StoryContext ctx) => $$"""
         # Fixed step
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Physics/FixedStep", "Intermediate", "Headless + Frame loop", "CPU / BepuPhysics v2", "BodiesAndShapes、Interpolation")}}
 
@@ -142,9 +150,11 @@ public static class LearnEcsPhysics
         Physics step は `Phase.Update`、transform 伝搬は `Phase.PostUpdate`、補間と描画抽出は `Phase.PreRender` に置きます。同じ frame で write-back より先に抽出しないでください。
         """;
 
-    [Story("Learn/ECS/Physics/CollisionsAndTriggers", Order = 12, Toc = true)]
+    [Story]
     public static StoryResult CollisionsAndTriggers(StoryContext ctx) => $$"""
         # Collision と Trigger
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Physics/CollisionsAndTriggers", "Intermediate", "Headless + Gallery", "CPU / BepuPhysics v2", "FixedStep")}}
 
@@ -189,9 +199,11 @@ public static class LearnEcsPhysics
         {{StoryRef(ctx, "Examples/3D/PhysicsTrigger")}}
         """;
 
-    [Story("Learn/ECS/Physics/MeshesAndRaycasts", Order = 13, Toc = true)]
+    [Story]
     public static StoryResult MeshesAndRaycasts(StoryContext ctx) => $$"""
         # Mesh collider と Raycast
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Physics/MeshesAndRaycasts", "Advanced", "Headless + Gallery", "CPU / BepuPhysics v2", "CollisionsAndTriggers")}}
 
@@ -237,9 +249,11 @@ public static class LearnEcsPhysics
         {{StoryRef(ctx, "Examples/3D/PhysicsMesh")}}
         """;
 
-    [Story("Learn/ECS/Physics/GizmosAndDebugging", Order = 14, Toc = true)]
+    [Story]
     public static StoryResult GizmosAndDebugging(StoryContext ctx) => $$"""
         # Gizmo と Physics debugging
+
+        {{Toc()}}
 
         {{EcsCourseCatalog.Meta("Learn/ECS/Physics/GizmosAndDebugging", "Intermediate", "Gallery + DevTools", "CPU / 2D overlay", "MeshesAndRaycasts")}}
 
@@ -280,6 +294,5 @@ public static class LearnEcsPhysics
 
         ECS と Physics、asset、GPU 抽出をまとめた実用構成は Range capstone で確認できます。
 
-        {{SampleBundle("game.range")}}
         """;
 }

@@ -9,11 +9,11 @@ internal static class RenderingCourseCatalog
     [
         "Learn/Graphics/Overview", "Learn/Graphics/Environment",
         "Learn/Graphics/ClearColor", "Learn/Graphics/FirstTriangle",
-        "Learn/Graphics/Buffers", "Learn/Graphics/Textures", "Learn/Graphics/Shaders",
+        "Learn/Graphics/Buffers", "Learn/Graphics/TexturesBasics", "Learn/Graphics/Shaders",
         "Learn/Graphics/PipelineState", "Learn/Graphics/Synchronization",
         "Learn/Graphics/Internal/DirectX12", "Learn/Graphics/Internal/Vulkan",
-        "Learn/Graphics/Internal/WebGPU",
-        "Learn/Graphics/2D/Overview", "Learn/Graphics/2D/Paths",
+        "Learn/Graphics/Internal/WebGpu",
+        "Learn/Graphics/First2DScene", "Learn/Graphics/2D/Paths",
         "Learn/Graphics/2D/Compositing", "Learn/Graphics/2D/Images",
         "Learn/Graphics/2D/Camera", "Learn/Graphics/2D/Backends",
         "Learn/Graphics/2D/IncrementalUpdates",
@@ -54,6 +54,6 @@ internal static class RenderingCourseCatalog
     internal static DocMarkdown Meta(string path, string difficulty, string environment, string backend, string prerequisites)
     {
         (string? previous, string? next) = Navigation(path);
-        return DocsKit.RenderingMeta(difficulty, environment, backend, prerequisites, previous, next);
+        return global::Luxel.Gallery.DocKit.DocsKit.RenderingMeta(difficulty, environment, backend, prerequisites, previous, next);
     }
 }

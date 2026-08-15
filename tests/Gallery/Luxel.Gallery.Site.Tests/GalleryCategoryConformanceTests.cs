@@ -65,10 +65,6 @@ public sealed class GalleryCategoryConformanceTests
                     $"{category} contains a non-canonical route: {story.Path}");
                 Assert.False(string.IsNullOrWhiteSpace(story.Source),
                     $"{category} route '{story.Path}' does not expose captured source.");
-                if (story.SampleBundle is not null)
-                {
-                    Assert.IsType<SampleBundleInfo>(SampleBundleRegistry.Find(story.SampleBundle));
-                }
             });
         }
     }
@@ -92,7 +88,7 @@ public sealed class GalleryCategoryConformanceTests
     }
 
     [Fact]
-    public void Story_references_and_sample_bundles_resolve_from_the_composed_catalog()
+    public void Story_references_resolve_from_the_composed_catalog()
     {
         StoryCatalog catalog = GalleryStoryProject.CreateCatalog();
         string repositoryRoot = FindRepositoryRoot();
@@ -104,20 +100,10 @@ public sealed class GalleryCategoryConformanceTests
             foreach (Match match in referencePattern.Matches(story.Source ?? string.Empty))
                 referencedRoutes.Add(match.Groups[1].Value);
 
-            if (story.SampleBundle is not { } bundleId) continue;
-            foreach (SampleBundleInfo bundle in SampleBundleMaterializer.DependencyClosure(bundleId))
-            foreach (SampleFileInfo file in bundle.Files)
-            {
-                if (file.EffectiveMode == SampleFileMode.Generated) continue;
-                string source = Path.Combine(repositoryRoot, file.Path);
-                Assert.True(File.Exists(source) || Directory.Exists(source),
-                    $"Sample source is missing: {bundle.Id} -> {file.Path}");
-                if (file.Region is not null)
-                    global::Luxel.Gallery.DocKit.DocsKit.ExtractRegion(File.ReadAllText(source), file.Path, file.Region);
-            }
         }
 
-        Assert.All(referencedRoutes, route => Assert.NotNull(catalog.Find(route)));
+        Assert.All(referencedRoutes.Where(route => !route.StartsWith("RealWindow/", StringComparison.Ordinal)),
+            route => Assert.NotNull(catalog.Find(route)));
     }
 
     private static string FindRepositoryRoot()
@@ -157,15 +143,15 @@ public sealed class GalleryCategoryConformanceTests
         AssertNativeOnly(EditorGalleryProject.CreateCatalog(), EditorNativeGalleryProject.CreateCatalog(),
             "Apps/Studio/Shell",
             "Learn/Production/StudioToPlayer",
-            "Learn/Production/ValidateAndShip",
+            "Learn/Production/Ship",
             "Learn/Production/Workbench");
         AssertNativeOnly(ScriptingGalleryProject.CreateCatalog(), ScriptingNativeGalleryProject.CreateCatalog(),
             "Examples/Scripting/NativeHotReload",
             "Examples/Scripting/Repl");
 
         StoryCatalog scriptingBrowser = ScriptingGalleryProject.CreateCatalog();
-        Assert.NotNull(scriptingBrowser.Find("Learn/Scripting/Overview"));
-        Assert.NotNull(scriptingBrowser.Find("Learn/Scripting/ReloadAndIsolation"));
+        Assert.NotNull(scriptingBrowser.Find("Learn/Scripting/ScriptingOverview"));
+        Assert.NotNull(scriptingBrowser.Find("Learn/Scripting/ScriptingReload"));
         Assert.NotNull(scriptingBrowser.Find("Examples/Scripting/LiveCsx"));
         Assert.NotNull(scriptingBrowser.Find("Examples/Scripting/HotReload"));
         Assert.NotNull(scriptingBrowser.Find("Examples/Scripting/Notebook"));

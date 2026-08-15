@@ -14,12 +14,7 @@ public sealed class ComponentStoryAttribute(Type componentType, string path) : A
     public Type? Factory { get; set; }
     public string? FactoryMethod { get; set; }
     public string? Template { get; set; }
-    public int Width { get; set; }
-    public int Height { get; set; }
-    public string? Theme { get; set; }
-    public int Order { get; set; } = 1000;
     public bool RealWindowOnly { get; set; }
-    public string? SampleBundle { get; set; }
 }
 
 /// <summary>

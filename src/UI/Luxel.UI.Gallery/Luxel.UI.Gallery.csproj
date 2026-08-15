@@ -29,9 +29,4 @@
   <ItemGroup>
     <Using Include="Luxel.Gallery" />
   </ItemGroup>
-  <!-- UI Learn pages own their embedded sample sources. -->
-  <ItemGroup>
-    <EmbeddedResource Include="..\..\..\samples\LuxelUiHeadless\LuxelUiHeadless.csproj" LogicalName="Luxel.Sample.samples.LuxelUiHeadless.LuxelUiHeadless.csproj" />
-    <EmbeddedResource Include="..\..\..\samples\LuxelUiHeadless\Program.cs" LogicalName="Luxel.Sample.samples.LuxelUiHeadless.Program.cs" />
-  </ItemGroup>
 </Project>

@@ -16,6 +16,7 @@ namespace Luxel.Gallery.Stories;
 /// 各ブロックが独立スロット (d1/d2… 相当) を持ち、Run = 評価 + ホットスワップ (クロックは止まらない)。
 /// 音は初回 Run で利用可能な native XAudio2 を遅延初期化し、browser/headlessでは NullBackendへfallbackする。
 /// </summary>
+[StoryMeta("Examples/Strudel")]
 public static class StrudelStory
 {
     /// <summary>E2E/headless では実 XAudio2 を避けて <see cref="NullAudioBackend"/> を使う
@@ -216,7 +217,7 @@ public static class StrudelStory
 
     internal static StoryResult ReplResult() => StoryResult.FromMarkdown(ReplMarkdown);
 
-    [Story("Examples/Strudel/Repl", Height = 560, Order = 2031, Result = nameof(ReplResult))]
+    [Story(Result = nameof(ReplResult))]
     public static Widget Repl(StoryContext ctx)
     {
         // 各セルは ```strudel フェンス — 本文キーでキャッシュし同一 StrudelBlock を返す (再描画で状態が消えない)

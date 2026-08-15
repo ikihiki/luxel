@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0018-Csx-Behaviour-Model", Order = 89, Toc = true)]
+    [Story]
     public static StoryResult Adr0018(StoryContext ctx) => $$"""
         # ADR-0018 — ゲームの挙動は csx ビヘイビア (状態レス Update) で書く
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-11
@@ -21,7 +25,7 @@ public static partial class DocsAdr
         > `ToDo/22`〜`ToDo/27` はADR作成当時の計画番号で、現在のファイル参照ではありません。現行の実装と利用手順は本文からリンクするLearnページと実装を正とします。
 
 
-        Luxel Studio ([ADR-0015](story:Internals/ADR/0015-Game-Project-Scene-Format)) の北極星は「C# ソリューション無しでゲームを 1 本出す」— エンティティの挙動をプロジェクトデータの一部として書ける仕組みが要ります。エンジンには `ScriptHost` (Roslyn csx、診断付き) と、capstone で実証した「コンパイル失敗で旧ロジック維持 + 診断公開」の運用があります。制約は: 決定性 (固定 dt・wall-clock 禁止 — golden/リプレイ)、ホットリロード (GE-5)、同じスクリプトを複数エンティティで共有できること。
+        Luxel Studio ([ADR-0015](story:Internals/ADR/Adr0015)) の北極星は「C# ソリューション無しでゲームを 1 本出す」— エンティティの挙動をプロジェクトデータの一部として書ける仕組みが要ります。エンジンには `ScriptHost` (Roslyn csx、診断付き) と、capstone で実証した「コンパイル失敗で旧ロジック維持 + 診断公開」の運用があります。制約は: 決定性 (固定 dt・wall-clock 禁止 — golden/リプレイ)、ホットリロード (GE-5)、同じスクリプトを複数エンティティで共有できること。
 
         ## Decision
 

@@ -5,40 +5,46 @@ namespace Luxel.Gallery;
 
 /// <summary>
 /// ギャラリー (Storybook 風カタログ) のストーリー定義。
-/// <c>[Story("Button/Primary")] static Widget Primary() => ...</c> と書くと
+/// <c>[StoryMeta("Controls/Button")]</c> をクラスに、<c>[Story]</c> を static メソッドに付けると
 /// ソースジェネレーターが収集して <see cref="StoryRegistry"/> に登録する (reflection なし)。
 /// 署名は <c>static Widget M()</c> または <c>static Widget M(StoryContext ctx)</c>。
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class StoryAttribute(string path) : Attribute
+public class Story : Attribute
 {
-    /// <summary>スラッシュ区切りの階層パス (本家 Storybook の title 相当 — 深さ任意)。
-    /// 例: "Controls/Button/Primary" — 末尾がストーリー名、手前が章/フォルダ。
-    /// パスは ID (golden ファイル名 / story: リンク / E2E 参照) — サイドバーはこれをそのまま木にする。</summary>
-    public string Path { get; } = path;
-    /// <summary>プレビューの論理サイズ。片方だけの指定はもう片方が既定 (480×320) で補完される。
-    /// **両方省略するとプレビュー領域いっぱい (fill)** — docs ページ等の全面表示用
-    /// (全画面モードではメイン全面、snap では 800×480 固定で決定的)。</summary>
-    public int Width { get; set; } = 480;
-    public int Height { get; set; } = 320;
-    /// <summary>"light" / "dark" (省略時はギャラリーの現在値)。</summary>
-    public string? Theme { get; set; }
-    /// <summary>表示順 (小さいほど先頭、既定 1000 = アルファベット順)。コンポーネント (グループ) は
-    /// 所属ストーリーの最小 Order で並ぶ — 章立て (はじめに → アーキテクチャ → …) 用。</summary>
-    public int Order { get; set; } = 1000;
     /// <summary>true = 実ウィンドウ専用 (音声再生・実デバイス入力など)。snap 回帰は SKIP し、
     /// Gallery アプリでは通常どおり表示される。golden は作らない。</summary>
     public bool RealWindowOnly { get; set; }
-    /// <summary>実行可能なコピー単位を記述する SampleBundle の ID。未指定は Gallery harness 専用。</summary>
-    public string? SampleBundle { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
-    /// <summary>true のとき Markdown 文書へ H2/H3 の目次を生成する。</summary>
-    public bool Toc { get; set; }
     /// <summary>Optional static semantic result provider used by host-free exporters.</summary>
     public string? Result { get; set; }
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
     public string? Args { get; set; }
+
+    /// <summary>Embeds another registered story in a Markdown story result.</summary>
+    public static StoryReference StoryRef(string path, bool knobs = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return new StoryReference(path, StoryArgs.Empty, knobs);
+    }
+
+    /// <summary>Compatibility overload for existing docs; the context is used when the reference is rendered.</summary>
+    public static StoryReference StoryRef(StoryContext context, string path, bool knobs = false)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        return StoryRef(path, knobs);
+    }
+
+    /// <summary>Markdown story のこの位置へ H2/H3 の目次を埋め込む。</summary>
+    public static StoryToc Toc() => default;
+}
+
+/// <summary>Storybook の <c>title</c> に相当する、クラス単位のストーリー階層。</summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public sealed class StoryMeta(string title) : Attribute
+{
+    public string Title { get; } = title;
 }
 
 /// <summary>
@@ -474,16 +480,12 @@ public enum StoryRegistrationKind
 }
 
 /// <summary>登録済みストーリー 1 件。<see cref="Build"/> は選択のたびに新しい widget ツリーを作る。
-/// <paramref name="Width"/>/<paramref name="Height"/> が 0,0 = fill (ホストがプレビュー領域
-/// いっぱいに表示する — 属性で両方省略したストーリー)。
-/// <paramref name="Order"/> は表示順 (小さいほど先頭、既定 1000 = アルファベット順)。
 /// <paramref name="Source"/> は属性・signature・本体を含む [Story] メソッド宣言の C# ソース
 /// (storysource — GalleryのSourceビュー／docsの「コードを見る」用、ジェネレーターが焼き込む)。<paramref name="RealWindowOnly"/> は snap 回帰の対象外 (実窓専用)。</summary>
-public sealed record StoryInfo(string Path, int Width, int Height, string? Theme, Func<StoryContext, Widget> Build,
-                               int Order = 1000, string? Source = null, bool RealWindowOnly = false, string? SampleBundle = null,
+public sealed record StoryInfo(string Path, Func<StoryContext, Widget> Build,
+                               string? Source = null, bool RealWindowOnly = false,
                                Func<StoryContext, StoryResult>? ResultBuild = null,
                                IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null, string? CapabilityNote = null,
-                               bool Toc = false,
                                StoryRegistrationKind RegistrationKind = StoryRegistrationKind.Authored,
                                GeneratedComponentStoryDescriptor? ProductionComponent = null,
                                StoryOwnership? Ownership = null)
@@ -498,32 +500,6 @@ public sealed record StoryInfo(string Path, int Width, int Height, string? Theme
 }
 
 /// <summary>全アセンブリのストーリー登録先。ソースジェネレーターが module initializer から Register する。</summary>
-public enum SampleCopyLevel { Snippet, Block, Recipe, StandaloneProject, GalleryOnly }
-public enum SampleFileKind { Project, CSharp, Shader, Asset, Generated }
-public enum SampleFileMode { Whole, Region, Generated, Glob }
-public enum SampleMergeRule { Error, KeepFirst, Replace, Append }
-public sealed record SampleFileInfo(string Path, SampleFileKind Kind, string? Region = null, string? Language = null,
-    string? Destination = null, SampleFileMode Mode = SampleFileMode.Whole, string? Wrapper = null,
-    string? AssetGlob = null, SampleMergeRule MergeRule = SampleMergeRule.Error)
-{
-    public string OutputPath => Destination ?? Path;
-    public SampleFileMode EffectiveMode => AssetGlob is not null ? SampleFileMode.Glob
-        : Kind == SampleFileKind.Generated ? SampleFileMode.Generated : Mode;
-}
-public sealed record SampleBundleInfo(string Id, string Name, string Description, string Difficulty, SampleCopyLevel CopyLevel,
-    IReadOnlyList<SampleFileInfo> Files, IReadOnlyList<string>? Dependencies = null, IReadOnlyList<string>? Requirements = null,
-    string? ExportSymbol = null, string? RunCommand = null, string? SmokeCommand = null,
-    IReadOnlyList<string>? Platforms = null, int TimeoutSeconds = 300, int ExpectedExitCode = 0,
-    string? ExpectedStdoutMarker = null, IReadOnlyList<string>? ExpectedArtifacts = null);
-
-public static class SampleBundleRegistry
-{
-    private static readonly Dictionary<string, SampleBundleInfo> Bundles = new(StringComparer.Ordinal);
-    public static IReadOnlyCollection<SampleBundleInfo> All => Bundles.Values;
-    public static void Register(SampleBundleInfo bundle) { ArgumentNullException.ThrowIfNull(bundle); Bundles[bundle.Id] = bundle; }
-    public static SampleBundleInfo? Find(string? id) => id is not null && Bundles.TryGetValue(id, out var bundle) ? bundle : null;
-}
-
 public static class StoryRegistry
 {
     private static readonly object Gate = new();

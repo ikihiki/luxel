@@ -1,13 +1,18 @@
 using Luxel.UI;
 
+using static Luxel.Gallery.Story;
+
 namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>glTFのインポート、依存、診断、ランタイム、寿命を学ぶコース。</summary>
+[StoryMeta("Learn/Resources/Gltf")]
 public static class LearnResourceGltf
 {
-    [Story("Learn/Resources/Gltf/Overview", Order = 15, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # glTFの概要
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/Overview", "初級", "ツール / ヘッドレス / ランタイム", "Luxel.Assets.Gltf", "アセットのシェーダーABI")}}
 
@@ -27,9 +32,11 @@ public static class LearnResourceGltf
         このコースでは、登録と読み込み、外部依存の解決、診断、ランタイム展開、変形、再読み込み時の寿命を分けて説明します。`SceneAssets`や描画処理を追加する前に、まずCPUドキュメントの読み込みから始めてください。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/Overview"][0]));
 
-    [Story("Learn/Resources/Gltf/RegistrationAndLoading", Order = 16, Toc = true)]
+    [Story]
     public static StoryResult RegistrationAndLoading(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # glTFの登録と読み込み
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/RegistrationAndLoading", "初級", "ツール / ヘッドレス / ランタイム", "Resources + Assets.Gltf", "glTFの概要")}}
 
@@ -54,9 +61,11 @@ public static class LearnResourceGltf
         Resourceを使わない直接的なツール処理では、`GltfParser`、デコーダー、バリデーター、コンバーターを組み合わせた低水準経路も利用できます。URI依存、キャッシュ、再読み込み、所有権が必要な場合は`GltfResourceStep`を優先してください。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/RegistrationAndLoading"][0]));
 
-    [Story("Learn/Resources/Gltf/ExternalBuffersImagesAndUris", Order = 17, Toc = true)]
+    [Story]
     public static StoryResult ExternalBuffersImagesAndUris(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # 外部バッファ、画像、URI
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ExternalBuffersImagesAndUris", "中級", "ファイル / HTTP / ワークスペース", "Resourcesの依存DAG", "glTFの登録と読み込み")}}
 
@@ -77,9 +86,11 @@ public static class LearnResourceGltf
         参照される各スキームのSourceは読み込み前に登録してください。HTTPの相対参照では、基準ドキュメントURIのホスト情報が維持されます。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/ExternalBuffersImagesAndUris"][0]));
 
-    [Story("Learn/Resources/Gltf/ValidationAndDiagnostics", Order = 18, Toc = true)]
+    [Story]
     public static StoryResult ValidationAndDiagnostics(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # 検証と診断
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ValidationAndDiagnostics", "中級", "インポートツール / CI", "GltfValidator + デコーダー", "外部バッファ、画像、URI")}}
 
@@ -94,9 +105,11 @@ public static class LearnResourceGltf
         CIでは代表的な`.gltf`と`.glb`をヘッドレスで読み込み、ドキュメント内の要素数と不正アクセサーのエラーを検証します。描画テストも必要ですが、不正なバイナリ配置を最初に検出する場所にはしないでください。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/ValidationAndDiagnostics"][0]));
 
-    [Story("Learn/Resources/Gltf/SceneRuntime", Order = 19, Toc = true)]
+    [Story]
     public static StoryResult SceneRuntime(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # glTFシーンのランタイム
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/SceneRuntime", "中級", "ECS / GPUランタイム", "AssetRuntime", "検証と診断")}}
 
@@ -118,9 +131,11 @@ public static class LearnResourceGltf
         `SceneAssets`は、ランタイム処理が使うGPU状態と対応表を所有します。描画データの抽出と描画送信が終わるまで生存させてください。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/SceneRuntime"][0]));
 
-    [Story("Learn/Resources/Gltf/AnimationSkinningAndMorph", Order = 20, Toc = true)]
+    [Story]
     public static StoryResult AnimationSkinningAndMorph(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # アニメーション、スキニング、モーフターゲット
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/AnimationSkinningAndMorph", "中級", "ゲームループ / ECS / GPU", "AssetRuntimeのシーンシェーダー", "glTFシーンのランタイム")}}
 
@@ -143,9 +158,11 @@ public static class LearnResourceGltf
         ジョイントの順序は逆バインド行列の順序と一致し、頂点の`Joints0`はその一覧を参照します。モーフバッファはターゲット単位、次に頂点単位で差分を保持し、シェーダーが重み付き差分を加算します。スキンデータには56バイトのスキニング頂点シェーダーを、モーフバッファにはモーフ用の形式を選びます。1つの汎用シェーダーがすべての機能を組み合わせる前提ではありません。
         """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/AnimationSkinningAndMorph"][0]));
 
-    [Story("Learn/Resources/Gltf/ReloadAndLifetime", Order = 21, Toc = true)]
+    [Story]
     public static StoryResult ReloadAndLifetime(StoryContext ctx) => StoryResult.FromMarkdown($$"""
         # glTFの再読み込みと寿命
+
+        {{Toc()}}
 
         {{ResourceCourseCatalog.Meta("Learn/Resources/Gltf/ReloadAndLifetime", "中級", "エディター / ゲームループ", "Resources + AssetRuntime", "アニメーション、スキニング、モーフターゲット")}}
 

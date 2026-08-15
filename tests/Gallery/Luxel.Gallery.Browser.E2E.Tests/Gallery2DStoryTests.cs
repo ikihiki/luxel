@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
@@ -15,20 +15,20 @@ public sealed class Gallery2DStoryTests : Microsoft.Playwright.Xunit.PageTest
     }
 
     public static TheoryData<string> TwoDStories => Data(
-        "Examples/2D/SceneRender", "Examples/2D/Shapes", "Examples/2D/VectorPaths", "Examples/2D/CameraRig",
-        "Examples/2D/Sprites", "Examples/2D/Rasterizer/InputPathsLive", "Examples/2D/Rasterizer/EncodedSceneLive",
-        "Examples/2D/Rasterizer/BoundsLive", "Examples/2D/Rasterizer/TileBinsLive", "Examples/2D/Rasterizer/CoverageLive",
-        "Examples/2D/Rasterizer/StrokeLive", "Examples/2D/Rasterizer/CompositeLive", "Examples/2D/Rasterizer/DispatchLive",
-        "Examples/2D/Rasterizer/RetainedUpdatesLive");
+        "Examples/2D/SceneRender", "Examples/2D/Shapes", "Examples/2D/VectorPaths", "Examples/2D/CameraTransform",
+        "Examples/2D/Sprites", "Examples/2D/InputPaths", "Examples/2D/EncodedScene",
+        "Examples/2D/Bounds", "Examples/2D/TileBins", "Examples/2D/Coverage",
+        "Examples/2D/Stroke", "Examples/2D/Composite", "Examples/2D/Dispatch",
+        "Examples/2D/RetainedUpdates");
 
     public static TheoryData<string> EcsStories => Data(
         "Examples/3D/EcsCubes", "Examples/3D/PhysicsFalling", "Examples/3D/PhysicsPlayground",
         "Examples/3D/PhysicsGizmos", "Examples/3D/PhysicsTrigger", "Examples/3D/PhysicsMesh");
 
     public static TheoryData<string> PipelineStateStories => Data(
-        "Examples/3D/PipelineState/Topology", "Examples/3D/PipelineState/Rasterizer", "Examples/3D/PipelineState/Depth",
-        "Examples/3D/PipelineState/Blend", "Examples/3D/PipelineState/Stencil", "Examples/3D/PipelineState/ViewportScissor",
-        "Examples/3D/PipelineState/Separation", "Examples/3D/Depth", "Examples/3D/Blend");
+        "Examples/3D/Topology", "Examples/3D/Rasterizer", "Examples/3D/DepthStates",
+        "Examples/3D/BlendState", "Examples/3D/Stencil", "Examples/3D/ViewportScissor",
+        "Examples/3D/Separation", "Examples/3D/Depth", "Examples/3D/Blend");
 
     public static TheoryData<string> AnimationStories => Data(
         "Examples/Animation/Curves", "Examples/Animation/Tween", "Examples/Animation/CssKeyframes",
@@ -82,21 +82,21 @@ public sealed class Gallery2DStoryTests : Microsoft.Playwright.Xunit.PageTest
         await Expect(embedded.GetByRole(AriaRole.Tab, new() { Name = "出力" })).ToBeVisibleAsync();
         await Expect(embedded.GetByRole(AriaRole.Tab, new() { Name = "ソース" })).ToBeVisibleAsync();
         await Expect(embedded.Locator("#status")).ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
-        await Expect(embedded.Locator("#status")).ToHaveAttributeAsync("data-story", "Controls/Accordion/Basic");
+        await Expect(embedded.Locator("#status")).ToHaveAttributeAsync("data-story", "Controls/AccordionBasic");
 
         var search = Page.GetByRole(AriaRole.Searchbox, new() { Name = "Storyを検索" });
         await search.FillAsync("Accordion");
         await Expect(Page.Locator(".story-link")).ToHaveCountAsync(2);
         Assert.Contains("Overview", await Page.Locator(".story-link").Nth(0).InnerTextAsync() + await Page.Locator(".story-link").Nth(1).InnerTextAsync());
         Assert.Contains("Basic", await Page.Locator(".story-link").Nth(0).InnerTextAsync() + await Page.Locator(".story-link").Nth(1).InnerTextAsync());
-        await Page.Locator(".story-link[title=\"Controls/Accordion/Basic\"]").ClickAsync();
+        await Page.Locator(".story-link[title=\"Controls/AccordionBasic\"]").ClickAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("story=Controls%2FAccordion%2FBasic"));
         await Expect(search).ToHaveValueAsync("Accordion");
         await Expect(Page.Locator(".story-toolbar h1")).ToHaveTextAsync("Basic");
         await Expect(Page.Locator(".gallery-sidebar")).ToBeVisibleAsync();
         var runtime = Page.FrameLocator(".story-runtime-frame");
         await Expect(runtime.Locator("#status")).ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
-        await Expect(runtime.Locator("#status")).ToHaveAttributeAsync("data-story", "Controls/Accordion/Basic");
+        await Expect(runtime.Locator("#status")).ToHaveAttributeAsync("data-story", "Controls/AccordionBasic");
         await Page.GoBackAsync();
         await Expect(Page).ToHaveURLAsync(new Regex("story=Controls%2FAccordion%2FOverview"));
         await Expect(search).ToHaveValueAsync("Accordion");
@@ -110,7 +110,7 @@ public sealed class Gallery2DStoryTests : Microsoft.Playwright.Xunit.PageTest
     [Fact]
     public async Task ExposesArgsOutputSourceAndResizablePreview()
     {
-        const string story = "Controls/Button/Counter";
+        const string story = "Controls/ButtonCounter";
         var failures = Page.CollectFailures();
         await Page.GotoAsync($"/?story={Uri.EscapeDataString(story)}");
         var runtime = Page.FrameLocator(".story-runtime-frame");
@@ -141,10 +141,10 @@ public sealed class Gallery2DStoryTests : Microsoft.Playwright.Xunit.PageTest
         Assert.True(after.Height > before.Height + 40);
         Assert.Empty(failures.PageErrors);
 
-        await Page.Locator(".story-link[title=\"Controls/Button/Primary\"]").ClickAsync();
+        await Page.Locator(".story-link[title=\"Controls/ButtonPrimary\"]").ClickAsync();
         await Expect(Page.Locator(".story-toolbar h1")).ToHaveTextAsync("Primary");
         await Expect(runtime.Locator("#status")).ToHaveAttributeAsync("data-status", "pass", new() { Timeout = 90_000 });
-        await Expect(runtime.Locator("#status")).ToHaveAttributeAsync("data-story", "Controls/Button/Primary");
+        await Expect(runtime.Locator("#status")).ToHaveAttributeAsync("data-story", "Controls/ButtonPrimary");
         await Expect(Page.GetByRole(AriaRole.Tab, new() { Name = "ソース" })).ToHaveAttributeAsync("aria-selected", "true");
         await Page.GetByRole(AriaRole.Tab, new() { Name = "出力" }).ClickAsync();
         await Expect(Page.Locator(".output-list")).ToHaveCountAsync(0);
@@ -153,7 +153,7 @@ public sealed class Gallery2DStoryTests : Microsoft.Playwright.Xunit.PageTest
     [Fact]
     public async Task CompactStoriesExposeInteractivePanels()
     {
-        const string story = "Controls/Button/Counter";
+        const string story = "Controls/ButtonCounter";
         await Page.GotoAsync($"/?story={Uri.EscapeDataString(story)}&compact=1");
         await Expect(Page.Locator(".gallery-compact")).ToBeVisibleAsync();
         await Expect(Page.Locator(".gallery-sidebar")).ToHaveCountAsync(0);
@@ -171,7 +171,7 @@ public sealed class Gallery2DStoryTests : Microsoft.Playwright.Xunit.PageTest
     [Fact]
     public async Task EmbeddedWidgetStoriesRemainCanvasOnly()
     {
-        await Page.GotoAsync("Controls/Button/Counter".StoryPath());
+        await Page.GotoAsync("Controls/ButtonCounter".StoryPath());
         await Expect(Page.Locator(".gallery-embed")).ToBeVisibleAsync();
         await Expect(Page.Locator(".gallery-sidebar")).ToHaveCountAsync(0);
         await Expect(Page.GetByRole(AriaRole.Tab)).ToHaveCountAsync(0);

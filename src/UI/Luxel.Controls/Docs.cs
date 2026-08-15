@@ -31,7 +31,10 @@ namespace Luxel.Controls;
 /// </summary>
 /// <summary>DocString の hole に置ける「生 markdown の断片」。テキスト補完 (ToString 焼き込み) と
 /// 違い行境界を保証し、ページ本体の markdown として整形される — storysource のコードフェンス等。</summary>
-public readonly record struct DocMarkdown(string Markdown) : IMarkdownFragment;
+public readonly record struct DocMarkdown(string Markdown) : IMarkdownFragment
+{
+    public override string ToString() => Markdown;
+}
 
 /// <summary>Structured description of a live widget embedded in a <see cref="DocString"/>.
 /// Static exporters use this metadata to replace the live widget with an equivalent capture.

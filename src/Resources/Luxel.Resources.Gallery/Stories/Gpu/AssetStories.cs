@@ -19,6 +19,7 @@ namespace Luxel.Resources.Gallery.Stories;
 /// <see cref="SceneBuilder"/> で ECS + GPU バッファへ展開し、<see cref="SceneRenderExtractor"/> が
 /// instance バッファを作って scene_pbr_lite シェーダで描く。
 /// </summary>
+[StoryMeta("Examples/Resources/Gltf")]
 public static class AssetStories
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -32,7 +33,7 @@ public static class AssetStories
     }
 
     /// <summary>Box.gltf → AssetDocument → AssetPrimitive → GPU buffers → 1 draw。ECSなしの静的最小経路。</summary>
-    [Story("Examples/Resources/Gltf/BoxScene", Height = 320, Order = 125)]
+    [Story]
     public static Widget GltfBox(StoryContext ctx)
     {
         var builder = new ResourceSystemBuilder();
@@ -131,7 +132,7 @@ public static class AssetStories
 
     /// <summary>BoxAnimated.glb — ノード TRS アニメーションを SceneAnimationPlayer が毎フレーム
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
-    [Story("Examples/Resources/Gltf/AnimatedBox", Height = 320, Order = 126)]
+    [Story]
     public static Widget GltfAnimated(StoryContext ctx)
     {
         var builder = new ResourceSystemBuilder();

@@ -9,6 +9,7 @@ using static Luxel.Gallery.Stories.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Browser Roslyn successful-swap demo: failed compilation keeps the last runnable Widget.</summary>
+[StoryMeta("Examples/Scripting")]
 public static class BrowserScriptHotReloadStory
 {
     private const string InitialCode = "return Kit.Badge(\"version 1\", Intent.Success);";
@@ -78,7 +79,7 @@ public static class BrowserScriptHotReloadStory
         public void Dispose() => (_active as IDisposable)?.Dispose();
     }
 
-    [Story("Examples/Scripting/HotReload", Height = 420, Order = 2035)]
+    [Story]
     public static Widget HotReload(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage language)
     {
         var block = new HotReloadBlock(520, runtime, language);

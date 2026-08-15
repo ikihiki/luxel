@@ -17,6 +17,7 @@ namespace Luxel.Gallery.Stories;
 ///   <see cref="Luxel.Controls.GpuView"/> の render callback へ渡して offscreen 描画する
 /// 時間はすべて Tick の累積秒 — snap の固定ステップ (8 × 1/60s) で決定的。
 /// </summary>
+[StoryMeta("Examples")]
 public static class GpuStories
 {
     private const string ImageUri = "src/Gallery/Luxel.Gallery/assets/sample-sparkline.png";
@@ -30,7 +31,7 @@ public static class GpuStories
 
     // ---- 2D: Scene2D 直描き ----
 
-    [Story("Examples/2D/Orbit", Height = 300, Order = 111)]
+    [Story]
     public static Widget Orbit(StoryContext ctx)
     {
         Signal<float> speed = ctx.Signal("speed", 1f, "軌道アニメの速度倍率");
@@ -49,7 +50,7 @@ public static class GpuStories
 
     // ---- 3D: browser-safe GpuView stories are owned by this Graphics Gallery. ----
 
-    [Story("Examples/3D/TexturedQuad", Height = 320, Order = 121)]
+    [Story]
     public static Widget TexturedQuad(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)

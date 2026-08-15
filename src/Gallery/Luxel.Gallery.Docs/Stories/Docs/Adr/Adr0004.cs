@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0004-Compute-Rasterizer-Retained-2D", Order = 75, Toc = true)]
+    [Story]
     public static StoryResult Adr0004(StoryContext ctx) => $$"""
         # ADR-0004 — 2D はコンピュートラスタライザ + 保持型キャンバス
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-08 (記録日 — 決定自体は 2D 層の着手時)
@@ -17,7 +21,7 @@ public static partial class DocsAdr
 
         ## Context
 
-        UI ([ADR-0003](story:Internals/ADR/0003-Declarative-Signal-Ui))・docs・2D ゲームの土台として、GPU 抽象 ([ADR-0002](story:Internals/ADR/0002-Thin-Bindless-Gpu-Abstraction)) の上に 2D ベクター描画層が必要でした。要件と力学:
+        UI ([ADR-0003](story:Internals/ADR/Adr0003))・docs・2D ゲームの土台として、GPU 抽象 ([ADR-0002](story:Internals/ADR/Adr0002)) の上に 2D ベクター描画層が必要でした。要件と力学:
 
         - **ベクター品質** — テキスト (TTF 輪郭、日本語) と図形をズームしてもエッジが崩れないこと。docs のダイアグラム・数式・エディタまでこの層で描く
         - **部分更新が主戦場** — UI の定常フレームは「動いたものだけ」を書きたい (移動 = 変換だけ、色変更 = スタイルだけ)。bench 回帰ゲート (タイプ連打で再構築 ~3% 等) の土台になる

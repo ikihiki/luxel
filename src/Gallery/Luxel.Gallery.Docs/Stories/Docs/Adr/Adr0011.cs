@@ -1,15 +1,19 @@
 using Luxel.Controls;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsAdr
 {
-    [Story("Internals/ADR/0011-Pointer-Button-Modifiers", Order = 82, Toc = true)]
+    [Story]
     public static StoryResult Adr0011(StoryContext ctx) => $$"""
         # ADR-0011 — PointerEvent にボタンと修飾キーを通す
+
+        {{Toc()}}
 
         - **Status**: Accepted
         - **Date**: 2026-07-09
@@ -19,9 +23,9 @@ public static partial class DocsAdr
 
         `PointerEvent` (`Luxel.UI`) はローカル/画面座標とドラッグ差分だけを運び、**どのマウスボタンか**・**修飾キー (Ctrl/Shift/Alt/Meta) が押されているか**を持ちません。このため複数の機能が「フレームワークの穴」として延期されています:
 
-        - テキストスタックの **Alt+Click マルチカーソル** ([ADR-0006](story:Internals/ADR/0006-Editor-New-Stack) の S7 で延期)
-        - ノードスタックの **対話 pan ドラッグ・Ctrl+Click 追加選択** ([ADR-0009](story:Internals/ADR/0009-Node-Editor-Stack) で延期、空白ドラッグを範囲選択に取られる)
-        - これから作る本格ドッキング ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework)) の **タブ D&D 並べ替え・ペインのドラッグ再配置・ドロップゾーン**判定 — 左ボタンドラッグと右クリックメニューの区別が要る
+        - テキストスタックの **Alt+Click マルチカーソル** ([ADR-0006](story:Internals/ADR/Adr0006) の S7 で延期)
+        - ノードスタックの **対話 pan ドラッグ・Ctrl+Click 追加選択** ([ADR-0009](story:Internals/ADR/Adr0009) で延期、空白ドラッグを範囲選択に取られる)
+        - これから作る本格ドッキング ([ADR-0010](story:Internals/ADR/Adr0010)) の **タブ D&D 並べ替え・ペインのドラッグ再配置・ドロップゾーン**判定 — 左ボタンドラッグと右クリックメニューの区別が要る
 
         Workbench 系の土台になるため、ここで穴を塞ぎます。
 
@@ -42,7 +46,7 @@ public static partial class DocsAdr
         ## Consequences
 
         - ✅ Alt+Click マルチカーソル・Ctrl+Click 追加選択・対話 pan ドラッグ・タブ/ペインの D&D が解禁され、両エディタの「延期」注記が解消する
-        - ✅ 本格ドッキング ([ADR-0010](story:Internals/ADR/0010-Workbench-Framework) / [ADR-0014](story:Internals/ADR/0014-Workbench-Ui-Controls)) の前提が揃う
+        - ✅ 本格ドッキング ([ADR-0010](story:Internals/ADR/Adr0010) / [ADR-0014](story:Internals/ADR/Adr0014)) の前提が揃う
         - ⚠️ `PointerEvent` の構造とその生成/配布経路 (`UiHost`) を触るため、**全ドラッグ系の無回帰**を golden で確認する必要がある
         - ⚠️ 修飾キー/ボタンの取得はプラットフォーム依存 — Win32 のメッセージから正しく組み立てる (他 OS 対応時は各 Platform で埋める)
         """;

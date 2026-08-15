@@ -1,12 +1,15 @@
-using static Luxel.Audio.Gallery.AudioDocsKit;
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Audio.Gallery;
 
+[StoryMeta("Learn/Audio")]
 public static class LearnAudio
 {
-    [Story("Learn/Audio/Overview", Order = 0, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
         # Audio overview
+
+        {{Toc()}}
 
         {{AudioCourseCatalog.Meta("Learn/Audio/Overview", "Beginner", "Gallery / Headless / Windows / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "なし")}}
 
@@ -31,7 +34,6 @@ public static class LearnAudio
 
         ## 最小の実行経路
 
-        {{SampleSource("samples/LuxelAudio/Program.cs", "audio-tone")}}
 
         {{StoryRef(ctx, "Examples/Audio/WaveformAndVoice")}}
 
@@ -50,9 +52,11 @@ public static class LearnAudio
 
         """;
 
-    [Story("Learn/Audio/EnvironmentAndBackends", Order = 1, Toc = true)]
+    [Story]
     public static StoryResult Environment(StoryContext ctx) => $$"""
         # Audio environment and backends
+
+        {{Toc()}}
 
         {{AudioCourseCatalog.Meta("Learn/Audio/EnvironmentAndBackends", "Beginner", "Standalone / Framework / CI / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Audio overview")}}
 
@@ -79,7 +83,7 @@ public static class LearnAudio
         | Framework native | `LuxelHostBuilder.Create().UseAudio()` | `Luxel.Framework.Game.Native`がWindows=XAudio2、Linux/macOS=OpenALを選択 |
         | Browser WASM | `Luxel.Audio.Browser.BrowserAudioBackend` | Web Audio、autoplay unlock、browser lifecycle |
 
-        portableな`Luxel.Framework.Game`では`UseAudio(factory)`でbackendを注入します。desktopでは`Luxel.Framework.Game.Native`を参照するとparameterlessな`UseAudio()`を利用できます。Windows実音の統合確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone)、browser実音は`samples/LuxelAudioBrowser`を使います。
+        portableな`Luxel.Framework.Game`では`UseAudio(factory)`でbackendを注入します。desktopでは`Luxel.Framework.Game.Native`を参照するとparameterlessな`UseAudio()`を利用できます。Windows実音の統合確認は [RealWindow/Tone](story:RealWindow/Tone)、browser実音は`samples/LuxelAudioBrowser`を使います。
 
         ## Web Audioの非同期ライフサイクル
 
@@ -102,9 +106,11 @@ public static class LearnAudio
 
         """;
 
-    [Story("Learn/Audio/FormatsClipsAndLoading", Order = 2, Toc = true)]
+    [Story]
     public static StoryResult Formats(StoryContext ctx) => $$"""
         # Formats, clips, and loading
+
+        {{Toc()}}
 
         {{AudioCourseCatalog.Meta("Learn/Audio/FormatsClipsAndLoading", "Beginner", "Standalone / Resources / Browser WASM", "Backend neutral PCM16 / Web Audio", "Environment and backends")}}
 
@@ -112,7 +118,6 @@ public static class LearnAudio
 
         `AudioFormat(48_000, 2, 16)`では、1 channelの値がsample、同時刻の左右2 sampleがframeです。1 sampleは2 bytes、1 frameは4 bytes、1秒は192,000 bytesです。`AudioFormat.BytesPerSample`は名前に反して全channelを含む1 frame分で、`AudioClip.SampleCount`もper-channel frame数です。
 
-        {{SampleSource("samples/LuxelAudio/AudioConceptSamples.cs", "audio-format-clip")}}
 
         {{StoryRef(ctx, "Examples/Audio/WaveformAndVoice")}}
 
@@ -134,9 +139,11 @@ public static class LearnAudio
         PCM bytesだけではsample rate/channels/bit depthを復元できません。channelsを間違えると速度や左右が崩れ、frame境界でないbyte数は不正です。core backendの共通formatはPCM16です。未知拡張子、壊れたRIFF、未対応bit depthは例外として扱い、黙って再生しない設計にします。
         """;
 
-    [Story("Learn/Audio/VoicesAndMixer", Order = 3, Toc = true)]
+    [Story]
     public static StoryResult Voices(StoryContext ctx) => $$"""
         # Voices and the one-shot mixer
+
+        {{Toc()}}
 
         {{AudioCourseCatalog.Meta("Learn/Audio/VoicesAndMixer", "Beginner", "Game loop / Headless / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Formats, clips, and loading")}}
 
@@ -144,7 +151,6 @@ public static class LearnAudio
 
         `SubmitBuffer()`はqueueを増やし、`Play()`は再生を開始、`Pause()`はqueueを保持したまま停止、`Stop()`は停止してqueueを捨てます。`BuffersQueued == 0`はone-shot完了とpool返却の判定です。`IsPlaying`の枯渇時挙動はbackend依存なので、完了判定はqueueを中心に組みます。
 
-        {{SampleSource("samples/LuxelAudio/AudioConceptSamples.cs", "audio-mixer-voice")}}
 
         {{StoryRef(ctx, "Examples/Audio/WaveformAndVoice")}}
 
@@ -163,9 +169,11 @@ public static class LearnAudio
         mixerが借りたvoiceを所有するため、呼び出し側はone-shot voiceをdisposeしません。一方mixer自体はbackendより先にdisposeします。`Tick()`忘れはpoolへ戻らない原因です。`NullAudioBackend`は時間経過で自動drainしないため、testでは`Stop()`等で完了状態を決定的に作ります。
         """;
 
-    [Story("Learn/Audio/ClipsSourcesAndBuses", Order = 4, Toc = true)]
+    [Story]
     public static StoryResult Sources(StoryContext ctx) => $$"""
         # Clips, sources, and buses
+
+        {{Toc()}}
 
         {{AudioCourseCatalog.Meta("Learn/Audio/ClipsSourcesAndBuses", "Beginner", "Game loop / Browser WASM", "Backend neutral source + Web Audio voice", "Voices and mixer")}}
 
@@ -173,7 +181,6 @@ public static class LearnAudio
 
         `AudioSource`は1つのclipとvoiceを所有し、loop、pause、stop、継続的なvolume/pitch/pan更新を扱います。`Signal<float>`を書き換えただけではvoiceへ反映されず、毎frame `Tick()`が必要です。
 
-        {{SampleSource("samples/LuxelAudio/AudioConceptSamples.cs", "audio-source-bus")}}
 
         ## bus tree
 
@@ -199,9 +206,11 @@ public static class LearnAudio
         `Tick()`忘れ、parent busが0、sourceとone-shotの所有権混同、dispose後の再生が代表例です。bus値だけでなく最終voice volumeをheadlessで確認します。
         """;
 
-    [Story("Learn/Audio/SpatialAudio", Order = 5, Toc = true)]
+    [Story]
     public static StoryResult Spatial(StoryContext ctx) => $$"""
         # Spatial audio
+
+        {{Toc()}}
 
         {{AudioCourseCatalog.Meta("Learn/Audio/SpatialAudio", "Intermediate", "Game loop / Headless / Browser WASM", "C# attenuation + backend pan", "Clips, sources, and buses")}}
 
@@ -209,7 +218,6 @@ public static class LearnAudio
 
         `AudioListener`はposition/forward/upを持ち、`Right = Normalize(Forward × Up)`を導出します。`AudioSource3D.Update(listener)`は距離からlinear attenuation、正規化した方向とRightの内積からpanを計算し、busとsource volumeを掛けてvoiceへ転送します。
 
-        {{SampleSource("samples/LuxelAudio/AudioConceptSamples.cs", "audio-spatial")}}
 
         距離が`MinDistance`以下なら1、`MaxDistance`以上なら0、その間は線形です。例では距離5、範囲1..9なのでattenuationは0.5、listener右側なのでpanは+1です。
 
@@ -231,9 +239,11 @@ public static class LearnAudio
         forward/upが平行だとRightを正規化できません。`MinDistance >= MaxDistance`はstep状の減衰になります。listener更新より前にsourceを更新すると1 frame古い結果になります。
         """;
 
-    [Story("Learn/Audio/Streaming", Order = 6, Toc = true)]
+    [Story]
     public static StoryResult Streaming(StoryContext ctx) => $$"""
         # Streaming audio
+
+        {{Toc()}}
 
         {{AudioCourseCatalog.Meta("Learn/Audio/Streaming", "Intermediate", "Game loop / Headless / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio queue", "Spatial audio")}}
 
@@ -241,7 +251,6 @@ public static class LearnAudio
 
         短いSFXや頻繁に再利用する音は`AudioClip`へ全展開します。長尺WAVは`IAudioStream`でfloat sampleを逐次供給し、`StreamingVoice`がPCM16へ量子化してvoice queueへ補充します。`WavStream`はseek可能なRIFF PCM16/float32、`LoopingStream`は終端で`Reset()`するdecoratorです。
 
-        {{SampleSource("samples/LuxelAudio/AudioConceptSamples.cs", "audio-streaming")}}
 
         ## queueとPump
 
@@ -262,9 +271,11 @@ public static class LearnAudio
         `Stop()`はvoice queueを捨てて終了扱いにします。`Restart()`はvoiceをstopしstreamをresetして、次の`Pump()`から再開します。loopは`new LoopingStream(inner)`を渡します。`StreamingVoice.Dispose()`がvoiceとstreamを所有・破棄するので、同じstreamを別所有者から二重disposeしないでください。
         """;
 
-    [Story("Learn/Audio/SpatialStreamingAndTesting", Order = 7, Toc = true)]
+    [Story]
     public static StoryResult Testing(StoryContext ctx) => $$"""
         # Audio testing and troubleshooting
+
+        {{Toc()}}
 
         {{AudioCourseCatalog.Meta("Learn/Audio/SpatialStreamingAndTesting", "Intermediate", "CI / Headless / Windows / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Streaming audio")}}
 
@@ -272,7 +283,6 @@ public static class LearnAudio
 
         ## headlessで観測する契約
 
-        {{SampleSource("samples/LuxelAudio/AudioConceptSamples.cs", "audio-headless-test")}}
 
         `NullAudioBackend`では、`Initialized`、`Voices.Count`、`BuffersQueued`、`IsPlaying`、投入したPCM byte数、volume/pitch/panを確認します。privateなNull voiceのsubmitted byte counterへ依存せず、生成したPCM lengthとqueue数をtest oracleにできます。busは`EffectiveVolume`、spatialは`EffectiveVolume`/`EffectivePan`、streamはqueue depthと`Finished`を直接検証します。
 
@@ -292,6 +302,6 @@ public static class LearnAudio
 
         Null testは時間やspeakerに依存しないlogic contractです。XAudio2 integration testはWindows device、実時間のqueue完了、可聴結果を別層で確認します。Silk OpenAL backendは全OS共通のfake contractを持ち、OpenAL Soft runtimeのある環境では`ALC_SOFT_loopback`の決定的な440 Hz/RMS/pitch/pan testを実行できます。Linux CIではさらにPulseAudio null sinkのWAV captureを検証します。Web Audioはmanaged fake interopでlifecycle、PCM validation、ownershipを、mock `AudioContext`を使うJavaScript contract testで連続schedule、`onended` queue accounting、pause/pitch時のnode再生成を検証します。autoplay unlockと実音はbrowser sampleで手動確認します。AudioWorklet/SABは現行backendのtest対象ではありません。
 
-        実音の最後の確認は [RealWindow/Audio/Tone](story:RealWindow/Audio/Tone) です。
+        実音の最後の確認は [RealWindow/Tone](story:RealWindow/Tone) です。
         """;
 }

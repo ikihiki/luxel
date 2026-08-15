@@ -11,11 +11,8 @@ public static class GalleryStorySourcePane
     {
         if (story is null)
             return Text("No story selected.", 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
-        SampleBundleInfo? bundle = SampleBundleRegistry.Find(story.SampleBundle);
         if (string.IsNullOrWhiteSpace(story.Source))
-            return Text(bundle is null
-                    ? "Source unavailable. Gallery harness required; no standalone sample bundle is registered."
-                    : $"Run this sample ({bundle.CopyLevel}): {bundle.RunCommand}", 12,
+            return Text("Source unavailable.", 12,
                 color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
 
         TextEditorView editor = TextEditorView(new Signal<string>(story.Source),
@@ -26,11 +23,6 @@ public static class GalleryStorySourcePane
         editor.EditorFont = RenderingStoryKit.EditorFaces.Value.Mono;
         editor.Providers.Add(new SyntaxHighlightProvider(
             Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
-        if (bundle is null) return editor;
-        string files = string.Join(" · ", bundle.Files.Select(file => file.Path));
-        return VStack(6)[
-            Text($"Run this sample · {bundle.CopyLevel} · {bundle.RunCommand}", 12, color: Bind.From(() => UiTheme.T.TextMuted)),
-            Text(files, 10, color: Bind.From(() => UiTheme.T.TextMuted)),
-            editor];
+        return editor;
     }
 }

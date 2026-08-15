@@ -1,15 +1,19 @@
 using Luxel.Controls;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Graphics/2D/Overview", Order = 12, Toc = true)]
+    [Story]
     public static StoryResult First2DScene() => $$"""
         # はじめての2D描画
 
-        {{RenderingCourseCatalog.Meta("Learn/Graphics/2D/Overview", "Beginner", "Gallery WASM / Standalone / Headless", "WebGPU / Vulkan / DirectX 12 / Skia CPU", "基本的なC#")}}
+        {{Toc()}}
+
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/First2DScene", "Beginner", "Gallery WASM / Standalone / Headless", "WebGPU / Vulkan / DirectX 12 / Skia CPU", "基本的なC#")}}
 
         このコースの到達目標は、path・色・画像・camera transformを組み合わせた`Scene2D`を作り、render targetへ描画できることです。window、input、pointer hit test、appのframe loopは扱いません。
 

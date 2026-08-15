@@ -21,10 +21,16 @@ public sealed record StoryMarkdownEmbed(Widget? Widget, string Kind = "Widget", 
 }
 
 /// <summary>Markdown へ埋め込む canonical story reference。</summary>
-public sealed record StoryReference(string Path, StoryArgs Args)
+public sealed record StoryReference(string Path, StoryArgs Args, bool ShowControls = false)
 {
     public static StoryReference To(string path) => new(path, StoryArgs.Empty);
     public static StoryReference To(string path, object? args) => new(path, StoryArgs.FromObject(args));
+}
+
+/// <summary>Markdown story 内で目次を展開する位置を表す canonical placeholder。</summary>
+public readonly record struct StoryToc
+{
+    public override string ToString() => "<!-- luxel-toc-placeholder -->";
 }
 
 /// <summary>型付き story args の immutable wire representation。</summary>
@@ -229,7 +235,7 @@ public sealed class StoryResult
         IReadOnlyList<StoryMarkdownEmbed>? embeds = null)
     {
         Kind = StoryResultKind.Markdown;
-        _markdown = new StringBuilder(markdown ?? string.Empty);
+        _markdown = new StringBuilder(NormalizeMarkdown(markdown));
         _references = new List<StoryReference>(references);
         _embeds = embeds is null ? new List<StoryMarkdownEmbed>() : new List<StoryMarkdownEmbed>(embeds);
     }
@@ -283,6 +289,11 @@ public sealed class StoryResult
     {
         switch (value)
         {
+            case StoryToc:
+                EnsureLineBoundary();
+                _markdown!.Append("<!-- luxel-toc-placeholder -->");
+                _afterEmbed = true;
+                return;
             case StoryReference reference:
                 AppendFormatted(reference);
                 return;
@@ -332,4 +343,7 @@ public sealed class StoryResult
     }
 
     public override string ToString() => Kind == StoryResultKind.Markdown ? Markdown : Widget?.ToString() ?? string.Empty;
+
+    private static string NormalizeMarkdown(string? markdown)
+        => (markdown ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
 }

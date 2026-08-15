@@ -12,7 +12,7 @@ public static class UiHostCommands
 {
     public static void RegisterDefaults(EngineCommands cmds, UiHost host)
     {
-        cmds.Register("click", a => host.Click(F(a, "x"), F(a, "y")));
+        cmds.Register("click", a => GestureClick(host, a));
         cmds.Register("pointerdown", a => host.PointerDown(F(a, "x"), F(a, "y")));
         cmds.Register("pointerup", a => host.PointerUp(F(a, "x"), F(a, "y")));
         cmds.Register("pointermove", a => host.PointerMove(F(a, "x"), F(a, "y")));
@@ -33,7 +33,7 @@ public static class UiHostCommands
     public static void RegisterDefaults(EngineCommands cmds, UiRegistry registry)
     {
         UiHost? T(object? a) => Resolve(registry, a);
-        cmds.Register("click", a => T(a)?.Click(F(a, "x"), F(a, "y")));
+        cmds.Register("click", a => GestureClick(T(a), a));
         cmds.Register("pointerdown", a => T(a)?.PointerDown(F(a, "x"), F(a, "y")));
         cmds.Register("pointerup", a => T(a)?.PointerUp(F(a, "x"), F(a, "y")));
         cmds.Register("pointermove", a => T(a)?.PointerMove(F(a, "x"), F(a, "y")));
@@ -47,6 +47,16 @@ public static class UiHostCommands
         cmds.Register("focusprev", a => T(a)?.FocusPrev());
         // ui.set は UiHost の購読経路 (Luxel.UiSetRequest) へ — "ui" 名一致の host だけが適用する
         cmds.Register("ui.set", a => { if (a is JsonElement el) EngineDiagnostics.Emit("Luxel.UiSetRequest", el); });
+    }
+
+    /// <summary>remote の semantic click を実ポインタと同じ down/up gesture として送る。
+    /// DocumentTabs や SurfaceView のように pointer capture を使う対象も通常クリックで動作する。</summary>
+    private static void GestureClick(UiHost? host, object? a)
+    {
+        if (host is null) return;
+        float x = F(a, "x"), y = F(a, "y");
+        host.PointerDown(x, y);
+        host.PointerUp(x, y);
     }
 
     /// <summary>"ui" フィールド (index 数値 / 名前文字列, 省略時 0 番) で registry から対象 host を引く。</summary>

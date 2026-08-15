@@ -1,18 +1,23 @@
 using Luxel.Controls;
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.DocKit.DocsKit;
+
+using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Terminal control overview and integration guide.</summary>
+[StoryMeta("Controls/Terminal")]
 public static class TerminalOverviewStory
 {
-    [Story("Controls/Terminal/Overview", Order = 0, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());
         return $$"""
         # 端末エミュレータ (Luxel.Terminal)
+
+        {{Toc()}}
 
         Luxelの端末機能は、VT/ANSIを解釈するOS非依存コア、OSごとのPTY backend、Luxel UIへ描画する`TerminalView`の3層です。WindowsではConPTY、LinuxではUnix PTYを使用します。`Luxel.Controls`とは相互に依存せず、アプリが必要な層だけを組み合わせます。
 

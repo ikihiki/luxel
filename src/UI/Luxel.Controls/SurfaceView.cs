@@ -144,6 +144,9 @@ public sealed partial class SurfaceView : Widget, IDisposable
             textInput: new ChildTextInput(this));
         ctx.AddHit(node, new Rect(0, 0, Size.Width, Size.Height),
             focus: focus,
+            // DevTools の semantic "click" は PointerDown/PointerUp を合成せず Click を直接呼ぶ。
+            // 子 UiHost にも通常クリックとして転送し、実ポインタと remote 操作を同じ挙動にする。
+            onClickPos: e => Child!.Click(e.X, e.Y, e.Button, e.Modifiers),
             onHover: h => { Hovered.Value = h; if (!h) Child!.PointerMove(-10000, -10000); },   // leave で子 hover 解除
             onMovePos: e => Child!.PointerMove(e.X, e.Y),
             onDragStart: e => Child!.PointerDown(e.X, e.Y),

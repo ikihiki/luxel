@@ -1,16 +1,20 @@
 using Luxel.UI;
-using static Luxel.Gallery.Stories.DocsKit;
+using static Luxel.Gallery.Story;
+using static Luxel.Gallery.DocKit.DocsKit;
 
 namespace Luxel.Gallery.Stories;
 
 /// <summary>初心者向けレンダリング学習経路。実行可能な正は samples/LuxelTriangle。</summary>
+[StoryMeta("Learn/Graphics")]
 public static partial class DocsRenderingLearn
 {
-    [Story("Learn/Graphics/Overview", Order = 0, Toc = true)]
+    [Story]
     public static StoryResult Overview(StoryContext ctx)
     {
         return $"""
         # Graphics 学習ガイド
+
+        {Toc()}
 
         {RenderingCourseCatalog.Meta("Learn/Graphics/Overview", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "なし")}
 
@@ -24,7 +28,7 @@ public static partial class DocsRenderingLearn
 
         ## Backend内部実装
 
-        共通resourceが各APIへ変換される仕組みは、上級者向けの[DirectX 12](story:Learn/Graphics/Internal/DirectX12)、[Vulkan](story:Learn/Graphics/Internal/Vulkan)、[WebGPU](story:Learn/Graphics/Internal/WebGPU)でresource単位に比較できます。通常のアプリ構築では必須ではありません。
+        共通resourceが各APIへ変換される仕組みは、上級者向けの[DirectX 12](story:Learn/Graphics/Internal/DirectX12)、[Vulkan](story:Learn/Graphics/Internal/Vulkan)、[WebGPU](story:Learn/Graphics/Internal/WebGpu)でresource単位に比較できます。通常のアプリ構築では必須ではありません。
 
         **検索キーワード:** triangle / texture / shader / pipeline / barrier / submit / render graph
 
@@ -38,11 +42,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Graphics/Environment", Order = 1, Toc = true)]
+    [Story]
     public static StoryResult Environment(StoryContext ctx)
     {
         return $$"""
         # グラフィック環境
+
+        {{Toc()}}
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/Environment", "Beginner", "Standalone + Browser", "Vulkan / Direct3D 12 / WebGPU", "Overview")}}
 
@@ -165,11 +171,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Graphics/ClearColor", Order = 2, Toc = true)]
+    [Story]
     public static StoryResult ClearColor(StoryContext ctx)
     {
         return $$"""
         # ClearColor
+
+        {{Toc()}}
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/ClearColor", "Beginner", "Standalone + Gallery", "Vulkan / Direct3D 12 / WebGPU", "Environment")}}
 
@@ -253,7 +261,7 @@ public static partial class DocsRenderingLearn
 
         D3D12のRGBA8 readbackでは各rowを256 byteへ揃えるため、slotごとに同じ`stridePixels`と必要byte数を確保します。`stridePixels`は64 pixel単位のaligned rowですが、`Present`へ渡す`width` / `height`はvisible sizeです。resizeでは使用中slotの完了を待ち、全framebufferを新しいsizeでまとめて作り直します。
 
-        tutorialはsingle framebuffer + `SubmitAndWait`を正とします。Barrierとqueue完了の使い分けは[同期](story:Learn/Graphics/Synchronization)で説明します。backend内部の完了機構は[GPU同期の内部実装](story:Internals/Gpu/Synchronization)で扱います。
+        tutorialはsingle framebuffer + `SubmitAndWait`を正とします。Barrierとqueue完了の使い分けは[同期](story:Learn/Graphics/Synchronization)で説明します。backend内部の完了機構は[GPU同期の内部実装](story:Internals/Gpu/GpuSynchronizationInternals)で扱います。
 
         ## Resize
 
@@ -262,11 +270,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Graphics/FirstTriangle", Order = 3, SampleBundle = "rendering.triangle", Toc = true)]
+    [Story]
     public static StoryResult FirstTriangle(StoryContext ctx)
     {
         return $$"""
         # 三角形表示
+
+        {{Toc()}}
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/FirstTriangle", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "ClearColor")}}
 
@@ -395,11 +405,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Graphics/Buffers", Order = 4, Toc = true)]
+    [Story]
     public static StoryResult Buffers(StoryContext ctx)
     {
         return $$"""
         # Buffers
+
+        {{Toc()}}
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/Buffers", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
 
@@ -555,13 +567,15 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Graphics/Textures", Order = 5, Toc = true)]
+    [Story]
     public static StoryResult TexturesBasics(StoryContext ctx)
     {
         return $$"""
         # Textures
 
-        {{RenderingCourseCatalog.Meta("Learn/Graphics/Textures", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12 / WebGPU", "Buffers")}}
+        {{Toc()}}
+
+        {{RenderingCourseCatalog.Meta("Learn/Graphics/TexturesBasics", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12 / WebGPU", "Buffers")}}
 
         {{StoryRef(ctx, "Examples/3D/Textures")}}
 
@@ -691,11 +705,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Graphics/Shaders", Order = 6, Toc = true)]
+    [Story]
     public static StoryResult Shaders(StoryContext ctx)
     {
         return $$"""
         # Shaders
+
+        {{Toc()}}
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/Shaders", "Beginner", "Gallery + Standalone", "Vulkan / DirectX 12 / WebGPU", "Textures")}}
 
@@ -884,11 +900,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Graphics/PipelineState", Order = 7, Toc = true)]
+    [Story]
     public static StoryResult PipelineState(StoryContext ctx)
     {
         return $$"""
         # Pipelineのその他の設定
+
+        {{Toc()}}
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/PipelineState", "Beginner", "Gallery + Standalone", "Vulkan / DirectX 12 / WebGPU", "Shaders")}}
 
@@ -917,7 +935,7 @@ public static partial class DocsRenderingLearn
         | Viewport / Scissor | `SetViewport` / `SetScissor` | NDC変換領域、pixel clip矩形 |
         | Dynamic reference | `SetStencilReference` | stencil compare / replaceで使う8-bit値 |
 
-        {{StoryRef(ctx, "Examples/3D/PipelineState/Separation")}}
+        {{StoryRef(ctx, "Examples/3D/Separation")}}
 
         ## Rasterizer State
 
@@ -928,7 +946,7 @@ public static partial class DocsRenderingLearn
         var strip = new GpuGraphicsPipelineDesc(layout, GpuPrimitiveTopology.TriangleStrip);
         ```
 
-        {{StoryRef(ctx, "Examples/3D/PipelineState/Topology")}}
+        {{StoryRef(ctx, "Examples/3D/Topology")}}
 
         cullとfront faceは独立した`GpuRasterizerState`です。`FrontFace = CounterClockwise`なら反時計回りを表面とし、`CullMode = Back`なら裏面を除外します。projectionのY方向、negative scale、index順でwindingが反転することがあるため、何も表示されないときは`GpuRasterizerState.Default`へ戻して切り分けます。
 
@@ -938,7 +956,7 @@ public static partial class DocsRenderingLearn
             GpuFrontFace.CounterClockwise));
         ```
 
-        {{StoryRef(ctx, "Examples/3D/PipelineState/Rasterizer")}}
+        {{StoryRef(ctx, "Examples/3D/Rasterizer")}}
 
         ## Depth-Stencil State
 
@@ -963,7 +981,7 @@ public static partial class DocsRenderingLearn
         - test on / write on: opaque 3D。
         - test on / write off: transparent 3Dやdecal。
 
-        {{StoryRef(ctx, "Examples/3D/PipelineState/Depth")}}
+        {{StoryRef(ctx, "Examples/3D/DepthStates")}}
 
         stencilは8-bit maskとしてfragmentの所属領域を記録し、後続drawをその領域へ限定できます。次の例は最初のdrawでreferenceを`Replace`し、次のdrawで`Equal`比較します。read/write maskはstate、referenceはdraw間で変更できるdynamic valueです。
 
@@ -996,7 +1014,7 @@ public static partial class DocsRenderingLearn
 
         stencilを使うpassは`GpuFormat.Depth24PlusStencil8`のattachmentをpipeline descriptionと`CreateDepthTarget`の両方へ指定します。`SetStencilReference`、`clearStencil`、read/write maskはいずれも0..255です。
 
-        {{StoryRef(ctx, "Examples/3D/PipelineState/Stencil")}}
+        {{StoryRef(ctx, "Examples/3D/Stencil")}}
 
         ## Blend State
 
@@ -1013,7 +1031,7 @@ public static partial class DocsRenderingLearn
 
         `AlphaBlend`へ渡すRGBはpremultiplied alphaではありません。透明物は通常opaque pass後に奥から手前へsortし、depth test on / depth write offで描きます。
 
-        {{StoryRef(ctx, "Examples/3D/PipelineState/Blend")}}
+        {{StoryRef(ctx, "Examples/3D/BlendState")}}
 
         ## Viewport / Scissor
 
@@ -1029,7 +1047,7 @@ public static partial class DocsRenderingLearn
 
         split screen、letterbox、thumbnail、部分更新ではpipelineを作り直さずdynamic viewport/scissorを変更します。resize後は新しいtarget sizeを基準に矩形も更新します。
 
-        {{StoryRef(ctx, "Examples/3D/PipelineState/ViewportScissor")}}
+        {{StoryRef(ctx, "Examples/3D/ViewportScissor")}}
 
         ## Pipelineとstateを分ける判断
 
@@ -1056,11 +1074,13 @@ public static partial class DocsRenderingLearn
     }
 
 
-    [Story("Learn/Graphics/Synchronization", Order = 8, Toc = true)]
+    [Story]
     public static StoryResult Synchronization(StoryContext ctx)
     {
         return $$"""
         # 同期
+
+        {{Toc()}}
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/Synchronization", "Beginner+", "Standalone", "Vulkan / DirectX 12 / WebGPU", "Pipeline State")}}
 
@@ -1222,7 +1242,7 @@ public static partial class DocsRenderingLearn
         Queue API:   commandのsubmitとCPUから見た完了境界
         ```
 
-        手書きBarrierをpassのRead/Write宣言へ置き換える方法は、Graphics内の[RenderGraph章](story:Learn/Graphics/RenderGraph/Overview)で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/Synchronization)を参照してください。
+        手書きBarrierをpassのRead/Write宣言へ置き換える方法は、Graphics内の[RenderGraph章](story:Learn/Graphics/RenderGraph/Overview)で順番に扱います。Vulkan、DirectX 12、native/browser WebGPUがBarrierとqueue完了をどうlowerするかは[GPU同期の内部実装](story:Internals/Gpu/GpuSynchronizationInternals)を参照してください。
 
         ## 典型的な失敗
 

@@ -10,6 +10,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>PropertyGrid を使うエディタ (ToDo 26 WS-D の D4、ADR-0014 の実証) —
 /// パーティクル設定 (.json) を <see cref="ObjectDocument{T}"/> + PropertyGrid で Inspector 編集し、
 /// 保存/undo が他のエディタと同じ IEditorDocument 契約で回る。</summary>
+[StoryMeta("Examples/Workbench")]
 public static class WorkbenchInspectorStory
 {
     public enum Blend { Alpha, Additive, Multiply }
@@ -33,7 +34,7 @@ public static class WorkbenchInspectorStory
         public IEditorDocument CreateNew() => new ObjectDocument<SparkConfig>("config", "無題", new SparkConfig());
     }
 
-    [Story("Examples/Workbench/Inspector", Height = 470)]
+    [Story]
     public static Widget Inspector(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();

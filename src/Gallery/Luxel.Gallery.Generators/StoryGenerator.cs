@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace Luxel.Gallery.Generators;
 
 /// <summary>
-/// <c>[Story("Component/Name")]</c> 付き static メソッドを収集し、アセンブリごとに
+/// <c>[StoryMeta("Component")]</c> のクラスにある <c>[Story]</c> 付き static メソッドを収集し、アセンブリごとに
 /// <c>[ModuleInitializer]</c> で <c>Luxel.Gallery.StoryRegistry.Register</c> するコードを焼き込む
 /// (reflection なしのストーリー登録)。署名: <c>static Widget M()</c> / <c>static Widget M(StoryContext)</c>。
 /// </summary>
@@ -22,36 +22,37 @@ public sealed class StoryGenerator : IIncrementalGenerator
         "'{0}' の [Story] メソッドは 'static Widget M()' か 'static Widget M(StoryContext)' である必要があります",
         "Luxel.Gallery", DiagnosticSeverity.Warning, true);
 
+    private static readonly DiagnosticDescriptor MissingMeta = new(
+        "NGUI011", "story class is missing StoryMeta",
+        "'{0}' の [Story] を含むクラスには [StoryMeta(\"title\")] が必要です",
+        "Luxel.Gallery", DiagnosticSeverity.Warning, true);
+
     internal sealed class StoryModel : IEquatable<StoryModel>
     {
         public readonly string Path;
-        public readonly int Width, Height, Order;
-        public readonly string? Theme;
-        public readonly string? SampleBundle;
         public readonly string? CapabilityNote;
         public readonly string MethodFq;    // global::Ns.Type.Method
         public readonly string Source;      // メソッドの C# ソース (storysource)
         /// <summary>引数の並び。各要素は "ctx" (= StoryContext) か、DI 解決するグローバル修飾型名。</summary>
         public readonly string[] Params;
         public readonly bool Valid;
+        public readonly bool HasMeta;
         public readonly bool RealWindowOnly;
-        public readonly bool Toc;
         public readonly bool ReturnsStoryResult;
         public readonly bool ReturnsSemanticDocument;
         public readonly string? SchemaMethod;
         public readonly string? ResultMethod;
-        public StoryModel(string path, int w, int h, int order, string? theme, string methodFq, string source, string[] paramz, bool valid, bool realWindowOnly, bool toc, string? sampleBundle, string? capabilityNote, bool returnsStoryResult, bool returnsSemanticDocument, string? schemaMethod, string? resultMethod)
-        { Path = path; Width = w; Height = h; Order = order; Theme = theme; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; RealWindowOnly = realWindowOnly; Toc = toc; SampleBundle = sampleBundle; CapabilityNote = capabilityNote; ReturnsStoryResult = returnsStoryResult; ReturnsSemanticDocument = returnsSemanticDocument; SchemaMethod = schemaMethod; ResultMethod = resultMethod; }
-        public bool Equals(StoryModel? o) => o is not null && Path == o.Path && Width == o.Width && Height == o.Height
-            && Order == o.Order && Theme == o.Theme && MethodFq == o.MethodFq && Source == o.Source
+        public StoryModel(string path, string methodFq, string source, string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, string? capabilityNote, bool returnsStoryResult, bool returnsSemanticDocument, string? schemaMethod, string? resultMethod)
+        { Path = path; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; HasMeta = hasMeta; RealWindowOnly = realWindowOnly; CapabilityNote = capabilityNote; ReturnsStoryResult = returnsStoryResult; ReturnsSemanticDocument = returnsSemanticDocument; SchemaMethod = schemaMethod; ResultMethod = resultMethod; }
+        public bool Equals(StoryModel? o) => o is not null && Path == o.Path && MethodFq == o.MethodFq && Source == o.Source
             && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly
-            && Toc == o.Toc && SampleBundle == o.SampleBundle && CapabilityNote == o.CapabilityNote
+            && HasMeta == o.HasMeta && CapabilityNote == o.CapabilityNote
             && ReturnsStoryResult == o.ReturnsStoryResult && ReturnsSemanticDocument == o.ReturnsSemanticDocument
             && SchemaMethod == o.SchemaMethod && ResultMethod == o.ResultMethod;
         private bool ParamsEqual(StoryModel o) { for (int i = 0; i < Params.Length; i++) if (Params[i] != o.Params[i]) return false; return true; }
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
         public override int GetHashCode()
-        { unchecked { return ((((((((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Width * 31 + Height) * 397 ^ Order) * 397 ^ Source.GetHashCode()) * 397 ^ (SampleBundle?.GetHashCode() ?? 0))) * 397 ^ (CapabilityNote?.GetHashCode() ?? 0)) * 4 + (Params.Length << 1)) + (RealWindowOnly ? 1 : 0); } }
+        { unchecked { return (((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Source.GetHashCode()) * 397 ^ (CapabilityNote?.GetHashCode() ?? 0)) * 8 + (Params.Length << 2) + (HasMeta ? 2 : 0) + (RealWindowOnly ? 1 : 0); } }
     }
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -63,33 +64,32 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     if (ctx.SemanticModel.GetDeclaredSymbol((MethodDeclarationSyntax)ctx.Node, ct) is not IMethodSymbol m) return null;
                     AttributeData? attr = null;
                     foreach (AttributeData a in m.GetAttributes())
-                        if (a.AttributeClass?.ToDisplayString() == "Luxel.Gallery.StoryAttribute") { attr = a; break; }
+                    {
+                        string? attributeName = a.AttributeClass?.ToDisplayString();
+                        if (attributeName is "Luxel.Gallery.Story" or "Luxel.Gallery.StoryAttribute") { attr = a; break; }
+                    }
                     if (attr is null) return null;
 
-                    string path = attr.ConstructorArguments.Length == 1 && attr.ConstructorArguments[0].Value is string p ? p : m.Name;
-                    int w = 0, h = 0, order = 1000; string? theme = null; bool realWindowOnly = false, toc = false;
-                    string? sampleBundle = null, capabilityNote = null, schemaMethod = null, resultMethod = null;
+                    string? title = null;
+                    foreach (AttributeData typeAttribute in m.ContainingType.GetAttributes())
+                        if (typeAttribute.AttributeClass?.ToDisplayString() == "Luxel.Gallery.StoryMeta"
+                            && typeAttribute.ConstructorArguments.Length == 1
+                            && typeAttribute.ConstructorArguments[0].Value is string value)
+                        {
+                            title = value.Trim().Trim('/');
+                            break;
+                        }
+                    bool hasMeta = !string.IsNullOrWhiteSpace(title);
+                    string path = hasMeta ? title + "/" + m.Name : m.Name;
+                    bool realWindowOnly = false;
+                    string? capabilityNote = null, schemaMethod = null, resultMethod = null;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
-                        if (na.Key == "Width" && na.Value.Value is int wi) w = wi;
-                        if (na.Key == "Height" && na.Value.Value is int hi) h = hi;
-                        if (na.Key == "Order" && na.Value.Value is int oi) order = oi;
-                        if (na.Key == "Theme" && na.Value.Value is string th) theme = th;
                         if (na.Key == "RealWindowOnly" && na.Value.Value is bool rw) realWindowOnly = rw;
-                        if (na.Key == "Toc" && na.Value.Value is bool tc) toc = tc;
-                        if (na.Key == "SampleBundle" && na.Value.Value is string sb) sampleBundle = sb;
                         if (na.Key == "CapabilityNote" && na.Value.Value is string cn) capabilityNote = cn;
                         if (na.Key == "Result" && na.Value.Value is string rm) resultMethod = rm;
                         if (na.Key == "Args" && na.Value.Value is string am) schemaMethod = am;
                     }
-                    // Width/Height を両方省略 = fill (0,0 — ホストがプレビュー領域いっぱいに表示)。
-                    // 片方だけの指定は従来既定 (480×320) で補完する。
-                    if (w != 0 || h != 0)
-                    {
-                        if (w == 0) w = 480;
-                        if (h == 0) h = 320;
-                    }
-
                     bool returnsWidget = IsWidget(m.ReturnType);
                     bool returnsStoryResult = m.ReturnType.ToDisplayString() == "Luxel.Gallery.StoryResult";
                     bool returnsSemanticDocument = false;
@@ -110,7 +110,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     string source = methodDeclaration.ToString();
                     string? schemaFq = schemaMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + schemaMethod;
                     string? resultFq = resultMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + resultMethod;
-                    return new StoryModel(path, w, h, order, theme, fq, source, paramz, valid, realWindowOnly, toc, sampleBundle, capabilityNote, returnsStoryResult, returnsSemanticDocument, schemaFq, resultFq);
+                    return new StoryModel(path, fq, source, paramz, valid, hasMeta, realWindowOnly, capabilityNote, returnsStoryResult, returnsSemanticDocument, schemaFq, resultFq);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -153,6 +153,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
         foreach (StoryModel? m in models)
         {
             if (m is null) continue;
+            if (!m.HasMeta) { spc.ReportDiagnostic(Diagnostic.Create(MissingMeta, Location.None, m.MethodFq)); continue; }
             if (!m.Valid) { spc.ReportDiagnostic(Diagnostic.Create(BadSignature, Location.None, m.MethodFq)); continue; }
             if (seen.Add(m.MethodFq)) list.Add(m);
         }
@@ -161,8 +162,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
         {
             int component = ComponentRank(a.Path).CompareTo(ComponentRank(b.Path));
             if (component != 0) return component;
-            int order = a.Order.CompareTo(b.Order);
-            return order != 0 ? order : string.CompareOrdinal(a.Path, b.Path);
+            return string.CompareOrdinal(a.Path, b.Path);
         });
 
         var sb = new StringBuilder();
@@ -198,18 +198,14 @@ public sealed class StoryGenerator : IIncrementalGenerator
                 : semanticBuilder;
 
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(")
-              .Append(Literal(s.Path)).Append(", ").Append(s.Width).Append(", ").Append(s.Height).Append(", ")
-              .Append(s.Theme is null ? "null" : Literal(s.Theme)).Append(", ")
+              .Append(Literal(s.Path)).Append(", ")
               .Append(widgetBuilder)
-              .Append(", ").Append(s.Order)
-              .Append(", ").Append(Literal(s.Source))
-              .Append(", ").Append(s.RealWindowOnly ? "true" : "false")
-              .Append(", ").Append(s.SampleBundle is null ? "null" : Literal(s.SampleBundle));
+              .Append(", Source: ").Append(Literal(s.Source))
+              .Append(", RealWindowOnly: ").Append(s.RealWindowOnly ? "true" : "false");
             if (s.ResultMethod is not null) sb.Append(", ResultBuild: static _ => ").Append(s.ResultMethod).Append("()");
             else if (s.ReturnsStoryResult || s.ReturnsSemanticDocument) sb.Append(", ResultBuild: ").Append(semanticBuilder);
             if (s.SchemaMethod is not null) sb.Append(", ArgDefinitions: ").Append(s.SchemaMethod).Append("()");
             if (s.CapabilityNote is not null) sb.Append(", CapabilityNote: ").Append(Literal(s.CapabilityNote));
-            if (s.Toc) sb.Append(", Toc: true");
             sb.AppendLine("));");
         }
         sb.AppendLine("        }");

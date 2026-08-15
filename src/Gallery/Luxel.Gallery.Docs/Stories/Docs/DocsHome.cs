@@ -1,14 +1,18 @@
+using static Luxel.Gallery.Story;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Luxel のレイヤ構成とプロジェクト全体像。</summary>
+[StoryMeta("Internals")]
 public static class DocsHome
 {
-    [Story("Internals/Architecture", Order = 1, Toc = true)]
+    [Story]
     public static StoryResult Architecture(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());   // 新スタック: 全体像 mermaid 図の描画 golden (ライブ埋め込み無し=安全)
         return $$"""
         # アーキテクチャ
+
+        {{Toc()}}
 
         Luxel は「薄い GPU 抽象の上に、独立したサブシステムを積む」構成です。各レイヤは下のレイヤだけに依存し、横のレイヤ (例: RenderGraph と Resources) は互いを知りません。下図は native WebGPU を明示 opt-in lowering として加える目標構成を含みます。
 

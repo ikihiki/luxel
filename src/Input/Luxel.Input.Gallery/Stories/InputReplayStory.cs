@@ -10,9 +10,10 @@ namespace Luxel.Gallery.Stories;
 /// 記録し、状態を巻き戻してから <see cref="InputReplayer"/> で再生する。固定 dt なので
 /// 「記録時」と「再生後」が同じ絵になる (決定性)。手操作から回帰 play を起こす土台。
 /// </summary>
+[StoryMeta("Examples/Framework")]
 public static class InputReplayStories
 {
-    [Story("Examples/Framework/InputReplay", Height = 300, Order = 153)]
+    [Story]
     public static Widget InputReplay(StoryContext ctx)
     {
         var count = new Signal<int>(0);
