@@ -27,6 +27,12 @@ public sealed partial class DockHost : CompositeControl
     /// <summary>タブ 1 つのグループはタブ帯を出さない (固定ペイン風の chrome 用 —
     /// 内容ドロップゾーンは生きるので他のタブをドックして分割はできる)。</summary>
     [UiParam] private readonly Bindable<bool> _hideSingleTabStrip = false;
+    /// <summary>タブ帯に閉じる/dirty グリフを表示する。</summary>
+    [UiParam] private readonly Bindable<bool> _showTabClose = new();
+    /// <summary>タブ帯の高さ。未設定は DocumentTabs の既定値。</summary>
+    [UiParam] private readonly Bindable<float> _tabStripHeight = new();
+    /// <summary>選択中タブの背景面を表示する。false では下線だけ。</summary>
+    [UiParam] private readonly Bindable<bool> _tabActiveBackground = new();
 
     /// <summary>タブの × が押された (id)。</summary>
     [UiEvent] public UiEvent<DockHost, string> OnCloseTab;
@@ -113,6 +119,8 @@ public sealed partial class DockHost : CompositeControl
 
         DocumentTabs strip = Kit.DocumentTabs(tabs, active: activeId,
             dragChannel: this,   // この DockHost 内の帯どうしでタブを移せる
+            showClose: ShowTabClose.Or(true), stripHeight: TabStripHeight.Or(DocumentTabs.StripH),
+            activeBackground: TabActiveBackground.Or(true),
             onActivate: (_, id) => sig.Value = sig.Value.ActivateTab(id),
             onClose: (_, id) =>
             {
@@ -134,7 +142,7 @@ public sealed partial class DockHost : CompositeControl
         };
         zone.GridRow(1);
         strip.GridRow(0);
-        return Kit.Grid(rows: [GridLength.Px(DocumentTabs.StripH), GridLength.Star()])[strip, zone];
+        return Kit.Grid(rows: [GridLength.Px(TabStripHeight.Or(DocumentTabs.StripH)), GridLength.Star()])[strip, zone];
     }
 
     private Widget BuildSplit(DockSplit s, Signal<DockTree> sig)

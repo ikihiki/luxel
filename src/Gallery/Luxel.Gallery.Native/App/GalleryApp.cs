@@ -239,7 +239,8 @@ public sealed class GalleryApp : IDisposable
             // ドック操作 (スプリッタ/タブ移動) → ペイン寸法 px の同期 (アプリ生涯 1 Effect)
             Reactive.Effect(() => { _ = _dock!.Value; SyncPaneSizes(); });
         }
-        _dockHost ??= DockHost(_dock, ResolvePane, hideSingleTabStrip: true, closeRemoves: false);
+        _dockHost ??= DockHost(_dock, ResolvePane, hideSingleTabStrip: true, closeRemoves: false,
+            showTabClose: false, tabStripHeight: 36, tabActiveBackground: false);
     }
 
     private DockItem ResolvePane(string id)
@@ -380,17 +381,21 @@ public sealed class GalleryApp : IDisposable
                 }
             },
             selected: _currentPath ?? "", filter: _search);
-        // 検索バー: 前へ/次へは開いている docs ページ内のマッチ移動、n/m は現在/総数
-        Func<string> matchLabel = () => _matchTotal.Value > 0 ? $"{_matchCur.Value}/{_matchTotal.Value}" : "-";
-        Widget searchBar = Border(padding: new Thickness(14, 0, 14, 12))[HStack(2)[
-            TextField(_search, "Storyを検索", width: _sidebarW - 100),
-            Button(_ => MoveSearch(-1), "‹", fontSize: UiTheme.T.FontSm, padding: new Thickness(6, 2)),
-            Text(matchLabel, 10, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(0, 5, 0, 0)),
-            Button(_ => MoveSearch(+1), "›", fontSize: UiTheme.T.FontSm, padding: new Thickness(6, 2))]];
+        // Blazor 版と同じ検索 chrome。
+        Widget searchInput = Border(background: GalleryChromeTheme.Search, rounded: 8,
+            padding: new Thickness(8, 0), width: _sidebarW - 28)[HStack(8)[
+            Icon(IconKind.Search, iconSize: 16, stroke: 1.5f,
+                color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(0, 11, 0, 0)),
+            TextField(_search, "Storyを検索", width: _sidebarW - 112,
+                background: GalleryChromeTheme.Search, fontSize: 13),
+            Icon(IconKind.Close, iconSize: 14, stroke: 1.5f,
+                color: Bind.From(() => UiTheme.T.TextMuted), onClick: _ => _search.Value = "",
+                margin: new Thickness(0, 12, 0, 0))]];
+        Widget searchBar = Border(padding: new Thickness(14, 0, 14, 12))[searchInput];
 
         Widget mark = Border(background: Bind.From(() => UiTheme.T.Primary), rounded: 9,
             width: 34, height: 34)[Center()[Text("L", 17, color: Bind.From(() => UiTheme.T.Background))]];
-        Widget brand = Border(padding: new Thickness(18, 14, 18, 10), height: 68)[HStack(12)[
+        Widget brand = Border(padding: new Thickness(18, 18, 18, 14), height: 68)[HStack(12)[
             mark,
             VStack(2)[
                 Text("Luxel", 17, color: Bind.From(() => UiTheme.T.Text)),
@@ -402,8 +407,10 @@ public sealed class GalleryApp : IDisposable
         _sidebarScroll.SetViewportHeight(treeH);
         _sidebarScroll.Width.SetOverride(_sidebarW - 18);
         Widget treeViewport = Border(padding: new Thickness(9, 0))[_sidebarScroll[tree]];
-        Widget footer = Text($"{_catalog.All.Count} 件のStory", 11,
-            color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(16, 10));
+        Widget footer = VStack(0)[
+            Border(background: Bind.From(() => UiTheme.T.BorderColor), height: 1),
+            Text($"{_catalog.All.Count} 件のStory", 11,
+                color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(16, 10))];
         return Border(background: Bind.From(() => UiTheme.T.SurfaceAlt))[
             VStack(0)[
             brand,
@@ -424,36 +431,43 @@ public sealed class GalleryApp : IDisposable
             Button(_ => ToggleTheme(), _dark ? "Light" : "Dark", variant: Luxel.UI.Variant.Ghost),
             Button(_ => ToggleZen(), _zen ? "キャンバスを閉じる" : "キャンバスを開く")]];
         actions.GridColumn(1);
-        Widget toolbar = Border(background: Bind.From(() => UiTheme.T.Background))[
+        Widget toolbarContent = Border(background: GalleryChromeTheme.Main)[
             Grid(columns: [GridLength.Star(1), GridLength.Auto])[title, actions]];
+        Widget toolbar = Grid(rows: [GridLength.Px(67), GridLength.Px(1)])[
+            toolbarContent,
+            Border(background: Bind.From(() => UiTheme.T.BorderColor), height: 1).GridRow(1)];
         toolbar.GridRow(0);
-        _preview.GridRow(1);
-        return Grid(rows: [GridLength.Px(68), GridLength.Star(1)])[toolbar, _preview];
+        Widget previewSurface = Border(background: GalleryChromeTheme.Preview)[_preview];
+        previewSurface.GridRow(1);
+        return Grid(rows: [GridLength.Px(68), GridLength.Star(1)])[toolbar, previewSurface];
     }
 
     /// <summary>メインペイン (プレビュー/下ペイン) の実幅 px。</summary>
     private float MainW() => _winW - _sidebarW - Split.Thickness;
 
-    /// <summary>下ペイン内容の高さ (タブ帯 32 とパディングを引いた内寸)。</summary>
-    private float BottomInnerH() => MathF.Max(24, _logH - 56);
+    /// <summary>下ペイン内容の高さ (Blazor の 36px タブ帯 + 上下 padding を引いた内寸)。</summary>
+    private float BottomInnerH() => MathF.Max(24, _logH - 66);
+
+    private static Widget BottomPanel(Widget content) => Border(
+        background: Bind.From(() => UiTheme.T.Surface), padding: new Thickness(16, 12, 16, 18))[content];
 
     private Widget BuildLogPane()
     {
         float paneW = MathF.Max(140, MainW());
         float innerH = BottomInnerH();
         _logItems.Value = LogLines();
-        return VStack(2)[
+        return BottomPanel(VStack(2)[
             Text($"({_logCountSig})", 11, color: Bind.From(() => UiTheme.T.TextMuted)),
-            ListView(MathF.Max(24, innerH - 16), 16f, items: _logItems, width: MathF.Max(120, paneW - 40))];
+            ListView(MathF.Max(24, innerH - 16), 16f, items: _logItems, width: MathF.Max(120, paneW - 40))]);
     }
 
     private Widget BuildKnobsPane()
     {
         // Knobs (autodoc 風テーブル)。編集は StoryContext のキューへ (Update の PumpKnobEdits が適用)
         float paneW = MathF.Max(140, MainW());
-        return Scroll(BottomInnerH(), width: paneW - 32)[
+        return BottomPanel(Scroll(BottomInnerH(), width: paneW - 32)[
             global::Luxel.Gallery.UI.Kit.KnobsTable(_ctx?.Knobs ?? [], width: paneW - 48,
-                onEdit: (_, k, v) => _ctx?.QueueKnobEdit(k, v))];
+                onEdit: (_, k, v) => _ctx?.QueueKnobEdit(k, v))]);
     }
 
     private Widget BuildInteractionsPane()
@@ -507,16 +521,16 @@ public sealed class GalleryApp : IDisposable
     private Widget BuildToolsPane()
     {
         float width = MathF.Max(140, MainW()) - 32;
-        return Tabs(
+        return BottomPanel(Tabs(
             ["Interactions", "Console"],
             [BuildInteractionsPane(), BuildConsolePane()],
             _toolsTab,
             width: width,
-            height: BottomInnerH());
+            height: BottomInnerH()));
     }
 
     private Widget BuildSourcePane()
-        => BuildStorySourcePane(_currentStory, MathF.Max(140, MainW()) - 32, BottomInnerH());
+        => BottomPanel(BuildStorySourcePane(_currentStory, MathF.Max(140, MainW()) - 32, BottomInnerH()));
 
     private static Widget BuildStorySourcePane(StoryInfo? story, float width = 640f, float height = 240f)
         => GalleryStorySourcePane.Build(story, width, height);

@@ -36,7 +36,7 @@ public sealed partial class Box : Widget
     }
 }
 
-public enum IconKind { Check, Close, ChevronDown, ChevronRight, ChevronLeft, Plus, Minus, Dot, Circle, Loading, Failed }
+public enum IconKind { Check, Close, ChevronDown, ChevronRight, ChevronLeft, Plus, Minus, Dot, Circle, Search, Loading, Failed }
 
 /// <summary>ベクターアイコン (24x24 ビューボックスのパスを size に拡大)。色はテーマ束縛可。</summary>
 [UiComponent]
@@ -95,6 +95,9 @@ public sealed partial class Icon : Widget
             case IconKind.Minus: s.StrokeLine(Color2D.White, w, 0.22f * z, 0.5f * z, 0.78f * z, 0.5f * z); break;
             case IconKind.Dot: s.FillCircle(Color2D.White, 0.5f * z, 0.5f * z, 0.18f * z); break;
             case IconKind.Circle: s.FillCircle(Color2D.White, 0.5f * z, 0.5f * z, 0.42f * z); break;
+            case IconKind.Search:
+                s.StrokeRoundedRect(Color2D.White, w, 0.16f * z, 0.16f * z, 0.52f * z, 0.52f * z, 0.26f * z);
+                s.StrokeLine(Color2D.White, w, 0.62f * z, 0.62f * z, 0.84f * z, 0.84f * z); break;
             case IconKind.Loading:
                 s.FillCircle(Color2D.White, 0.22f * z, 0.5f * z, 0.08f * z);
                 s.FillCircle(Color2D.White, 0.5f * z, 0.5f * z, 0.08f * z);

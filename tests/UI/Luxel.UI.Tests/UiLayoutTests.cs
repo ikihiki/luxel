@@ -14,6 +14,24 @@ public class UiLayoutTests
         => Assert.True(MathF.Abs(expected - actual) <= tol, $"expected≈{expected}, actual={actual}");
 
     [Fact]
+    public void DocumentTabs_AllowsViewSwitcherChrome()
+    {
+        LayoutContext ctx = Ctx();
+        IReadOnlyList<DocTab> items = [new("args", "Args"), new("output", "Output")];
+        DocumentTabs documentTabs = DocumentTabs(items);
+        DocumentTabs viewTabs = DocumentTabs(items, showClose: false, stripHeight: 36,
+            activeBackground: false);
+
+        documentTabs.Layout(new Constraints(0, float.PositiveInfinity, 0, 100), ctx);
+        viewTabs.Layout(new Constraints(0, float.PositiveInfinity, 0, 100), ctx);
+
+        Close(Luxel.Controls.DocumentTabs.StripH, documentTabs.Size.Height);
+        Close(36, viewTabs.Size.Height);
+        Assert.True(viewTabs.Size.Width < documentTabs.Size.Width);
+        Assert.Null(viewTabs.CloseCenterOf("args"));
+    }
+
+    [Fact]
     public void GridLength_IntImplicitlyStar()
     {
         GridLength g = 2;                       // [1,2] の各要素はこの暗黙変換で star になる

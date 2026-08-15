@@ -6,6 +6,11 @@ namespace Luxel.Gallery;
 /// <summary>Blazor Gallery の CSS custom properties に対応する Native chrome テーマ。</summary>
 internal static class GalleryChromeTheme
 {
+    public static uint Main => C(0x0d, 0x14, 0x1d);
+    public static uint Preview => C(0x10, 0x15, 0x1d);
+    public static uint Search => C(0x0b, 0x12, 0x1b);
+    public static uint AccentSoft => C(0x18, 0x34, 0x5c);
+
     public static Theme Create()
     {
         Theme theme = Theme.Dark.Compact();
