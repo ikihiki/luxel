@@ -6,7 +6,7 @@ using static Luxel.UI.Gallery.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Navigation state and the NavigationView shell.</summary>
-[StoryMeta("Navigation")]
+[StoryMeta("Controls/Navigation")]
 public static class NavigationStories
 {
     [Story]

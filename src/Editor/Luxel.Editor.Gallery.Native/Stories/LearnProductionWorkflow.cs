@@ -16,8 +16,8 @@ public static class LearnProductionWorkflow
 
         Studioでproject/sceneを編集し、PlayerのPlay-in-Editorで同じdataを実行し、standalone hostへ渡します。editor-only stateをscene dataへ混ぜず、保存前にruntime schemaへ変換します。
 
-        [Studio Shell](story:Apps/Studio/Shell)
-        [Play-in-Editor](story:Apps/Player/PlayInEditor)
+        [Studio Shell](story:Examples/Apps/Studio/Shell)
+        [Play-in-Editor](story:Examples/Apps/Player/PlayInEditor)
         """;
 
     [Story]
@@ -41,7 +41,7 @@ public static class LearnProductionWorkflow
 
         Gallery play/golden、headless logic smoke、GPU one-frame smoke、別cwd publish smokeを順に通します。assets、shader cache、font licenseをoutputへ含め、machine固有のabsolute pathへ依存しないことを確認します。
 
-        [Cavern](story:Game/Cavern)
-        [Range](story:Apps/Game/Range)
+        [Cavern](story:Examples/Apps/Game/Cavern)
+        [Range](story:Examples/Apps/Game/Range)
         """;
 }

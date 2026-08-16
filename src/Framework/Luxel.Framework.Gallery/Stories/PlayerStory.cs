@@ -18,7 +18,7 @@ namespace Luxel.Gallery.Stories;
 /// プロジェクトフォルダ (project.luxel + scenes) を VFS から読み、SceneCompiler が world へ一方向に
 /// 構築して固定 dt で駆動する。見た目はエディタと同じプレースホルダ (TilePalette 共有) —
 /// SceneEditorView で編集した絵がそのまま動く。csx ビヘイビアは S2、exe は S3。</summary>
-[StoryMeta("Apps/Player")]
+[StoryMeta("Examples/Apps/Player")]
 public static class PlayerStory
 {
     private static readonly Lazy<VectorFont> Font = new(() => GalleryFonts.Load(GalleryFonts.Regular));

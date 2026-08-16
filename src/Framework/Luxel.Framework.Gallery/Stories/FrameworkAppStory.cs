@@ -15,7 +15,7 @@ namespace Luxel.Gallery.Stories;
 /// (GPU はホスト借用、ペーシング/提示/入力 = Storybook 専用 Platform) を参照。
 /// 本格的なゲームの例は Game/Breakout (BreakoutStory.cs)。
 /// </summary>
-[StoryMeta("Apps/Framework")]
+[StoryMeta("Examples/Apps/Framework")]
 public static class FrameworkAppStories
 {
     [Story]

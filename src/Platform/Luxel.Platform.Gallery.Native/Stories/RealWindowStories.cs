@@ -15,7 +15,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>実ウィンドウ専用ストーリー ([Story(RealWindowOnly = true)] — snap 回帰は SKIP)。
 /// 音声再生・実デバイス入力・第 2 ウィンドウなど、offscreen の決定的描画にならない機能のデモを置く。</summary>
-[StoryMeta("RealWindow")]
+[StoryMeta("Examples/RealWindow")]
 public static class RealWindowStories
 {
     private static AudioMixer? _mixer;   // プロセスで 1 個 (XAudio2 マスタリングボイス)

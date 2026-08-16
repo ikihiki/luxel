@@ -27,7 +27,7 @@ namespace Luxel.Gallery.Stories;
 /// - <b>Storybook Platform</b>: GPU はホスト借用、ペーシング/提示/入力は <see cref="StoryAppView{TScene}"/>
 /// 操作: マウス移動 = パドル、クリック = 開始/発射/リスタート。
 /// </summary>
-[StoryMeta("Apps/Game")]
+[StoryMeta("Examples/Apps/Game")]
 public static class BreakoutStories
 {
     [Story]

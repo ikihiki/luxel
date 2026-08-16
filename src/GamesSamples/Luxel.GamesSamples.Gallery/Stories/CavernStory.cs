@@ -22,7 +22,7 @@ namespace Luxel.Gallery.Stories;
 /// 撃破バースト、sim のイベントから発火・per-particle tint)。sim + fx を固定 dt で決定的に事前実行し追従カメラで描く。
 /// HUD (日本語)・実時間 exe・Audio・セーブは後段。手続きアトラス (外部アセット不要)。
 /// </summary>
-[StoryMeta("Game")]
+[StoryMeta("Examples/Apps/Game")]
 public static class CavernStories
 {
     private const int Steps = 78;

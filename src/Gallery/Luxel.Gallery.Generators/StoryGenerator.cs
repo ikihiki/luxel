@@ -117,16 +117,12 @@ public sealed class StoryGenerator : IIncrementalGenerator
         return component switch
         {
             "Start" => 0,
-            "Learn" => 10,
-            "Examples" => 30,
-            "Controls" => 40,
-            "Apps" => 50,
-            "Game" => 60,
-            "Reference" => 70,
-            "Internals" => 80,
-            "RealWindow" => 90,
-            "ADR" => 100,
-            "Docs" => 110,
+            "Tutorials" => 10,
+            "Learn" => 20,
+            "Controls" => 30,
+            "Examples" => 40,
+            "Reference" => 50,
+            "Internals" => 60,
             _ => 1000,
         };
     }

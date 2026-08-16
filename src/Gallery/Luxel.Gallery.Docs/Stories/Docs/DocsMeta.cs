@@ -173,7 +173,7 @@ public static partial class DocsMeta
 
         ## 実窓専用ストーリー
 
-        音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は、`[StoryMeta("RealWindow/Audio")]` のクラスで `[Story(RealWindowOnly = true)]` を関数に付けます — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。
+        音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は、`[StoryMeta("Examples/RealWindow/Audio")]` のクラスで `[Story(RealWindowOnly = true)]` を関数に付けます — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。
 
         ## パスと章
 

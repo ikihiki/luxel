@@ -6,7 +6,7 @@ using static Luxel.Controls.Kit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Windows標準フォントの小サイズ可読性を実描画で比較するNative専用Story。</summary>
-[StoryMeta("RealWindow/Typography")]
+[StoryMeta("Examples/RealWindow/Typography")]
 public static class WindowsFontScaleStories
 {
     private sealed record Face(string Name, string FileName, VectorFont Font);

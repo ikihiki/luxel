@@ -17,7 +17,7 @@ namespace Luxel.Gallery.Stories;
 /// **エディタ操作だけ**でコイン集めミニゲームを作る (タイル描き → エンティティ追加 → 保存 →
 /// **保存したファイルから** ▶ 実行 → csx がコイン取得を判定)。出荷は同レイアウトを ship-verify.ps1 が
 /// 実機検証済み (GE-6)。フル DockHost シェル化は M12 以降。</summary>
-[StoryMeta("Apps/Studio")]
+[StoryMeta("Examples/Apps/Studio")]
 public static class StudioDogfoodStory
 {
     private static readonly Lazy<VectorFont> Font = new(() => GalleryFonts.Load(GalleryFonts.Regular));

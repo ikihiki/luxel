@@ -25,7 +25,7 @@ namespace Luxel.Gallery.Stories;
 /// 初期は物理停止 (最初のクリックまで) = snap 決定的。
 /// メッシュアリーナ (05) / 動く的 (09) / パーティクル・音・UI・Title/Result は後続スライス。
 /// </summary>
-[StoryMeta("Apps/Game")]
+[StoryMeta("Examples/Apps/Game")]
 public static class RangeStories
 {
     private const string FoxAssetUri = "tools/khronos-samples/Fox.glb";

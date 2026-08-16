@@ -38,7 +38,7 @@ public static class LearnFramework
               → immutable render snapshot → render graph → submit / present
         ```
 
-        最初はGPUを必要としない[固定更新](story:Learn/Framework/Timing)で時間の扱いを確認し、その後にSceneと描画を接続してください。完成形は[Framework app](story:Apps/Framework/App)で確認できます。
+        最初はGPUを必要としない[固定更新](story:Learn/Framework/Timing)で時間の扱いを確認し、その後にSceneと描画を接続してください。完成形は[Framework app](story:Examples/Apps/Framework/App)で確認できます。
 
         ## 学習順
 
@@ -163,6 +163,6 @@ public static class LearnFramework
 
         Headlessテストでは固定dt、Fake入力、明示的なstep回数を使います。wall-clock、`Task.Delay`、実デバイス入力へ依存させません。Galleryのplayやsnapshotを使う場合も、Storyの表示内容ではなく操作後の安定した契約を検証します。
 
-        次は[ECS](story:Learn/ECS/Overview)でシミュレーション構造を学ぶか、[Player](story:Apps/Player/Basic)でアプリケーションへの組み込みを確認してください。
+        次は[ECS](story:Learn/ECS/Overview)でシミュレーション構造を学ぶか、[Player](story:Examples/Apps/Player/Basic)でアプリケーションへの組み込みを確認してください。
         """;
 }
