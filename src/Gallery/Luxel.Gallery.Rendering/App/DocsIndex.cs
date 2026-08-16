@@ -32,18 +32,10 @@ public static class DocsIndex
             {
                 using var ctx = new StoryContext(resources);
                 ctx.SetServices(GalleryServices.Provider);   // Scripting 等 DI ストーリーも build できるように
-                string? src;
-                if (s.ResultBuild is not null)
-                {
-                    StoryResult result = s.BuildResult(ctx);
-                    src = result.Kind == StoryResultKind.Markdown
-                        ? StoryMarkdownRenderer.EffectiveMarkdown(s, result.Markdown)
-                        : FindSemanticDocument(result.Widget)?.DocumentSource;
-                }
-                else
-                {
-                    src = FindSemanticDocument(s.Build(ctx))?.DocumentSource;
-                }
+                StoryResult result = s.Build(ctx);
+                string? src = result.Kind == StoryResultKind.Markdown
+                    ? StoryMarkdownRenderer.EffectiveMarkdown(s, result.Markdown)
+                    : FindSemanticDocument(result.Widget)?.DocumentSource;
                 if (src is null) continue;
 
                 // Semantic markdownから見出し/リンクを取る (realize 不要)。

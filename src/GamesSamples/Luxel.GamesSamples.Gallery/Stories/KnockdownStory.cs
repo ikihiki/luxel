@@ -27,7 +27,7 @@ namespace Luxel.Gallery.Stories;
 public static class KnockdownStories
 {
     [Story]
-    public static Widget Knockdown(StoryContext ctx)
+    public static StoryResult Knockdown(StoryContext ctx)
         => ctx.Snap(VStack(8)[
             new StoryAppView<KnockdownScene>(KnockdownScene.W, KnockdownScene.H, (s, bctx) =>
                 s.AddSingleton<Action<string>>(ctx.Log)),

@@ -368,13 +368,12 @@ else
 
     private string? TryRenderDocument(StoryInfo story, string argsJson)
     {
-        if (story.ResultBuild is null) return null;
         try
         {
             StoryArgs args = StoryArgs.Parse(argsJson).WithDefaults(story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>());
             using var context = new StoryContext(args: args);
             context.SetServices(Services);
-            StoryResult result = story.BuildResult(context);
+            StoryResult result = story.Build(context);
             return result.Kind == StoryResultKind.Markdown
                 ? GalleryMarkdownHtml.Render(story, result)
                 : null;

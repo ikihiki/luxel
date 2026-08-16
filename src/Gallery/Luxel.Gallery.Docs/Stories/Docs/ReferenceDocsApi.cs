@@ -13,15 +13,14 @@ internal static class ReferenceDocsApi
         {
             string captured = ns;
             builder.Add(new StoryInfo($"Reference/{captured}",
-                static _ => Spacer(), Source: "Generated API reference page.",
-                ResultBuild: ctx => NamespacePage(ctx, captured)));
+                ctx => NamespacePage(ctx, captured), Source: "Generated API reference page."));
         }
     }
 
     private static StoryResult NamespacePage(StoryContext ctx, string ns)
     {
         IReadOnlyList<TypeApi> types = TypeApiRegistry.InNamespace(ns);
-        var document = new DocString(512, types.Count);
+        var document = new StoryResult(512, types.Count);
         document.AppendLiteral($"# {ns}\n\n<!-- luxel-toc-placeholder -->\n\n");
         document.AppendLiteral("この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから生成します。\n");
         foreach (TypeApi type in types)
@@ -32,6 +31,6 @@ internal static class ReferenceDocsApi
                 DocEmbedKind.TypeApiTable, $"{type.Namespace}.{type.Name}"));
             document.AppendLiteral("\n");
         }
-        return StoryResult.FromDocument(document.Markdown, document.Embeds);
+        return document;
     }
 }

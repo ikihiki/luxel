@@ -78,7 +78,7 @@ public static class WorkbenchMaterialStory
     };
 
     [Story]
-    public static Widget Material(StoryContext ctx)
+    public static StoryResult Material(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();
         fs.Write("mat/wood.graph", NodeGraphJson.Serialize(SampleMaterial()));

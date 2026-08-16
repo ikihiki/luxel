@@ -19,7 +19,7 @@ namespace Luxel.Gallery.Stories;
 public static class FrameworkAppStories
 {
     [Story]
-    public static Widget App(StoryContext ctx)
+    public static StoryResult App(StoryContext ctx)
         => ctx.Snap(VStack(10)[
             new StoryAppView<StoryAppScene>(StoryAppScene.W, StoryAppScene.H, (s, bctx) =>
             {

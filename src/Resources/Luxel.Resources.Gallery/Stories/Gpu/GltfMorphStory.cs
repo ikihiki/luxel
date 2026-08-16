@@ -38,7 +38,7 @@ public static class GltfMorphStories
     }
 
     [Story]
-    public static Widget GltfMorph(StoryContext ctx)
+    public static StoryResult GltfMorph(StoryContext ctx)
     {
         AssetDocument generated = CreateDocument();
         var builder = new ResourceSystemBuilder();

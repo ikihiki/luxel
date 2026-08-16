@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 public static class NavigationStories
 {
     [Story]
-    public static Widget NavigationHistory(StoryContext ctx)
+    public static StoryResult NavigationHistory(StoryContext ctx)
     {
         string[] paths = ["/", "/details", "/saved"];
         var navigation = new Navigation("/", paths.Contains);
@@ -30,7 +30,7 @@ public static class NavigationStories
     }
 
     [Story]
-    public static Widget NavigationViewBasic(StoryContext ctx)
+    public static StoryResult NavigationViewBasic(StoryContext ctx)
     {
         string[] paths = ["/", "/projects", "/settings", "/admin"];
         var navigation = new Navigation("/", paths.Contains);

@@ -12,14 +12,14 @@ namespace Luxel.Gallery.Generators;
 /// <summary>
 /// <c>[StoryMeta("Component")]</c> のクラスにある <c>[Story]</c> 付き static メソッドを収集し、アセンブリごとに
 /// <c>[ModuleInitializer]</c> で <c>Luxel.Gallery.StoryRegistry.Register</c> するコードを焼き込む
-/// (reflection なしのストーリー登録)。署名: <c>static Widget M()</c> / <c>static Widget M(StoryContext)</c>。
+/// (reflection なしのストーリー登録)。署名: <c>static StoryResult M()</c> / <c>static StoryResult M(StoryContext)</c>。
 /// </summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class StoryGenerator : IIncrementalGenerator
 {
     private static readonly DiagnosticDescriptor BadSignature = new(
         "NGUI010", "invalid story signature",
-        "'{0}' の [Story] メソッドは 'static Widget M()' か 'static Widget M(StoryContext)' である必要があります",
+        "'{0}' の [Story] メソッドは 'static StoryResult M()' か 'static StoryResult M(StoryContext)' である必要があります",
         "Luxel.Gallery", DiagnosticSeverity.Warning, true);
 
     private static readonly DiagnosticDescriptor MissingMeta = new(
@@ -38,17 +38,13 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly bool Valid;
         public readonly bool HasMeta;
         public readonly bool RealWindowOnly;
-        public readonly bool ReturnsStoryResult;
-        public readonly bool ReturnsSemanticDocument;
         public readonly string? SchemaMethod;
-        public readonly string? ResultMethod;
-        public StoryModel(string path, string methodFq, string source, string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, string? capabilityNote, bool returnsStoryResult, bool returnsSemanticDocument, string? schemaMethod, string? resultMethod)
-        { Path = path; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; HasMeta = hasMeta; RealWindowOnly = realWindowOnly; CapabilityNote = capabilityNote; ReturnsStoryResult = returnsStoryResult; ReturnsSemanticDocument = returnsSemanticDocument; SchemaMethod = schemaMethod; ResultMethod = resultMethod; }
+        public StoryModel(string path, string methodFq, string source, string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, string? capabilityNote, string? schemaMethod)
+        { Path = path; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; HasMeta = hasMeta; RealWindowOnly = realWindowOnly; CapabilityNote = capabilityNote; SchemaMethod = schemaMethod; }
         public bool Equals(StoryModel? o) => o is not null && Path == o.Path && MethodFq == o.MethodFq && Source == o.Source
             && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly
             && HasMeta == o.HasMeta && CapabilityNote == o.CapabilityNote
-            && ReturnsStoryResult == o.ReturnsStoryResult && ReturnsSemanticDocument == o.ReturnsSemanticDocument
-            && SchemaMethod == o.SchemaMethod && ResultMethod == o.ResultMethod;
+            && SchemaMethod == o.SchemaMethod;
         private bool ParamsEqual(StoryModel o) { for (int i = 0; i < Params.Length; i++) if (Params[i] != o.Params[i]) return false; return true; }
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
         public override int GetHashCode()
@@ -82,17 +78,14 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     bool hasMeta = !string.IsNullOrWhiteSpace(title);
                     string path = hasMeta ? title + "/" + m.Name : m.Name;
                     bool realWindowOnly = false;
-                    string? capabilityNote = null, schemaMethod = null, resultMethod = null;
+                    string? capabilityNote = null, schemaMethod = null;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "RealWindowOnly" && na.Value.Value is bool rw) realWindowOnly = rw;
                         if (na.Key == "CapabilityNote" && na.Value.Value is string cn) capabilityNote = cn;
-                        if (na.Key == "Result" && na.Value.Value is string rm) resultMethod = rm;
                         if (na.Key == "Args" && na.Value.Value is string am) schemaMethod = am;
                     }
-                    bool returnsWidget = IsWidget(m.ReturnType);
                     bool returnsStoryResult = m.ReturnType.ToDisplayString() == "Luxel.Gallery.StoryResult";
-                    bool returnsSemanticDocument = false;
                     // 引数: StoryContext は "ctx"、その他は DI 解決するグローバル修飾型名 (minimal API 風)
                     var paramz = new string[m.Parameters.Length];
                     for (int pi = 0; pi < m.Parameters.Length; pi++)
@@ -102,15 +95,14 @@ public sealed class StoryGenerator : IIncrementalGenerator
                             ? "ctx"
                             : pt.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     }
-                    bool valid = m.IsStatic && (returnsWidget || returnsStoryResult) && m.ContainingType is not null;
+                    bool valid = m.IsStatic && returnsStoryResult && m.ContainingType is not null;
 
                     string fq = m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + m.Name;
                     // Story source is the Roslyn method syntax exactly as captured; hosts display it unchanged.
                     var methodDeclaration = (MethodDeclarationSyntax)ctx.Node;
                     string source = methodDeclaration.ToString();
                     string? schemaFq = schemaMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + schemaMethod;
-                    string? resultFq = resultMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + resultMethod;
-                    return new StoryModel(path, fq, source, paramz, valid, hasMeta, realWindowOnly, capabilityNote, returnsStoryResult, returnsSemanticDocument, schemaFq, resultFq);
+                    return new StoryModel(path, fq, source, paramz, valid, hasMeta, realWindowOnly, capabilityNote, schemaFq);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -137,13 +129,6 @@ public sealed class StoryGenerator : IIncrementalGenerator
             "Docs" => 110,
             _ => 1000,
         };
-    }
-
-    private static bool IsWidget(ITypeSymbol t)
-    {
-        for (ITypeSymbol? cur = t; cur is not null; cur = (cur as INamedTypeSymbol)?.BaseType)
-            if (cur.ToDisplayString() == "Luxel.UI.Widget") return true;
-        return false;
     }
 
     private static void Emit(SourceProductionContext spc, ImmutableArray<StoryModel?> models, string assemblyName)
@@ -191,19 +176,12 @@ public sealed class StoryGenerator : IIncrementalGenerator
                 args[i] = s.Params[i] == "ctx" ? "ctx" : "ctx.Require<" + s.Params[i] + ">()";
             string invocation = s.MethodFq + "(" + string.Join(", ", args) + ")";
             string semanticBuilder = "static ctx => " + invocation;
-            string widgetBuilder = s.ReturnsStoryResult
-                ? "static ctx => { global::Luxel.Gallery.StoryResult result = " + invocation
-                    + "; return result.Kind == global::Luxel.Gallery.StoryResultKind.Widget && result.Widget is not null"
-                    + " ? result.Widget : throw new global::System.InvalidOperationException(\"Markdown story cannot be realized as a Widget. Use StoryInfo.BuildResult.\"); }"
-                : semanticBuilder;
 
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(")
               .Append(Literal(s.Path)).Append(", ")
-              .Append(widgetBuilder)
+              .Append(semanticBuilder)
               .Append(", Source: ").Append(Literal(s.Source))
               .Append(", RealWindowOnly: ").Append(s.RealWindowOnly ? "true" : "false");
-            if (s.ResultMethod is not null) sb.Append(", ResultBuild: static _ => ").Append(s.ResultMethod).Append("()");
-            else if (s.ReturnsStoryResult || s.ReturnsSemanticDocument) sb.Append(", ResultBuild: ").Append(semanticBuilder);
             if (s.SchemaMethod is not null) sb.Append(", ArgDefinitions: ").Append(s.SchemaMethod).Append("()");
             if (s.CapabilityNote is not null) sb.Append(", CapabilityNote: ").Append(Literal(s.CapabilityNote));
             sb.AppendLine("));");

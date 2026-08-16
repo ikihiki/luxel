@@ -21,7 +21,7 @@ public static class DebugDrawStories
     private const float W = 460, H = 260;
 
     [Story]
-    public static Widget Gizmos(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
+    public static StoryResult Gizmos(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         s.FillRect(Color2D.Rgba(24, 28, 36), 0, 0, W, H);   // 暗い背景 (ゲーム画面のつもり)
 

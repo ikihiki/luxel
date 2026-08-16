@@ -14,7 +14,7 @@ public sealed class StoryGeneratorTests
     {
         const string story = """
             [Story]
-            public static Widget Basic(StoryContext ctx)
+            public static StoryResult Basic(StoryContext ctx)
                 => new Widget("quoted <tag> & value");
             """;
 
@@ -22,7 +22,7 @@ public sealed class StoryGeneratorTests
 
         Assert.Equal(CapturedMethodSyntax(story), source);
         Assert.Contains("[Story]", source);
-        Assert.Contains("public static Widget Basic(StoryContext ctx)", source);
+        Assert.Contains("public static StoryResult Basic(StoryContext ctx)", source);
         Assert.Contains("=> new Widget(\"quoted <tag> & value\");", source);
     }
 
@@ -31,7 +31,7 @@ public sealed class StoryGeneratorTests
     {
         const string story = """
             [Story]
-            internal static Widget Block(StoryContext ctx, DemoService service)
+            internal static StoryResult Block(StoryContext ctx, DemoService service)
             {
                 // source contract
                 string text = "line 1\\nline 2";
@@ -53,7 +53,7 @@ public sealed class StoryGeneratorTests
     {
         GeneratorDriverRunResult result = Run("""
             [Story]
-            public static Widget Triangle() => new Widget();
+            public static StoryResult Triangle() => new Widget();
             """, "Build");
         string generated = Assert.Single(result.GeneratedTrees).ToString();
         Assert.Contains("\"Build/Triangle\"", generated);
@@ -64,7 +64,7 @@ public sealed class StoryGeneratorTests
     {
         GeneratorDriverRunResult result = Run("""
             [Story(Args = nameof(Args), CapabilityNote = "fixture")]
-            public static Widget Demo() => new Widget();
+            public static StoryResult Demo() => new Widget();
             public static System.Collections.Generic.IReadOnlyList<StoryArgDefinition> Args() => System.Array.Empty<StoryArgDefinition>();
             """);
 
@@ -82,22 +82,21 @@ public sealed class StoryGeneratorTests
             """);
 
         string generated = Assert.Single(result.GeneratedTrees).ToString();
-        Assert.Contains("ResultBuild: static ctx => global::Demo.Stories.Overview()", generated, StringComparison.Ordinal);
+        Assert.Contains("\"Demo/Overview\", static ctx => global::Demo.Stories.Overview()", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Toc:", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("DocNew", generated, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Explicit_semantic_result_provider_is_emitted_without_invoking_story_dependencies()
+    public void Widget_return_type_is_rejected_as_a_removed_compatibility_signature()
     {
         GeneratorDriverRunResult result = Run("""
-            [Story(Result = nameof(DocumentResult))]
+            [Story]
             public static Widget Document(StoryContext ctx, DemoService service) => new Widget(service.Name);
-            internal static StoryResult DocumentResult() => new StoryResult();
             """);
 
-        string generated = Assert.Single(result.GeneratedTrees).ToString();
-        Assert.Contains("ResultBuild: static _ => global::Demo.Stories.DocumentResult()", generated, StringComparison.Ordinal);
+        Diagnostic diagnostic = Assert.Single(result.Diagnostics, value => value.Id == "NGUI010");
+        Assert.Contains("Document", diagnostic.GetMessage(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -155,7 +154,6 @@ public sealed class StoryGeneratorTests
                 {
                     public bool RealWindowOnly { get; set; }
                     public string? Args { get; set; }
-                    public string? Result { get; set; }
                     public string? CapabilityNote { get; set; }
                 }
                 [AttributeUsage(AttributeTargets.Class)]
@@ -169,9 +167,8 @@ public sealed class StoryGeneratorTests
                 {
                     public static implicit operator StoryResult(Widget widget) => new();
                 }
-                public sealed record StoryInfo(string Path, Func<StoryContext, Widget> Build,
+                public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Build,
                     string? Source = null, bool RealWindowOnly = false,
-                    Func<StoryContext, StoryResult>? ResultBuild = null,
                     System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
                     string? CapabilityNote = null);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }

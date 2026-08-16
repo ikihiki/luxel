@@ -132,7 +132,7 @@ public static partial class BrowserGalleryApplication
             Widget storyRoot;
             try
             {
-                StoryResult result = story.BuildResult(context);
+                StoryResult result = story.Build(context);
                 storyRoot = BuildStoryWidget(story, context, result, font, window.Width, window.Height);
             }
             catch (Exception error)
@@ -303,7 +303,7 @@ public static partial class BrowserGalleryApplication
         context.SuppressPlays = true;
         try
         {
-            StoryResult result = referenced.BuildResult(context);
+            StoryResult result = referenced.Build(context);
             return BuildStoryWidget(referenced, context, result, font, width, height);
         }
         finally

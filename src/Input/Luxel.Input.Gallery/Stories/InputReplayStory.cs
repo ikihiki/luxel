@@ -14,7 +14,7 @@ namespace Luxel.Gallery.Stories;
 public static class InputReplayStories
 {
     [Story]
-    public static Widget InputReplay(StoryContext ctx)
+    public static StoryResult InputReplay(StoryContext ctx)
     {
         var count = new Signal<int>(0);
         void Inc() => count.Value++;

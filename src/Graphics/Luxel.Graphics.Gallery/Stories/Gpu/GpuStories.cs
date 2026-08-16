@@ -32,7 +32,7 @@ public static class GpuStories
     // ---- 2D: Scene2D 直描き ----
 
     [Story]
-    public static Widget Orbit(StoryContext ctx)
+    public static StoryResult Orbit(StoryContext ctx)
     {
         Signal<float> speed = ctx.Signal("speed", 1f, "軌道アニメの速度倍率");
         ctx.Play(static d => d.Snap());
@@ -51,7 +51,7 @@ public static class GpuStories
     // ---- 3D: browser-safe GpuView stories are owned by this Graphics Gallery. ----
 
     [Story]
-    public static Widget TexturedQuad(StoryContext ctx)
+    public static StoryResult TexturedQuad(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
             return BuildOnlyGpuView(ctx, 320, 240);

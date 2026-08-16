@@ -14,7 +14,7 @@ public static class WindowsFontScaleStories
     private static readonly Lazy<IReadOnlyList<Face>> Faces = new(LoadFaces);
 
     [Story(RealWindowOnly = true)]
-    public static Widget WindowsFontScale(StoryContext ctx)
+    public static StoryResult WindowsFontScale(StoryContext ctx)
     {
         IReadOnlyList<Face> faces = Faces.Value;
         if (faces.Count == 0)

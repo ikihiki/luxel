@@ -37,7 +37,7 @@ public static class GltfSkinnedStories
 
     /// <summary>RiggedSimple.glb (2 ボーンの曲がる棒) を、アニメの途中ポーズで描く。</summary>
     [Story]
-    public static Widget GltfSkinned(StoryContext ctx)
+    public static StoryResult GltfSkinned(StoryContext ctx)
     {
         var builder = new ResourceSystemBuilder();
         ResourceSystemDefaultHandles core = OperatingSystem.IsBrowser()

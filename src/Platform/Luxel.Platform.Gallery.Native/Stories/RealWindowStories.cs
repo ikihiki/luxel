@@ -21,7 +21,7 @@ public static class RealWindowStories
     private static AudioMixer? _mixer;   // プロセスで 1 個 (XAudio2 マスタリングボイス)
 
     [Story(RealWindowOnly = true)]
-    public static Widget AudioTone(StoryContext ctx)
+    public static StoryResult AudioTone(StoryContext ctx)
     {
         void Play(float freq, string name)
         {
@@ -45,7 +45,7 @@ public static class RealWindowStories
     }
 
     [Story(RealWindowOnly = true)]
-    public static Widget Gamepad(StoryContext ctx)
+    public static StoryResult Gamepad(StoryContext ctx)
     {
         // 物理層: XInput を毎フレーム Poll して差分イベントを bus へ
         var source = new XInputSource();
@@ -111,7 +111,7 @@ public static class RealWindowStories
     private static WindowManager? _secondManager;
 
     [Story(RealWindowOnly = true)]
-    public static Widget SecondWindow(StoryContext ctx)
+    public static StoryResult SecondWindow(StoryContext ctx)
     {
         Signal<string> state = new(_secondManager is null ? "未作成" : "表示中");
         void DisposeSecond()

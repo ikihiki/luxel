@@ -9,7 +9,6 @@ using static Luxel.Controls.Kit;
 namespace Luxel.Audio.Gallery;
 
 /// <summary>Browser-runnable audio examples embedded at the point where each concept is introduced.</summary>
-[StoryMeta("Examples/Audio")]
 public static class AudioStories
 {
     private static IAudioBackend? _hostBackend;
@@ -41,8 +40,7 @@ public static class AudioStories
         _stateHost = null;
     }
 
-    [Story]
-    public static Widget BackendLifecycle()
+    public static StoryResult BackendLifecycle()
     {
         var status = new Signal<string>($"現在の状態: {State}");
 
@@ -72,8 +70,7 @@ public static class AudioStories
             Text((Func<string>)(() => status.Value), 14, wrap: TextWrap.Word, width: 620));
     }
 
-    [Story]
-    public static Widget WaveformAndVoice()
+    public static StoryResult WaveformAndVoice()
     {
         AudioFormat format = AudioFormat.Pcm16Mono44k;
         byte[] pcm = SinePcm16(format, 440f, 0.45f);
@@ -109,8 +106,7 @@ public static class AudioStories
             Text(DescribeClip(clip), 13, color: Bind.From(() => UiTheme.T.TextMuted)));
     }
 
-    [Story]
-    public static Widget Buses()
+    public static StoryResult Buses()
     {
         var master = new AudioBus("Master");
         var music = new AudioBus("Music", master);
@@ -148,8 +144,7 @@ public static class AudioStories
             Text((Func<string>)(() => status.Value), 14, wrap: TextWrap.Word, width: 620));
     }
 
-    [Story]
-    public static Widget SpatialAttenuation()
+    public static StoryResult SpatialAttenuation()
     {
         var listener = new AudioListener { Position = Vector3.Zero };
         AudioSource3D? source = null;
@@ -183,8 +178,7 @@ public static class AudioStories
             Text((Func<string>)(() => status.Value), 14, wrap: TextWrap.Word, width: 620));
     }
 
-    [Story]
-    public static Widget StreamingQueue()
+    public static StoryResult StreamingQueue()
     {
         IAudioVoice? voice = null;
         var status = new Signal<string>("3個のPCM chunkをqueueし、Web Audioが切れ目なくscheduleします。");

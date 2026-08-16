@@ -12,8 +12,7 @@ namespace Luxel.Resources.Gallery.Stories;
 [StoryMeta("Examples/Resources")]
 public static class ResourceExampleStories
 {
-    [Story]
-    public static Widget ReadyBuilder(StoryContext ctx) => new ResourceScenarioWidget("readyなbuilder", (builder, h) =>
+    public static StoryResult ReadyBuilder(StoryContext ctx) => new ResourceScenarioWidget("readyなbuilder", (builder, h) =>
     {
         builder.Sources.Add(new FileSource(Files(("hello.txt", "hello resources")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
         builder.Steps.Add<byte[], TextAsset>(new UpperTextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
@@ -24,8 +23,7 @@ public static class ResourceExampleStories
         return $"状態={handle.Status}; 値={handle.Value.Text}";
     }, ctx.Log);
 
-    [Story]
-    public static Widget CustomExecutionDomain(StoryContext ctx)
+    public static StoryResult CustomExecutionDomain(StoryContext ctx)
     {
         ResourceExecutionDomainHandle custom = default;
         return new ResourceScenarioWidget("任意名の実行domain", (builder, h) =>
@@ -43,7 +41,7 @@ public static class ResourceExampleStories
     }
 
     [Story]
-    public static Widget SerializedCompilerDomain(StoryContext ctx)
+    public static StoryResult SerializedCompilerDomain(StoryContext ctx)
     {
         ResourceExecutionDomainHandle compiler = default;
         var step = new SerializedProbeStep();
@@ -61,8 +59,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget TypedManagerBinding(StoryContext ctx)
+    public static StoryResult TypedManagerBinding(StoryContext ctx)
     {
         TrackingManager? manager = null;
         return new ResourceScenarioWidget("型付きmanager binding", (builder, h) =>
@@ -80,8 +77,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget SharedRequestIdentity(StoryContext ctx)
+    public static StoryResult SharedRequestIdentity(StoryContext ctx)
     {
         var step = new CountingTextStep();
         return new ResourceScenarioWidget("共有request identity", (builder, h) =>
@@ -98,8 +94,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget CustomSourceAndStep(StoryContext ctx) => new ResourceScenarioWidget("custom SourceとStep", (builder, h) =>
+    public static StoryResult CustomSourceAndStep(StoryContext ctx) => new ResourceScenarioWidget("custom SourceとStep", (builder, h) =>
     {
         builder.Sources.Add(new PackageSource(new Dictionary<string, byte[]> { ["ui/title.txt"] = Bytes("package title") }))
             .RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
@@ -111,8 +106,7 @@ public static class ResourceExampleStories
         return $"scheme=package; 値={title.Value.Text}";
     }, ctx.Log);
 
-    [Story]
-    public static Widget DependencyPublication(StoryContext ctx) => new ResourceScenarioWidget("依存とpublication", (builder, h) =>
+    public static StoryResult DependencyPublication(StoryContext ctx) => new ResourceScenarioWidget("依存とpublication", (builder, h) =>
     {
         builder.Sources.Add(new FileSource(Files(("words.txt", "one two")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
         builder.Steps.Add<byte[], TextAsset>(new UpperTextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
@@ -125,8 +119,7 @@ public static class ResourceExampleStories
         return $"依存完了=True; Pump公開=True; 単語数={count.Value.Count}";
     }, ctx.Log);
 
-    [Story]
-    public static Widget ScopedRetirement(StoryContext ctx)
+    public static StoryResult ScopedRetirement(StoryContext ctx)
     {
         TrackingManager? manager = null;
         return new ResourceScenarioWidget("scope retirement", (builder, h) =>
@@ -148,8 +141,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget ReloadKeepsLastGood(StoryContext ctx)
+    public static StoryResult ReloadKeepsLastGood(StoryContext ctx)
     {
         MemoryFileSystem files = Files(("live.json", "{\"name\":\"Mina\",\"level\":1}"));
         return new ResourceScenarioWidget("last-good recovery", (builder, h) =>
@@ -172,8 +164,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget DomainAndManagerMetrics(StoryContext ctx) => new ResourceScenarioWidget("domainとmanager metrics", (builder, h) =>
+    public static StoryResult DomainAndManagerMetrics(StoryContext ctx) => new ResourceScenarioWidget("domainとmanager metrics", (builder, h) =>
     {
         builder.Sources.Add(new FileSource(Files(("metrics.txt", "metrics")))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
         builder.Steps.Add<byte[], TextAsset>(new UpperTextStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
@@ -186,8 +177,7 @@ public static class ResourceExampleStories
         return $"完了={domain.CompletedCount}; queue={domain.QueueDepth}; adopt={manager.AdoptedCount}; bytes={manager.LogicalBytes}";
     }, ctx.Log);
 
-    [Story]
-    public static Widget WasmCooperativeScheduling(StoryContext ctx)
+    public static StoryResult WasmCooperativeScheduling(StoryContext ctx)
     {
         ResourceExecutionDomainHandle wasm = default;
         return new ResourceScenarioWidget("WASM cooperative scheduling", (builder, h) =>
@@ -205,8 +195,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget GpuManagerInstallation(StoryContext ctx)
+    public static StoryResult GpuManagerInstallation(StoryContext ctx)
     {
         TrackingManager? manager = null;
         return new ResourceScenarioWidget("GPU manager installation", (builder, h) =>
@@ -225,8 +214,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget CustomGpuParticleBuffers(StoryContext ctx)
+    public static StoryResult CustomGpuParticleBuffers(StoryContext ctx)
     {
         TrackingManager? manager = null;
         return new ResourceScenarioWidget("custom GPU particle buffers", (builder, h) =>
@@ -246,7 +234,7 @@ public static class ResourceExampleStories
     }
 
     [Story]
-    public static Widget CustomGpuStructRetirement(StoryContext ctx)
+    public static StoryResult CustomGpuStructRetirement(StoryContext ctx)
     {
         TrackingManager? manager = null;
         return new ResourceScenarioWidget("custom GPU struct retirement", (builder, h) =>
@@ -265,8 +253,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget GpuIndexRecycling(StoryContext ctx)
+    public static StoryResult GpuIndexRecycling(StoryContext ctx)
     {
         TrackingManager? manager = null;
         return new ResourceScenarioWidget("GPU index recycling", (builder, h) =>
@@ -286,7 +273,7 @@ public static class ResourceExampleStories
     }
 
     [Story]
-    public static Widget GpuCompaction(StoryContext ctx)
+    public static StoryResult GpuCompaction(StoryContext ctx)
     {
         TrackingManager? manager = null;
         return new ResourceScenarioWidget("GPU compaction", (builder, h) =>
@@ -305,8 +292,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget DeviceLostRecovery(StoryContext ctx)
+    public static StoryResult DeviceLostRecovery(StoryContext ctx)
     {
         TrackingManager? manager = null;
         return new ResourceScenarioWidget("device lost recovery", (builder, h) =>
@@ -325,8 +311,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget DocumentInspector(StoryContext ctx)
+    public static StoryResult DocumentInspector(StoryContext ctx)
     {
         return new ResourceScenarioWidget("Asset診断", (builder, h) =>
         {
@@ -342,8 +327,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget MeshPrimitiveInspector(StoryContext ctx)
+    public static StoryResult MeshPrimitiveInspector(StoryContext ctx)
     {
         return new ResourceScenarioWidget("Asset診断", (builder, h) =>
         {
@@ -361,8 +345,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget MaterialTextureInspector(StoryContext ctx)
+    public static StoryResult MaterialTextureInspector(StoryContext ctx)
     {
         return new ResourceScenarioWidget("Asset診断", (builder, h) =>
         {
@@ -378,8 +361,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget AnimatedSceneGraph(StoryContext ctx)
+    public static StoryResult AnimatedSceneGraph(StoryContext ctx)
     {
         return new ResourceScenarioWidget("Asset runtime診断", (builder, h) =>
         {
@@ -393,8 +375,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget ShaderBufferInspector(StoryContext ctx)
+    public static StoryResult ShaderBufferInspector(StoryContext ctx)
     {
         return new ResourceScenarioWidget("Asset runtime診断", (builder, h) =>
         {
@@ -409,8 +390,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget BoxDocumentLoad(StoryContext ctx)
+    public static StoryResult BoxDocumentLoad(StoryContext ctx)
     {
         const string path = "Box.gltf";
         return new ResourceScenarioWidget("glTF document load", (builder, h) =>
@@ -425,8 +405,7 @@ public static class ResourceExampleStories
         }, ctx.Log);
     }
 
-    [Story]
-    public static Widget ExternalBufferTrace(StoryContext ctx) => new ResourceScenarioWidget("glTF外部buffer", (builder, h) =>
+    public static StoryResult ExternalBufferTrace(StoryContext ctx) => new ResourceScenarioWidget("glTF外部buffer", (builder, h) =>
     {
         builder.Sources.Add(new FileSource(BinaryTriangleFiles())).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
         builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
@@ -437,8 +416,7 @@ public static class ResourceExampleStories
         return $"解決先={new ResourceUri("models/scene.gltf").Resolve("buffers/geometry.bin").Url}; mesh={scene.Value.Meshes.Count}";
     }, ctx.Log);
 
-    [Story]
-    public static Widget MalformedAccessorDiagnostics(StoryContext ctx) => new ResourceScenarioWidget("glTF診断", (builder, h) =>
+    public static StoryResult MalformedAccessorDiagnostics(StoryContext ctx) => new ResourceScenarioWidget("glTF診断", (builder, h) =>
     {
         builder.Sources.Add(new FileSource(Files(("broken.gltf", MalformedGltf)))).RunOn(h.IoDomain).ManagedBy(h.IoManager).Register();
         builder.Steps.Add<byte[], AssetDocument>(new GltfResourceStep()).RunOn(h.CpuDomain).ManagedBy(h.CpuManager).Register();
@@ -449,8 +427,7 @@ public static class ResourceExampleStories
         catch (Exception error) { return $"診断={error.GetBaseException().Message}"; }
     }, ctx.Log);
 
-    [Story]
-    public static Widget ExternalDependencyReload(StoryContext ctx)
+    public static StoryResult ExternalDependencyReload(StoryContext ctx)
     {
         MemoryFileSystem files = BinaryTriangleFiles();
         return new ResourceScenarioWidget("glTF依存reload", (builder, h) =>

@@ -25,7 +25,7 @@ internal static class RuntimeCourseCatalog
 }
 
 [StoryMeta("Learn/Input")]
-public static class LearnInput
+public static partial class LearnInput
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => $"""
@@ -57,7 +57,7 @@ public static class LearnInput
 
         最初にアクションのStoryを操作し、押下、保持、解放がtickごとにどう変化するか確認してください。
 
-        {StoryRef(ctx, "Examples/Input/Actions")}
+        {StoryRef("Learn/Input/ActionsSample")}
 
         TextFieldやIMEによる文字入力は`Luxel.UI`の責務です。`Luxel.Input`はゲーム操作のための物理入力と論理アクションを扱います。
         """;
@@ -70,7 +70,7 @@ public static class LearnInput
 
         {RuntimeCourseCatalog.Meta("Learn/Input/SourcesAndBus", "Beginner", "Gallery / Headless", "Backend neutral", "入力システムの概要")}
 
-        {StoryRef(ctx, "Examples/Input/SourcesAndBus")}
+        {StoryRef("Learn/Input/SourcesAndBusSample")}
 
         上のStoryはkeyboard、gamepad、pointerを独立した`IInputSource`として扱い、1 tick分の差分イベントを同じ`InputBus`へ集約します。「次のtickを収集」を押すたびに、キー、軸、ポインターのイベントが一覧へ追加されます。
 
@@ -124,7 +124,7 @@ public static class LearnInput
 
         {RuntimeCourseCatalog.Meta("Learn/Input/Actions", "Beginner", "Gallery / Headless", "Backend neutral", "IInputSourceとInputBus")}
 
-        {StoryRef(ctx, "Examples/Input/Actions")}
+        {StoryRef("Learn/Input/ActionsSample")}
 
         上のStoryは`FakeInputSource`でW、D、Spaceの押下と解放を1 tickずつ送り、移動ベクトル、Jumpの保持状態、`Triggered`／`Released`の回数を表示します。
 
@@ -150,7 +150,7 @@ public static class LearnInput
 
         ## コンテキストの優先順位と入力の消費
 
-        {StoryRef(ctx, "Examples/Input/ContextStack")}
+        {StoryRef("Learn/Input/ContextStackSample")}
 
         上のStoryはGameplayの上にMenuを積み、同じEnterがどちらへ届くかを表示します。
 
@@ -178,7 +178,7 @@ public static class LearnInput
 
         {RuntimeCourseCatalog.Meta("Learn/Input/Bindings", "Beginner", "Gallery / Settings", "Backend neutral", "アクションとコンテキスト")}
 
-        {StoryRef(ctx, "Examples/Input/Bindings")}
+        {StoryRef("Learn/Input/BindingsSample")}
 
         上のStoryはJumpのバインドをSpaceとEnterで切り替え、表示中のJSONを読み戻してから`InputBindingsApplier`へ反映します。その後、各キーをシミュレートして、新しい設定でJumpが発火するか確認できます。
 

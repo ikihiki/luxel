@@ -12,7 +12,7 @@ namespace Luxel.Gallery.Stories;
 public static class TextControlStories
 {
     [Story]
-    public static Widget TextFieldBasic(StoryContext ctx)
+    public static StoryResult TextFieldBasic(StoryContext ctx)
     {
         Signal<string> text = ctx.Signal("text", "Hello");
         TextField tf = TextField(text, placeholder: "Type here...");
@@ -29,7 +29,7 @@ public static class TextControlStories
     }
 
     [Story]
-    public static Widget SearchFieldBasic(StoryContext ctx)
+    public static StoryResult SearchFieldBasic(StoryContext ctx)
     {
         // CompositeControl の見本: タイプで候補が絞り込まれ (構造状態 → Rebuild)、行クリックで確定
         string[] langs = ["C#", "C++", "Rust", "Go", "TypeScript", "Python", "Ruby", "Swift", "Kotlin", "Zig"];
@@ -37,7 +37,7 @@ public static class TextControlStories
     }
 
     [Story]
-    public static Widget TextEllipsisVAlign()
+    public static StoryResult TextEllipsisVAlign()
     {
         const string lng = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn evenings.";
         Widget Case(string title, Widget t) => VStack(2)[
@@ -53,7 +53,7 @@ public static class TextControlStories
     }
 
     [Story]
-    public static Widget RichTextBasic()
+    public static StoryResult RichTextBasic()
     {
         var spans = new[]
         {
@@ -71,7 +71,7 @@ public static class TextControlStories
     }
 
     [Story]
-    public static Widget TextMultiline()
+    public static StoryResult TextMultiline()
     {
         const string en = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn.";
         const string jp = "吾輩は猫である。名前はまだ無い。どこで生れたかとんと見当がつかぬ。「にゃー」と鳴いた。";
@@ -85,7 +85,7 @@ public static class TextControlStories
     }
 
     [Story]
-    public static Widget TextStyles(StoryContext ctx) => ctx.Snap(Frame(VStack(6)[
+    public static StoryResult TextStyles(StoryContext ctx) => ctx.Snap(Frame(VStack(6)[
         Text("Large 28px", 28, color: Bind.From(() => UiTheme.T.Text)),
         Text("Body 16px", 16, color: Bind.From(() => UiTheme.T.Text)),
         Text("Muted 13px", 13, color: Bind.From(() => UiTheme.T.TextMuted)),
@@ -93,7 +93,7 @@ public static class TextControlStories
         Text("Half opacity", 16, color: Bind.From(() => UiTheme.T.Text), opacity: 0.5f)]));
 
     [Story]
-    public static Widget Japanese(StoryContext ctx)
+    public static StoryResult Japanese(StoryContext ctx)
     {
         // 同梱フォント (BIZ UDGothic / UDEV Gothic) で日本語が出ることを 1 画面で確認する:
         // 基本フォント直 (Heading/Button/Text) + IME 入力 (TextEditorView) + 等幅の日本語コメント (色分け)。

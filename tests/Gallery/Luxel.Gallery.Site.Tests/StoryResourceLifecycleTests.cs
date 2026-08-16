@@ -42,7 +42,7 @@ public sealed class StoryResourceLifecycleTests
     public void GalleryHost_selection_and_dispose_release_each_story_scope()
     {
         var instances = new List<TrackedResource>();
-        Widget Build(StoryContext context)
+        StoryResult Build(StoryContext context)
         {
             var value = new TrackedResource();
             ResourceHandle<TrackedResource> handle = context.ScopedResources.Create(

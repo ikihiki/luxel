@@ -35,7 +35,7 @@ public static class WorkbenchInspectorStory
     }
 
     [Story]
-    public static Widget Inspector(StoryContext ctx)
+    public static StoryResult Inspector(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();
         fs.Write("fx/spark.json", JsonSerializer.Serialize(new SparkConfig(),

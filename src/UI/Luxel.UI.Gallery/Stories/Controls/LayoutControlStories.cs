@@ -11,7 +11,7 @@ namespace Luxel.Gallery.Stories;
 public static class LayoutControlStories
 {
     [Story]
-    public static Widget BorderCard() => Frame(
+    public static StoryResult BorderCard() => Frame(
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 12, padding: new Thickness(20))
             [VStack(6)[
                 Heading("Card title", 2),
@@ -20,7 +20,7 @@ public static class LayoutControlStories
                 Button(_ => { }, "Action")]]);
 
     [Story]
-    public static Widget GridColumns() =>
+    public static StoryResult GridColumns() =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
         [Grid(columns: [1, 2, 1])[
             Box(background: Tw.Blue500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(0),
@@ -28,7 +28,7 @@ public static class LayoutControlStories
             Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(2)]];
 
     [Story]
-    public static Widget SplitterBasic(StoryContext ctx) =>
+    public static StoryResult SplitterBasic(StoryContext ctx) =>
         // 実アプリではドラッグ量 d でレイアウト変数を更新して chrome を再構築する
         // (GalleryApp のサイドバー/Log/右パネルがこの形)。ここでは delta を Log に流すのみ
         Frame(HStack(0)[
@@ -37,7 +37,7 @@ public static class LayoutControlStories
             Box(background: Tw.Amber500, rounded: 6, width: 170, height: 160)]);
 
     [Story]
-    public static Widget TreeViewBasic(StoryContext ctx)
+    public static StoryResult TreeViewBasic(StoryContext ctx)
     {
         // Key は展開/選択の永続キー (再構築をまたいで一意なパス文字列)。
         // Tag != null の子持ちノードはラベルクリック = 選択 + 展開、開閉はシェブロン
@@ -63,7 +63,7 @@ public static class LayoutControlStories
     }
 
     [Story]
-    public static Widget ScrollBasic(StoryContext ctx)
+    public static StoryResult ScrollBasic(StoryContext ctx)
     {
         var rows = Enumerable.Range(1, 20).Select(i => (Widget)Label($"Row {i}")).ToArray();
         ctx.Play(static d => d.Snap());
@@ -73,7 +73,7 @@ public static class LayoutControlStories
 
     /// <summary>ヒットの transform 追従 + スクロールバードラッグの実証。クリックは Log にも記録。</summary>
     [Story]
-    public static Widget ScrollClickable(StoryContext ctx)
+    public static StoryResult ScrollClickable(StoryContext ctx)
     {
         Signal<string> last = ctx.Signal("lastClicked", "(none)");
         var rows = Enumerable.Range(1, 20)
@@ -85,7 +85,7 @@ public static class LayoutControlStories
     }
 
     [Story]
-    public static Widget ListViewBasic(StoryContext ctx)
+    public static StoryResult ListViewBasic(StoryContext ctx)
     {
         // EV: コールバックはファクトリの省略可能引数 (第一引数 = 発火元)。items も UI パラメータ
         ListView lv = ListView(180f, 18f, onSelect: (_, i) => ctx.Log($"selected: Item {i + 1}"),
@@ -94,7 +94,7 @@ public static class LayoutControlStories
     }
 
     [Story]
-    public static Widget ListViewReorder(StoryContext ctx)
+    public static StoryResult ListViewReorder(StoryContext ctx)
     {
         // D&D 並べ替え (QP-M4): 行をドラッグ → 挿入位置インジケータ → ドロップで OnReorder。
         // データは items signal が持ち、並べ替えは signal への入れ直しで反映 (コントロールはデータを所有しない)
@@ -117,7 +117,7 @@ public static class LayoutControlStories
     }
 
     [Story]
-    public static Widget ListViewHuge(StoryContext ctx)
+    public static StoryResult ListViewHuge(StoryContext ctx)
     {
         // 仮想化ゲート (AP-M3): 10 万行でも実体化は可視行プールのみ、スクロール/選択が破綻しない
         ListView lv = ListView(180f, 18f, onSelect: (_, i) => ctx.Log($"selected: {i}"),
@@ -126,7 +126,7 @@ public static class LayoutControlStories
     }
 
     [Story]
-    public static Widget LayoutUnits() => Frame(
+    public static StoryResult LayoutUnits() => Frame(
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 8, padding: new Thickness(8), width: 400)[
             VStack(6)[
                 Box(background: Tw.Sky500, rounded: 4, width: "100%", height: 18),
@@ -135,7 +135,7 @@ public static class LayoutControlStories
                 Box(background: Tw.Red500, rounded: 4, width: "25vw", height: 18)]]);
 
     [Story]
-    public static Widget WrapBasic() => Frame(
+    public static StoryResult WrapBasic() => Frame(
         Wrap(8, 8, width: 300f)[
             Enumerable.Range(1, 12).Select(i => (Widget)Box(
                 background: (i % 3) switch { 0 => Tw.Sky500, 1 => Tw.Indigo500, _ => Tw.Green500 },

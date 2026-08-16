@@ -6,7 +6,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>Animation curveと接続しつつparticle simulationと描画adapterを学ぶコース。</summary>
 [StoryMeta("Learn/Animation/Particles")]
-public static class LearnAnimationParticles
+public static partial class LearnAnimationParticles
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
@@ -46,7 +46,7 @@ public static class LearnAnimationParticles
         renderer.Sync();
         ```
 
-        {{StoryRef(ctx, "Examples/2D/ParticleView")}}
+        {{StoryRef("Learn/Animation/Particles/ParticleViewSample")}}
 
         ## Animationとの境界
 
@@ -103,7 +103,7 @@ public static class LearnAnimationParticles
 
         通常はXY平面で`BaseAngle ± SpreadRadians`へ放射し、Z velocityは0です。`Spherical=true`では+Y軸周りのconeになり、spreadはhalf-angle、`MathF.PI`でfull sphereです。この場合`BaseAngle`は使いません。
 
-        {{StoryRef(ctx, "Examples/2D/Particles")}}
+        {{StoryRef("Learn/Animation/Particles/Particles2DSample")}}
 
         > [!NOTE]
         > sampled lifeは最低`1e-4`秒へclampされますが、speedとsizeは同じclampを受けません。2D adapterは負sizeをゼロへclampしますが、3D instanceには値がそのまま渡ります。
@@ -153,7 +153,7 @@ public static class LearnAnimationParticles
         | `Clear()` | 配列を再利用して生存数を0にする |
         | `Config` | 次のspawn/evaluationに使う設定 |
 
-        {{StoryRef(ctx, "Examples/2D/Particles")}}
+        {{StoryRef("Learn/Animation/Particles/Particles2DSample")}}
 
         > [!WARNING]
         > overflowは例外になりません。effectの欠落を診断したい場合は`Alive == Capacity`をtelemetryへ記録してください。
@@ -256,8 +256,8 @@ public static class LearnAnimationParticles
 
         `animated:true`は各UI tickで`ParticleSystem.Update(dt)`の後に`ParticleNode.Sync()`します。`animated:false`は初回Syncだけで、呼び出し側がsimulationと同期を管理します。
 
-        {{StoryRef(ctx, "Examples/2D/ParticleView")}}
-        {{StoryRef(ctx, "Examples/2D/Particles")}}
+        {{StoryRef("Learn/Animation/Particles/ParticleViewSample")}}
+        {{StoryRef("Learn/Animation/Particles/Particles2DSample")}}
 
         ## Retained reservation
 
@@ -309,7 +309,7 @@ public static class LearnAnimationParticles
         | blend | alpha blend enabled |
         | order | spawn order、未sort |
 
-        {{StoryRef(ctx, "Examples/3D/Particles")}}
+        {{StoryRef("Learn/Animation/Particles/Particles3DSample")}}
 
         ## Camera axesと透明度
 

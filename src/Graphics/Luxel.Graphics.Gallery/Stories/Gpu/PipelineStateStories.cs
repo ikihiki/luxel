@@ -8,7 +8,6 @@ using static Luxel.Gallery.Stories.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Browser-safe examples of logical graphics pipelines and independent command-time state.</summary>
-[StoryMeta("Examples/3D")]
 public static class PipelineStateStories
 {
     [StructLayout(LayoutKind.Sequential)]
@@ -20,8 +19,7 @@ public static class PipelineStateStories
     private enum DemoKind { Topology, Rasterizer, Depth, Blend, Stencil, ViewportScissor, Separation }
     private delegate void RecordDemo(PipelineStateDemo demo, GpuCommandBuffer command, GpuViewSurface surface);
 
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget Topology(StoryContext ctx) => Build(ctx, DemoKind.Topology,
+    public static StoryResult Topology(StoryContext ctx) => Build(ctx, DemoKind.Topology,
         [
             new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm), GpuPrimitiveTopology.TriangleList),
             new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm), GpuPrimitiveTopology.TriangleStrip),
@@ -32,8 +30,7 @@ public static class PipelineStateStories
             .SetViewport(new(136, 24, 112, 208)).SetScissor(new(136, 24, 112, 208))
             .SetGraphicsPipeline(demo.Pipeline(1)).SetRootArguments(demo.Arguments(1)).Draw(4));
 
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget Rasterizer(StoryContext ctx) => Build(ctx, DemoKind.Rasterizer,
+    public static StoryResult Rasterizer(StoryContext ctx) => Build(ctx, DemoKind.Rasterizer,
         [new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm))],
         static (demo, command, surface) =>
         command.BeginRendering(surface.ColorTarget, null, .05f, .06f, .08f, 1).SetGraphicsPipeline(demo.Pipeline(0))
@@ -44,8 +41,7 @@ public static class PipelineStateStories
             .SetViewport(new(176, 24, 76, 208)).SetScissor(new(176, 24, 76, 208))
             .SetRasterizerState(new(GpuCullMode.Back, GpuFrontFace.Clockwise)).Draw(3));
 
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget DepthStates(StoryContext ctx) => Build(ctx, DemoKind.Depth,
+    public static StoryResult DepthStates(StoryContext ctx) => Build(ctx, DemoKind.Depth,
         [new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float))],
         static (demo, command, surface) =>
     {
@@ -60,8 +56,7 @@ public static class PipelineStateStories
             .SetDepthStencilState(testNoWrite).SetRootArguments(demo.Arguments(0)).Draw(3).SetRootArguments(demo.Arguments(1)).Draw(3);
     });
 
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget BlendState(StoryContext ctx) => Build(ctx, DemoKind.Blend,
+    public static StoryResult BlendState(StoryContext ctx) => Build(ctx, DemoKind.Blend,
         [new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm))],
         static (demo, command, surface) =>
         command.BeginRendering(surface.ColorTarget, null, .05f, .06f, .08f, 1).SetGraphicsPipeline(demo.Pipeline(0))
@@ -70,8 +65,7 @@ public static class PipelineStateStories
             .SetViewport(new(136, 24, 112, 208)).SetScissor(new(136, 24, 112, 208))
             .SetBlendState(GpuBlendState.AlphaBlend).SetRootArguments(demo.Arguments(0)).Draw(3).SetRootArguments(demo.Arguments(1)).Draw(3));
 
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget Stencil(StoryContext ctx) => Build(ctx, DemoKind.Stencil,
+    public static StoryResult Stencil(StoryContext ctx) => Build(ctx, DemoKind.Stencil,
         [new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.Depth24PlusStencil8))],
         static (demo, command, surface) =>
     {
@@ -93,16 +87,14 @@ public static class PipelineStateStories
             .SetDepthStencilState(testMask).SetStencilReference(2).SetRootArguments(demo.Arguments(1)).Draw(6);
     });
 
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget ViewportScissor(StoryContext ctx) => Build(ctx, DemoKind.ViewportScissor,
+    public static StoryResult ViewportScissor(StoryContext ctx) => Build(ctx, DemoKind.ViewportScissor,
         [new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm))],
         static (demo, command, surface) =>
         command.BeginRendering(surface.ColorTarget, null, .05f, .06f, .08f, 1).SetGraphicsPipeline(demo.Pipeline(0))
             .SetViewport(new(16, 24, 96, 208)).SetScissor(new(0, 0, 256, 256)).SetRootArguments(demo.Arguments(0)).Draw(6)
             .SetViewport(new(144, 24, 96, 208)).SetScissor(new(144, 80, 96, 96)).SetRootArguments(demo.Arguments(1)).Draw(6));
 
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget Separation(StoryContext ctx) => Build(ctx, DemoKind.Separation,
+    public static StoryResult Separation(StoryContext ctx) => Build(ctx, DemoKind.Separation,
         [new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float))],
         static (demo, command, surface) =>
     {
@@ -119,11 +111,9 @@ public static class PipelineStateStories
             .SetRasterizerState(GpuRasterizerState.Default).SetDepthStencilState(depth).SetRootArguments(demo.Arguments(0)).Draw(3).SetRootArguments(demo.Arguments(1)).Draw(3);
     });
 
-    [Story(CapabilityNote = "Compatibility route backed by the browser-safe pipeline-state demo.")]
-    public static Widget Depth(StoryContext ctx) => DepthStates(ctx);
+    public static StoryResult Depth(StoryContext ctx) => DepthStates(ctx);
 
-    [Story(CapabilityNote = "Compatibility route backed by the browser-safe pipeline-state demo.")]
-    public static Widget Blend(StoryContext ctx) => BlendState(ctx);
+    public static StoryResult Blend(StoryContext ctx) => BlendState(ctx);
 
     private static Widget Build(StoryContext ctx, DemoKind kind,
         IReadOnlyList<GpuGraphicsPipelineDesc> pipelineDescriptions, RecordDemo record)

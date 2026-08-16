@@ -5,7 +5,7 @@ using static Luxel.Gallery.Story;
 namespace Luxel.Gallery.Stories;
 
 [StoryMeta("Learn/Graphics/2D")]
-public static class LearnRenderingTwoD
+public static partial class LearnRenderingTwoD
 {
     private static StoryResult Page(string path, string title, string objective, string mentalModel,
         string example, string contracts, StoryReference sample,
@@ -50,7 +50,7 @@ scene.BeginFill(Color2D.Rgba(59, 130, 246), FillRule.EvenOdd)
 ```
 """",
         "fillとimage contourはencode時に閉じます。strokeは`Close`を呼んだcontourだけが閉じます。`LineTo`/`QuadTo`/`CubicTo`にはcurrent contourが必要で、2点未満のcontourは破棄されます。`FlattenTolerance`の単位はworld unitです。",
-        StoryReference.To("Examples/2D/InputPaths"));
+        StoryReference.To("Learn/Graphics/2D/InputPathsSample"));
 
     [Story]
     public static StoryResult Compositing() => Page("Learn/Graphics/2D/Compositing", "Fill ruleと合成",
@@ -65,7 +65,7 @@ scene.EndFill();
 ```
 """",
         "`Color2D`はredがlow byteのpacked表現です。`0xAARRGGBB`を想定したliteralは避け、`Color2D.Rgba(r,g,b,a)`を使います。premultiplied colorはRGBにもalphaを掛け、source-overは`out = src + dst × (1-src.a)`です。",
-        StoryReference.To("Examples/2D/Composite"));
+        StoryReference.To("Learn/Graphics/2D/CompositeSample"));
 
     [Story]
     public static StoryResult Images() => Page("Learn/Graphics/2D/Images", "Image、sprite、atlas",
@@ -96,7 +96,7 @@ scene.DrawSprite(atlas, animation, x: 300, y: 96, scale: 2f);
 ```
 """",
         "`srcStride`はbyte数ではなくpixel単位の行幅です。source bufferはRGBA8を密に並べ、sessionより長く生存させます。`SpriteAtlas`はpack処理を行わず、外部toolまたはasset metadataが作った矩形を保持します。pivotは指定world座標へ合わせるsprite内の基準点です。RGBAはpremultipliedを前提とし、atlas sub-rectは隣接cellへfilter bleedしないよう範囲内へclampされます。Skia backendはbindless image shapeを支援しないため`Rasterizer2DCapabilities.BindlessImages`を確認します。",
-        StoryReference.To("Examples/2D/Sprites"));
+        StoryReference.To("Learn/Graphics/2D/SpritesSample"));
 
     [Story]
     public static StoryResult Camera() => Page("Learn/Graphics/2D/Camera", "Camera2Dと描画変換",
@@ -114,7 +114,7 @@ encoded.Render(camera, target);
 ```
 """",
         "geometry座標はworld-space、stroke widthはscreen pixelです。rasterizerへcameraを渡す場合、geometryを手動で同じcamera変換してはいけません。resize時はscreen寸法からcameraを作り直し、0×0 targetではrenderしません。input、pointer逆変換、hit testはこのコースの対象外です。",
-        StoryReference.To("Examples/2D/CameraTransform"));
+        StoryReference.To("Learn/Graphics/2D/CameraTransformSample"));
 
     [Story]
     public static StoryResult Backends() => Page("Learn/Graphics/2D/Backends", "GPUとSkia backend",
@@ -134,7 +134,7 @@ skiaScene.Render(Camera2D.Pixels, cpuTarget);
 ```
 """",
         "GPUは`GpuCommandRecording`、`BindlessImages`、`RetainedIncrementalUpdates`を提供し、Skiaは`CpuRgbaTarget`を提供します。image shapeはSkia非対応なので、backend比較にはvector-only sceneを使います。sessionをrasterizerより先にdisposeし、同じrasterizerを複数threadから同時使用しません。",
-        StoryReference.To("Examples/2D/Backends"),
+        StoryReference.To("Learn/Graphics/2D/BackendsSample"),
         environment: "Native Gallery / Standalone / Headless");
 
     [Story]
@@ -164,6 +164,6 @@ Console.WriteLine(canvas.LastWasFullRebuild);
 ```
 """",
         "`RetainedCanvas`は描画表現を増やすAPIではなく、同じsceneの更新コストを減らす最適化です。毎frame全geometryが変わる場合は`Scene2D`の再encodeの方が単純です。`HasPendingChanges`はqueued mutationを示すだけでuploadは行いません。`LastTransformWrites`、`LastStyleWrites`、`LastSegmentBytesWritten`、`LastWasFullRebuild`は直近のrender同期結果なので、値はrender後に読みます。",
-        StoryReference.To("Examples/2D/RetainedUpdates"));
+        StoryReference.To("Learn/Graphics/2D/RetainedUpdatesSample"));
 
 }

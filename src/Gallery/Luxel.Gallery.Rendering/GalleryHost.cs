@@ -209,7 +209,10 @@ public sealed class GalleryHost : IDisposable
         if (_device is not null) _ctx.SetGpuHost(_device, _font);
         // 遷移はコマンドキュー経由 — 入力ディスパッチ中の即時 TearDown を避ける (次の Drain で適用)
         _ctx.SetNavigator(p => Commands.Enqueue("story.select", JsonSerializer.SerializeToElement(new { id = p })));
-        _root = _story.Build(_ctx);
+        StoryResult result = _story.Build(_ctx);
+        _root = result.Kind == StoryResultKind.Markdown
+            ? StoryMarkdownRenderer.Build(_story, _ctx, result)
+            : result.Widget ?? throw new InvalidOperationException($"Story '{_story.Path}' returned an empty Widget result.");
         _host.SetRoot(_root);
         CreateRasterTarget();
         _frameHash = 0;   // 次の Render で必ず配信

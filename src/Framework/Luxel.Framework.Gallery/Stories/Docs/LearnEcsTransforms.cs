@@ -5,7 +5,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>ECS transform hierarchy と fixed-step 描画補間。</summary>
 [StoryMeta("Learn/ECS")]
-public static class LearnEcsTransforms
+public static partial class LearnEcsTransforms
 {
     [Story]
     public static StoryResult TransformHierarchy(StoryContext ctx) => $$"""
@@ -49,7 +49,7 @@ public static class LearnEcsTransforms
         - 8階層を超える hierarchy は完全には伝搬しない可能性があります。
         - Physics の `RigidBody` は world-space pose を所有するため、`Parent` 付き entity では未定義動作です。
 
-        {{StoryRef(ctx, "Examples/3D/EcsCubes")}}
+        {{StoryRef("Learn/ECS/EcsCubesTransformSample")}}
         """;
 
     [Story]

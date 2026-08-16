@@ -43,7 +43,7 @@ public static class CavernStories
         "else if (w.Pos.X + w.Size.X >= w.MaxX) { w.Pos.X = w.MaxX - w.Size.X; w.VelX = -MathF.Abs(w.VelX); } })";
 
     [Story]
-    public static Widget Cavern(StoryContext ctx, ScriptHostRegistry scripts)
+    public static StoryResult Cavern(StoryContext ctx, ScriptHostRegistry scripts)
     {
         // 敵 AI を .csx からコンパイル (ScriptSystem のドッグフーディング — 実ゲームの敵ロジックを csx で書く)
         ScriptResult r = scripts.GetOrAdd(AiProfile).Run(PatrolAiCsx, new object());

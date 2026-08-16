@@ -32,7 +32,7 @@ public static class CommandStory
     }
 
     [Story]
-    public static Widget MenuBarBasic(StoryContext ctx)
+    public static StoryResult MenuBarBasic(StoryContext ctx)
     {
         string ran = "";
         CommandRegistry reg = DemoRegistry(id => { ran = id; ctx.Log($"run: {id}"); },
@@ -63,7 +63,7 @@ public static class CommandStory
     }
 
     [Story]
-    public static Widget CommandPaletteBasic(StoryContext ctx)
+    public static StoryResult CommandPaletteBasic(StoryContext ctx)
     {
         string ran = "";
         CommandRegistry reg = DemoRegistry(id => { ran = id; ctx.Log($"run: {id}"); });
@@ -104,7 +104,7 @@ public static class CommandStory
     }
 
     [Story]
-    public static Widget ToolbarBasic(StoryContext ctx)
+    public static StoryResult ToolbarBasic(StoryContext ctx)
     {
         string ran = "";
         CommandRegistry reg = DemoRegistry(id => { ran = id; ctx.Log($"run: {id}"); },

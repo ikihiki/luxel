@@ -34,7 +34,7 @@ public static class Gizmos2DStories
     }
 
     [Story]
-    public static Widget Gizmos2DDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
+    public static StoryResult Gizmos2DDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(W, H, draw: s =>
     {
         TileMap map = BuildMap();
 

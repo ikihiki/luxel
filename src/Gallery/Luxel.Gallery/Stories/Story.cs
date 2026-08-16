@@ -7,7 +7,7 @@ namespace Luxel.Gallery;
 /// ギャラリー (Storybook 風カタログ) のストーリー定義。
 /// <c>[StoryMeta("Controls/Button")]</c> をクラスに、<c>[Story]</c> を static メソッドに付けると
 /// ソースジェネレーターが収集して <see cref="StoryRegistry"/> に登録する (reflection なし)。
-/// 署名は <c>static Widget M()</c> または <c>static Widget M(StoryContext ctx)</c>。
+/// 署名は <c>static StoryResult M()</c> または <c>static StoryResult M(StoryContext ctx)</c>。
 /// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public class Story : Attribute
@@ -17,8 +17,6 @@ public class Story : Attribute
     public bool RealWindowOnly { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
-    /// <summary>Optional static semantic result provider used by host-free exporters.</summary>
-    public string? Result { get; set; }
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
     public string? Args { get; set; }
 
@@ -27,13 +25,6 @@ public class Story : Attribute
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         return new StoryReference(path, StoryArgs.Empty, knobs);
-    }
-
-    /// <summary>Compatibility overload for existing docs; the context is used when the reference is rendered.</summary>
-    public static StoryReference StoryRef(StoryContext context, string path, bool knobs = false)
-    {
-        ArgumentNullException.ThrowIfNull(context);
-        return StoryRef(path, knobs);
     }
 
     /// <summary>Markdown story のこの位置へ H2/H3 の目次を埋め込む。</summary>
@@ -260,7 +251,7 @@ public sealed class StoryContext : IDisposable
     }
 
     /// <summary>「初期絵の golden を 1 枚」のトリビアル play を登録する糖衣 — 式形式のストーリー向け:
-    /// <c>public static Widget X(StoryContext ctx) =&gt; ctx.Snap(Frame(...));</c></summary>
+    /// <c>public static StoryResult X(StoryContext ctx) =&gt; ctx.Snap(Frame(...));</c></summary>
     public Widget Snap(Widget w)
     {
         Play(static d => d.Snap());
@@ -479,20 +470,16 @@ public enum StoryRegistrationKind
     GeneratedComponentFallback,
 }
 
-/// <summary>登録済みストーリー 1 件。<see cref="Build"/> は選択のたびに新しい widget ツリーを作る。
+/// <summary>登録済みストーリー 1 件。<see cref="Build"/> は選択のたびに新しい semantic result を作る。
 /// <paramref name="Source"/> は属性・signature・本体を含む [Story] メソッド宣言の C# ソース
 /// (storysource — GalleryのSourceビュー／docsの「コードを見る」用、ジェネレーターが焼き込む)。<paramref name="RealWindowOnly"/> は snap 回帰の対象外 (実窓専用)。</summary>
-public sealed record StoryInfo(string Path, Func<StoryContext, Widget> Build,
+public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Build,
                                string? Source = null, bool RealWindowOnly = false,
-                               Func<StoryContext, StoryResult>? ResultBuild = null,
                                IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null, string? CapabilityNote = null,
                                StoryRegistrationKind RegistrationKind = StoryRegistrationKind.Authored,
                                GeneratedComponentStoryDescriptor? ProductionComponent = null,
                                StoryOwnership? Ownership = null)
 {
-    /// <summary>Widget/Markdown を区別した semantic build。既存 Widget Story は暗黙変換で統一される。</summary>
-    public StoryResult BuildResult(StoryContext context) => ResultBuild?.Invoke(context) ?? Build(context);
-
     /// <summary>パスの先頭セグメント (章 — サイドバーのトップレベル)。</summary>
     public string Component => Path.IndexOf('/') is >= 0 and var i ? Path[..i] : Path;
     /// <summary>パスの末尾セグメント (ストーリー名)。</summary>

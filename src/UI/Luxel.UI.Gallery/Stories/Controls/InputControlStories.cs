@@ -25,12 +25,12 @@ public static class InputControlStories
     // ---- Button ----
 
     [Story]
-    public static Widget ButtonPrimary() => Frame(Button(_ => { }, "Click me"));
+    public static StoryResult ButtonPrimary() => Frame(Button(_ => { }, "Click me"));
 
     // ---- ColorPicker ----
 
     [Story]
-    public static Widget ColorPickerBasic(StoryContext ctx)
+    public static StoryResult ColorPickerBasic(StoryContext ctx)
     {
         Signal<uint> color = new(Tw.Blue500);
         return Frame(VStack(12)[
@@ -41,21 +41,21 @@ public static class InputControlStories
     }
 
     [Story]
-    public static Widget ButtonVariants() => Frame(HStack(8)[
+    public static StoryResult ButtonVariants() => Frame(HStack(8)[
         Button(_ => { }, "Filled"),
         Button(_ => { }, "Tonal", variant: Variant.Tonal),
         Button(_ => { }, "Outline", variant: Variant.Outline),
         Button(_ => { }, "Ghost", variant: Variant.Ghost)]);
 
     [Story]
-    public static Widget ButtonIntents(StoryContext ctx) => ctx.Snap(Frame(HStack(8)[
+    public static StoryResult ButtonIntents(StoryContext ctx) => ctx.Snap(Frame(HStack(8)[
         Button(_ => { }, "Primary"),
         Button(_ => { }, "Success", intent: Intent.Success),
         Button(_ => { }, "Danger", intent: Intent.Danger),
         Button(_ => { }, "Neutral", intent: Intent.Neutral)]));
 
     [Story]
-    public static Widget ButtonTailwind() => Frame(
+    public static StoryResult ButtonTailwind() => Frame(
         Button(_ => { }, "Hover me",
                 background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 180, height: 64)
             .When(WidgetState.Hover, background: Tw.Red500, scale: 1.08f)
@@ -66,8 +66,7 @@ public static class InputControlStories
         StoryArgDefinition.Create("count", "int", 0, "Current counter value.", min: -999, max: 999, step: 1),
     ];
 
-    [Story(Args = nameof(CounterArgs))]
-    public static Widget ButtonCounter(StoryContext ctx)
+    public static StoryResult ButtonCounter(StoryContext ctx)
     {
         CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build(ctx.Arg("count", 0,
             new StoryArgOptions<int> { Description = "Current counter value.", Min = -999, Max = 999, Step = 1 }));
@@ -85,41 +84,41 @@ public static class InputControlStories
     // ---- 入力/選択 ----
 
     [Story]
-    public static Widget CheckBasic(StoryContext ctx)
+    public static StoryResult CheckBasic(StoryContext ctx)
         => Frame(Check(ctx.Signal("checked", false), "Subscribe to newsletter"));
 
     [Story]
-    public static Widget CheckStyled(StoryContext ctx)
+    public static StoryResult CheckStyled(StoryContext ctx)
         => Frame(Check(ctx.Signal("checked", true), "Custom checked color")
             .When(WidgetState.Checked, background: Tw.Green500));
 
     [Story]
-    public static Widget SwitchBasic(StoryContext ctx)
+    public static StoryResult SwitchBasic(StoryContext ctx)
         => Frame(Switch(ctx.Signal("on", true)));
 
     [Story]
-    public static Widget SliderBasic(StoryContext ctx)
+    public static StoryResult SliderBasic(StoryContext ctx)
         => ctx.Snap(Frame(Slider(ctx.Signal("value", 0.35f))));
 
     [Story]
-    public static Widget SliderColors(StoryContext ctx)
+    public static StoryResult SliderColors(StoryContext ctx)
         => Frame(Slider(ctx.Signal("value", 0.6f),
             trackColor: Tw.Slate200, fillColor: Tw.Amber500, knobColor: Tw.Amber500));
 
     [Story]
-    public static Widget SegmentedBasic(StoryContext ctx)
+    public static StoryResult SegmentedBasic(StoryContext ctx)
         => Frame(Segmented(["Day", "Week", "Month"], ctx.Signal("selected", 0)));
 
     [Story]
-    public static Widget RadiosBasic(StoryContext ctx)
+    public static StoryResult RadiosBasic(StoryContext ctx)
         => Frame(Radios(["Small", "Medium", "Large"], ctx.Signal("selected", 1)));
 
     [Story]
-    public static Widget SelectBasic(StoryContext ctx)
+    public static StoryResult SelectBasic(StoryContext ctx)
         => ctx.Snap(Frame(Select(["Apple", "Banana", "Cherry"], ctx.Signal("selected", 0))));
 
     [Story]
-    public static Widget LengthFieldBasic(StoryContext ctx)
+    public static StoryResult LengthFieldBasic(StoryContext ctx)
     {
         var len = new Signal<Length>((Length)"50%");
         return Frame(VStack(8)[

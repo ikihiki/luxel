@@ -6,7 +6,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>Curve、Tween、Clip、Graph、StateMachineを現在の実装契約に沿って学ぶコース。</summary>
 [StoryMeta("Learn/Animation")]
-public static class LearnAnimation
+public static partial class LearnAnimation
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
@@ -85,7 +85,7 @@ public static class LearnAnimation
 
         下のサンプルは同じ往復時刻を全curveへ入力します。Bezier presetの加減速、4種類の`StepPosition`のjump位置、springのunderdamped / critical / overdampedを同時に比較できます。
 
-        {{StoryRef(ctx, "Examples/Animation/Curves")}}
+        {{StoryRef("Learn/Animation/CurvesSample")}}
 
         この比較には`StepsCurve`の`JumpStart` / `JumpEnd` / `JumpBoth` / `JumpNone`と、`SpringCurve`のunderdamped / critical / overdamped設定を含みます。
 
@@ -210,7 +210,7 @@ public static class LearnAnimation
 
         ## 使い分けと失敗
 
-        {{StoryRef(ctx, "Examples/Animation/Tween")}}
+        {{StoryRef("Learn/Animation/TweenSample")}}
 
         > [!IMPORTANT]
         > 同じpropertyへ重なるcommandを書かないことが最も単純です。複数sourceの意味あるblendが必要なら`AnimationGraph`を使います。
@@ -267,7 +267,7 @@ public static class LearnAnimation
 
         サンプルはclipを`EcsAnimationTarget`へ適用し、更新された`LocalTransform`のtranslationを2D markerとして描くだけに絞っています。3D rendererの準備なしで、clip → path → target → componentという利用手順を確認できます。
 
-        {{StoryRef(ctx, "Examples/Animation/EcsClip")}}
+        {{StoryRef("Learn/Animation/EcsClipSample")}}
 
         > [!WARNING]
         > pathはcompile-timeに検証されません。target側のbindingと文字列が一致しないtrackは見た目上「再生しているのに動かない」原因になります。
@@ -308,7 +308,7 @@ public static class LearnAnimation
         Clip / Graph ── path + value ──> IAnimationTarget ──> Signal / Canvas / ECS
         ```
 
-        {{StoryRef(ctx, "Examples/Animation/EcsClip")}}
+        {{StoryRef("Learn/Animation/EcsClipSample")}}
 
         ## 診断と失敗
 
@@ -361,7 +361,7 @@ public static class LearnAnimation
 
         サンプルは上下移動と左右移動の2つの`Vector2` clipを同じ`dot/position` pathへ出力し、`BlendNode.Weight`で混ぜた結果を2Dの丸として描きます。
 
-        {{StoryRef(ctx, "Examples/Animation/Graph")}}
+        {{StoryRef("Learn/Animation/GraphSample")}}
 
         ## Blendの境界
 
@@ -411,7 +411,7 @@ public static class LearnAnimation
         | `Current` | transition中は遷移先state |
         | `IsTransitioning` | from stateが保持されているか |
 
-        {{StoryRef(ctx, "Examples/Animation/StateMachine")}}
+        {{StoryRef("Learn/Animation/StateMachineSample")}}
 
         ## UI transitionとの境界
 
@@ -443,7 +443,7 @@ public static class LearnAnimation
             css, targetPrefix: "panel", durationSec: 0.4f);
         ```
 
-        {{StoryRef(ctx, "Examples/Animation/CssKeyframes")}}
+        {{StoryRef("Learn/Animation/CssKeyframesSample")}}
 
         ## 診断順
 

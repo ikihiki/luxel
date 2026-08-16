@@ -10,7 +10,6 @@
     <LuxelGalleryRegistrationIdentity>Graphics.Base</LuxelGalleryRegistrationIdentity>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\..\samples\CanonicalClearColorRecipe.cs" Link="CanonicalClearColorRecipe.cs" />
     <Compile Include="..\..\..\samples\CanonicalTriangleRecipe.cs" Link="CanonicalTriangleRecipe.cs" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery.DocKit\Luxel.Gallery.DocKit.csproj" />

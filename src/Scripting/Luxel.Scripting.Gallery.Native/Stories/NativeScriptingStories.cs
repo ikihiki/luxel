@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 public static class NativeScriptingStories
 {
     [Story]
-    public static Widget Repl(StoryContext ctx, ScriptHost host)
+    public static StoryResult Repl(StoryContext ctx, ScriptHost host)
     {
         var repl = new ReplConsole(460, host, new ScriptGlobals { Ctx = ctx });
         ctx.Play(async d =>

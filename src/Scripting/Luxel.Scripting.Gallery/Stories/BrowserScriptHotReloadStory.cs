@@ -79,8 +79,7 @@ public static class BrowserScriptHotReloadStory
         public void Dispose() => (_active as IDisposable)?.Dispose();
     }
 
-    [Story]
-    public static Widget HotReload(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage language)
+    public static StoryResult HotReload(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage language)
     {
         var block = new HotReloadBlock(520, runtime, language);
         ctx.Play(async driver =>

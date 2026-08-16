@@ -31,7 +31,7 @@ namespace Luxel.Gallery.Stories;
 public static class BreakoutStories
 {
     [Story]
-    public static Widget Breakout(StoryContext ctx)
+    public static StoryResult Breakout(StoryContext ctx)
         => ctx.Snap(VStack(8)[
             new StoryAppView<BreakoutScene>(BreakoutScene.FieldW, BreakoutScene.FieldH, (s, bctx) =>
             {

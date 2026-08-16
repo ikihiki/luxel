@@ -26,7 +26,7 @@ public static class StudioShellStory
     private static readonly Lazy<VectorFont> Font = new(() => GalleryFonts.Load(GalleryFonts.Regular));
 
     [Story]
-    public static Widget Shell(StoryContext ctx)
+    public static StoryResult Shell(StoryContext ctx)
     {
         var storage = new MemoryFileStorage();
         SeedProject(storage);

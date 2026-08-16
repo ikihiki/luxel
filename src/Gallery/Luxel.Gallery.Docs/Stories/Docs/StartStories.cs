@@ -1,7 +1,5 @@
 using Luxel.Controls;
 using Luxel.UI;
-using static Luxel.Gallery.DocKit.DocsKit;
-
 using static Luxel.Gallery.Story;
 
 namespace Luxel.Gallery.Stories;
@@ -11,31 +9,33 @@ public static class StartStories
 {
     [Story]
     public static StoryResult Welcome(StoryContext ctx) => $$"""
-        # Luxel Gallery — 見て、コピーして、アプリを作る
+        # Luxel Galleryへようこそ
 
         {{Toc()}}
 
-        Gallery は動く教科書です。説明を読んだら preview を操作し、**検証済み Sample Bundle** の実ファイルをコピーしてください。
+        Luxel Galleryは、説明、実行できるサンプル、APIリファレンスを一つにまとめた開発者向けカタログです。まずプレビューを操作し、下部のSourceで`[Story]`メソッドを確認してください。
+
+        初めてLuxelを触る場合は、[最初のStoryを作る](story:Tutorials/FirstStory)から始めます。既存ライブラリへサンプルを追加するところから、独立したGalleryライブラリをホストへ登録するところまで順番に進められます。
 
         ## 学習ルート
 
-        - **GPU が初めて** — [Graphics](story:Learn/Graphics/Overview) で window、device、surface、三角形まで進む
-        - **3D アプリを作る** — Indexed Cube と 3D Camera を組み合わせる
-        - **2D を描画する** — [2D](story:Learn/Graphics/First2DScene) で path、色、画像、camera transform を使う
-        - **複数passを構成する** — [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) でresource、依存、culling、aliasingを順に学ぶ
-        - **Input / Audio / Resources** — [Input](story:Learn/Input/Overview)、[Audio](story:Learn/Audio/Overview)、[Resources](story:Learn/Resources/Overview)でapp runtimeを組む
-        - **値・clip・effectを動かす** — [Animation](story:Learn/Animation/Overview)から始め、短命なvisual effectは[Particles](story:Learn/Animation/Particles/Overview)へ進む
-        - **2D rasterizer の中を読む** — [Internal](story:Learn/Graphics/2D/Internal/Overview) で encode、bounds、bin、fine pass を追う
+        - **Galleryの作り方を学ぶ** — [Tutorials](story:Tutorials/Overview)でStory、操作、Markdown、ライブラリ登録を順番に試す
+        - **GPU描画を始める** — [Graphics](story:Learn/Graphics/Overview)でウィンドウ、デバイス、サーフェス、三角形まで進む
+        - **2Dを描画する** — [2D](story:Learn/Graphics/First2DScene)でパス、色、画像、カメラ変換を使う
+        - **入力や音声を加える** — [Input](story:Learn/Input/Overview)と[Audio](story:Learn/Audio/Overview)で実行時システムを組み立てる
+        - **アセットを管理する** — [Resources](story:Learn/Resources/Overview)で読み込み、依存関係、再読み込み、寿命を学ぶ
+        - **値やエフェクトを動かす** — [Animation](story:Learn/Animation/Overview)から始め、短時間の視覚効果は[Particles](story:Learn/Animation/Particles/Overview)へ進む
+        - **実装を理解する** — [Internals](story:Internals/Architecture)と[2D rasterizer](story:Learn/Graphics/2D/Internal/Overview)で内部構造を追う
 
-        ## コードの保証レベル
+        ## ページの種類
 
-        - **Snippet**: 既存アプリへ貼る短い断片
-        - **Block**: App Host の接続点へ追加できる機能単位
-        - **Recipe**: 複数 block を組み合わせて build 検証した構成
-        - **StandaloneProject**: `.csproj`、C#、shader、asset を含む実行可能プロジェクト
-        - **GalleryOnly**: `StoryContext` など Gallery harness が必要。Source タブだけでは standalone にならない
+        - **Tutorials** — 一つの成果物を順番に作る
+        - **Learn** — 機能の概念と使い方を体系的に学ぶ
+        - **Controls / Examples** — 実際に動く部品や完成例を操作する
+        - **Reference** — APIのシグネチャ、既定値、型を調べる
+        - **Internals** — アーキテクチャ、実装詳細、ADRを読む
 
-        次に [自分のルートを選ぶ](story:Start/ChooseYourPath) か、[Gallery の使い方](story:Start/GalleryGuide) を開いてください。
+        次に[自分のルートを選ぶ](story:Start/ChooseYourPath)か、[最初のStoryを作る](story:Tutorials/FirstStory)を開いてください。
         """;
 
     [Story]
@@ -46,13 +46,14 @@ public static class StartStories
 
         | 目的 | 開始ページ | 到達物 |
         |---|---|---|
-        | 最初の GPU アプリ | [Graphics](story:Learn/Graphics/Overview) | standalone triangle |
-        | 実用 3D | Indexed Cube | indexed mesh + perspective camera |
-        | 2D canvas | [2D](story:Learn/Graphics/First2DScene) | 2D content を構築して描画できる |
-        | 複数pass GPU描画 | [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) | transient resource、自動barrier、culling、aliasing |
-        | 実装読解 | [Internal](story:Learn/Graphics/2D/Internal/Overview) | C# から compute pass まで説明できる |
+        | Galleryへサンプルを追加する | [最初のStory](story:Tutorials/FirstStory) | Sourceで読めるStory |
+        | Galleryライブラリを追加する | [Galleryライブラリ](story:Tutorials/GalleryLibrary) | ホストへ登録された独立カテゴリ |
+        | 最初のGPUアプリ | [Graphics](story:Learn/Graphics/Overview) | 三角形を描画するアプリ |
+        | 2Dキャンバス | [2D](story:Learn/Graphics/First2DScene) | 2Dコンテンツを構築して描画できる |
+        | 複数パスGPU描画 | [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) | 一時リソース、自動バリア、カリング、エイリアシング |
+        | 実装読解 | [2D Internal](story:Learn/Graphics/2D/Internal/Overview) | C#からcompute passまで説明できる |
 
-        初心者は Graphics 直下のページを順番に進めてください。各ページ末尾の「次」を辿れば前提を飛ばしません。
+        Luxelが初めてならTutorialsを先に進めてください。機能を探している場合はLearn、実装を調査する場合はInternalsへ直接進めます。
         """;
 
     [Story]
@@ -61,14 +62,17 @@ public static class StartStories
 
         {{Toc()}}
 
-        1. **Learn** で概念を順番に学ぶ
-        2. **Build** でコピー可能な block と recipe を探す
-        3. **Examples** で完成形を操作する
-        4. **Reference** で API を確認する
-        5. **Internals** で設計判断と実装を読む
+        1. **Tutorials**で一つの成果物を順番に作る
+        2. **Learn**で必要な概念を学ぶ
+        3. **Controls / Examples**で動作と使い方を確認する
+        4. **Reference**でAPIを確認する
+        5. **Internals**で設計判断と実装を読む
 
-        Native Gallery の preview、Knobs、Interactions は対話可能です。Static Gallery は画像ですが、同じ source bundle、依存、実行コマンドを表示します。
+        Native版とBlazor版では同じStoryを操作できます。プレビューの下にArgs、Output、Sourceが表示され、Storyが公開する引数、実行ログ、C#ソースを確認できます。
 
-        Source タブは `[Story]` メソッドだけの場合があります。**Run this sample** または Sample Bundle があるページをコピー元にしてください。
+        Sourceには`[Story]`属性、メソッド宣言、本体が表示されます。Story固有のコードを読む入口として使い、依存するヘルパーや型はリポジトリ内の同じGalleryライブラリから辿ってください。
+
+        > [!TIP]
+        > Gallery自体の追加方法は[Galleryの作り方](story:Tutorials/Overview)、Markdownの詳細な執筆規約は[Authoring reference](story:Internals/Authoring)にあります。
         """;
 }

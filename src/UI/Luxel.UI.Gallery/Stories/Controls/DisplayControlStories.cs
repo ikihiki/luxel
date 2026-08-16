@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 public static class DisplayControlStories
 {
     [Story]
-    public static Widget ImageViewBasic()
+    public static StoryResult ImageViewBasic()
     {
         // CPU の RGBA を SetPixels — 実体化前でも可 (pending 保持)。表示は widget サイズへ nearest 拡縮
         ImageView view = ImageView(192, 144);
@@ -35,7 +35,7 @@ public static class DisplayControlStories
     private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
     [Story]
-    public static Widget ImageBlockBasic(StoryContext ctx)
+    public static StoryResult ImageBlockBasic(StoryContext ctx)
     {
         // snap (1 フレーム描画) の決定性のため画像を同期 preload — 実アプリでは不要
         // (ImageBlock はロード完了をポーリングし実寸へ再実体化する)
@@ -46,7 +46,7 @@ public static class DisplayControlStories
     }
 
     [Story]
-    public static Widget TableBlockBasic(StoryContext ctx)
+    public static StoryResult TableBlockBasic(StoryContext ctx)
     {
         // GFM pipe table のブロック widget。セルをクリックして直接編集、Tab/Enter で移動、
         // 最下段 Enter で行追加 — 編集確定ごとに commit が呼ばれる
@@ -63,7 +63,7 @@ public static class DisplayControlStories
     }
 
     [Story]
-    public static Widget SurfaceViewBasic(StoryContext ctx)
+    public static StoryResult SurfaceViewBasic(StoryContext ctx)
     {
         // iframe 相当の埋め込みサーフェス — 子 RetainedCanvas + 子 UiHost + 専用 framebuffer。
         // フォーカス/オーバーレイ/状態は子側に閉じ、入力はローカル座標で転送される

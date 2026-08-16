@@ -70,7 +70,8 @@ public sealed class ComponentStoryGeneratorTests
                 public sealed class Signal<T> { public T Value => default!; }
                 public sealed class StoryContext { public Signal<T> Arg<T>(string name, T value, StoryArgOptions<T>? options = null) => new(); }
                 public sealed class StoryArgOptions<T> { public string? Description { get; init; } public int Order { get; init; } public double? Min { get; init; } public double? Max { get; init; } public double? Step { get; init; } }
-                public sealed record StoryInfo(string Path, Func<StoryContext, Widget> Build, string? Source = null, bool RealWindowOnly = false, System.Collections.Generic.IReadOnlyList<object>? ArgDefinitions = null);
+                public sealed class StoryResult { public static implicit operator StoryResult(Widget widget) => new(); }
+                public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Build, string? Source = null, bool RealWindowOnly = false, System.Collections.Generic.IReadOnlyList<object>? ArgDefinitions = null);
                 public sealed class StoryCatalog { public System.Collections.Generic.IReadOnlyList<StoryInfo> All => Array.Empty<StoryInfo>(); }
                 public sealed class StoryCatalogBuilder { public StoryCatalogBuilder Add(StoryInfo story) => this; public StoryCatalog Build() => new(); }
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }

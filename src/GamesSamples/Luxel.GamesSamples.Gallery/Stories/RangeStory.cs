@@ -30,7 +30,7 @@ public static class RangeStories
 {
     private const string FoxAssetUri = "tools/khronos-samples/Fox.glb";
     [Story]
-    public static Widget Range(StoryContext ctx)
+    public static StoryResult Range(StoryContext ctx)
         => ctx.Snap(VStack(8)[
             new StoryAppView<RangeScene>(RangeScene.W, RangeScene.H, (s, bctx) =>
                 s.AddSingleton<Action<string>>(ctx.Log)),

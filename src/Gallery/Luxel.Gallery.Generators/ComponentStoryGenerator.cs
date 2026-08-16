@@ -398,7 +398,7 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
     private static void EmitBuilder(StringBuilder source, StoryModel story, int index)
     {
         source.AppendLine();
-        source.Append("        private static global::Luxel.UI.Widget Build_").Append(index).AppendLine("(global::Luxel.Gallery.StoryContext ctx)");
+        source.Append("        private static global::Luxel.Gallery.StoryResult Build_").Append(index).AppendLine("(global::Luxel.Gallery.StoryContext ctx)");
         source.AppendLine("        {");
         for (int i = 0; i < story.Args.Count; i++)
         {

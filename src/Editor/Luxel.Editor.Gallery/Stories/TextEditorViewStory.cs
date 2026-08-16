@@ -15,7 +15,7 @@ namespace Luxel.Gallery.Stories;
 public static class TextEditorViewStory
 {
     [Story]
-    public static Widget Basic(StoryContext ctx)
+    public static StoryResult Basic(StoryContext ctx)
     {
         Signal<string> value = ctx.Signal("text",
             "新スタックのテキストエディタ。\nTransaction ベースで undo が正確、\nマルチカーソルが native。");
@@ -54,7 +54,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget Code(StoryContext ctx, ICodeLanguage lang)
+    public static StoryResult Code(StoryContext ctx, ICodeLanguage lang)
     {
         Signal<string> code = ctx.Signal("code",
             "// 新スタックのコードエディタ (プロバイダで色分け + 波線)\n" +
@@ -92,7 +92,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget Edit(StoryContext ctx)
+    public static StoryResult Edit(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "int foo = 1;\nint bar = foo + foo;\nreturn foo * bar;");
         TextEditorView ed = TextEditorView(code, editorHeight: 190f, editorWidth: 520f);
@@ -161,7 +161,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget Strudel(StoryContext ctx)
+    public static StoryResult Strudel(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "0.8 bd sd hh");     // "0.8"[0,3) bd[4,6) sd[7,9) hh[10,12)
         TextEditorView ed = TextEditorView(code, editorHeight: 90f, editorWidth: 420f);
@@ -193,7 +193,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget RichText(StoryContext ctx)
+    public static StoryResult RichText(StoryContext ctx)
     {
         // Markdown/リッチ文書の素地 (WS-A / ADR-0012、S(A1)): font-variant Mark で見出し/太字/小サイズを
         // 同一の行テキストモデルの上に描く — 表示は行に分解、装飾は push 型。
@@ -223,7 +223,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget Markdown(StoryContext ctx)
+    public static StoryResult Markdown(StoryContext ctx)
     {
         // read-only 文書レンダラの核 (WS-A / ADR-0012): MarkdownProvider が Markdown ソースを
         // font-variant Mark + Block/Line/LinePrefix 装飾に変換 → 同一の行テキストモデルの上に
@@ -262,7 +262,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget LivePreviewStory(StoryContext ctx)
+    public static StoryResult LivePreviewStory(StoryContext ctx)
     {
         // Live Preview 編集モード (WS-A / S(A4)): editable:true でキャレット行だけ記法マーカを raw で見せ、
         // 離れた行は整形表示 (Typora 風)。read-only の MarkdownDoc は全行マーカ非表示だった。
@@ -291,7 +291,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget MilkdownStyleEditor(StoryContext ctx)
+    public static StoryResult MilkdownStyleEditor(StoryContext ctx)
     {
         Signal<string> md = ctx.Signal("milkdown-md",
             "# Milkdown-style editor\n\n" +
@@ -351,7 +351,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget MarkdownDocStory(StoryContext ctx)
+    public static StoryResult MarkdownDocStory(StoryContext ctx)
     {
         // 文書レンダラを 1 ファクトリで (WS-A / ADR-0012、Kit.Docs() 差し替えの部品):
         // MarkdownDoc.Create が TextEditorView + MarkdownProvider を read-only + 折返しで束ねる。
@@ -380,7 +380,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget MarkdownFillStory(StoryContext ctx)
+    public static StoryResult MarkdownFillStory(StoryContext ctx)
     {
         // Fill モード (WS-A / ADR-0012、実 Docs ページ移行の前提):
         // fill:true で固定幅でなく「制約サイズいっぱい」に広がる = ペインに合わせて折返す文書ページ相当。
@@ -406,7 +406,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget DocBridge(StoryContext ctx)
+    public static StoryResult DocBridge(StoryContext ctx)
     {
         // 移行の本命 (WS-A / ADR-0012 S(A3)): 既存の Docs($"...{Widget}...") 記法 (DocString) を
         // そのまま MarkdownDoc.FromDoc で新スタック描画。既存 Docs ページを 1 行変更で移行できる。
@@ -440,7 +440,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget DocEmbeds(StoryContext ctx)
+    public static StoryResult DocEmbeds(StoryContext ctx)
     {
         // mermaid/数式アダプタ (WS-A / ADR-0012): ```embed mermaid|math フェンス本文を、既存の
         // Luxel.Diagram / Luxel.MathText を再利用して図/式 widget に解決 (自動高さで載る)。
@@ -477,7 +477,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget Embed(StoryContext ctx)
+    public static StoryResult Embed(StoryContext ctx)
     {
         // 埋め込みライブ UI (WS-A / ADR-0012、Kit.Docs() の目玉を新スタックで): ```embed <key> フェンス →
         // MarkdownProvider が自動高さ block widget を出し、WidgetResolver が key から実 Widget を解決する。
@@ -518,7 +518,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget BlockWidgetAuto(StoryContext ctx)
+    public static StoryResult BlockWidgetAuto(StoryContext ctx)
     {
         // ブロック widget 自動高さ (WS-A / ADR-0012): Height=0 は「宣言しない」= view が widget の自然高さを
         // 測って geometry に返し、その高さぶんを確保する (埋め込みライブ UI の前提)。範囲 [11,22) = 中間 1 行。
@@ -548,7 +548,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget BlockWidget(StoryContext ctx)
+    public static StoryResult BlockWidget(StoryContext ctx)
     {
         // 複数ソース行を占有するブロック widget (WS-A S(A2b) / ADR-0012): 表/図/数式/埋め込みの土台。
         // 範囲 [6,31) = 中間 2 ソース行を 80px の全幅パネルに置換 (先頭行=widget、残りは高さ0に畳む)。
@@ -577,7 +577,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget MultiCursor(StoryContext ctx)
+    public static StoryResult MultiCursor(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "foo = 1;\nfoo = 2;\nfoo = 3;");
         TextEditorView ed = TextEditorView(code, editorHeight: 170f, editorWidth: 460f);
@@ -633,7 +633,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget Completion(StoryContext ctx, ICodeLanguage lang)
+    public static StoryResult Completion(StoryContext ctx, ICodeLanguage lang)
     {
         Signal<string> code = ctx.Signal("code", "var s = \"hi\";\ns.");
         TextEditorView ed = TextEditorView(code, editorHeight: 240f, editorWidth: 560f);
@@ -698,7 +698,7 @@ public static class TextEditorViewStory
     }
 
     [Story]
-    public static Widget Widgets(StoryContext ctx)
+    public static StoryResult Widgets(StoryContext ctx)
     {
         Signal<string> value = ctx.Signal("text", "牛乳を買う ◯\n卵を買う ◯\nパンを買う ◯");
         TextEditorView ed = TextEditorView(value, editorHeight: 150f, editorWidth: 460f);
