@@ -23,6 +23,7 @@ public sealed class SilkWindowBackendTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public void X11LifecycleMultiWindowAndNormalizedInput()
     {
         Assert.False(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")),

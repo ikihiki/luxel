@@ -134,6 +134,7 @@ public sealed class LuxelAppTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public void LinuxX11_RendersOneActualUiFrame()
     {
         RequireLinuxDisplay();
@@ -150,6 +151,7 @@ public sealed class LuxelAppTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public void LinuxX11_StaticUiPresentsOnlyTheInvalidatedFrame()
     {
         RequireLinuxDisplay();
@@ -169,6 +171,7 @@ public sealed class LuxelAppTests
     }
 
     [Fact]
+    [Trait("Category", "Integration")]
     public void LinuxX11_WebGpuRendersOneActualUiFrame()
     {
         RequireLinuxDisplay();

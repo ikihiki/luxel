@@ -41,6 +41,7 @@ jobs:
       - name: Publish and run project/package Native AOT fixtures
         shell: bash
         run: |
+          # shellcheck disable=SC1090
           source "${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/environment"
           eng/desktop/healthcheck.sh
           rm -rf /tmp/luxel-aot-project

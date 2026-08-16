@@ -1,0 +1,65 @@
+name: Build Dev Container
+
+on:
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+      - '.github/workflows/publish-devcontainer.yml'
+      - 'eng/desktop/**'
+  push:
+    branches: [main]
+    paths:
+      - '.devcontainer/**'
+      - '.github/workflows/publish-devcontainer.yml'
+      - 'eng/desktop/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DEVCONTAINER_IMAGE: ghcr.io/ikihiki/luxel-devcontainer
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build pull request image
+        if: github.event_name == 'pull_request'
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ${{ env.DEVCONTAINER_IMAGE }}
+          cacheFrom: ${{ env.DEVCONTAINER_IMAGE }}
+          push: never
+          runCmd: >-
+            dotnet --info &&
+            node --version &&
+            pwsh --version &&
+            vulkaninfo --summary
+
+      - name: Build and publish prebuilt image
+        if: github.event_name != 'pull_request'
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ${{ env.DEVCONTAINER_IMAGE }}
+          imageTag: latest,${{ github.sha }}
+          cacheFrom: ${{ env.DEVCONTAINER_IMAGE }}
+          push: always
+          runCmd: >-
+            dotnet --info &&
+            node --version &&
+            pwsh --version &&
+            vulkaninfo --summary

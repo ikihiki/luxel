@@ -198,11 +198,15 @@ public sealed class WebScriptLanguageService : IDisposable
     private static int FindBodyStart(string generated, string fileName)
     {
         string escaped = fileName.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal);
-        string marker = "#line 1 \"" + escaped + "\"\n";
+        string marker = "#line 1 \"" + escaped + "\"";
         int markerStart = generated.IndexOf(marker, StringComparison.Ordinal);
         if (markerStart < 0)
             throw new InvalidOperationException("The generated Playground source is missing its source mapping marker.");
-        return markerStart + marker.Length;
+
+        int bodyStart = markerStart + marker.Length;
+        if (generated.AsSpan(bodyStart).StartsWith("\r\n", StringComparison.Ordinal)) return bodyStart + 2;
+        if (generated.AsSpan(bodyStart).StartsWith("\n", StringComparison.Ordinal)) return bodyStart + 1;
+        throw new InvalidOperationException("The generated Playground source mapping marker is not followed by a line break.");
     }
 
     public void Dispose() => _workspace.Dispose();

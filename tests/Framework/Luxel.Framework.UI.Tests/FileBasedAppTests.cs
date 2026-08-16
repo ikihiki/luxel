@@ -5,6 +5,7 @@ namespace Luxel.Framework.UI.Tests;
 public sealed class FileBasedAppTests
 {
     [Fact]
+    [Trait("Category", "Integration")]
     public void DotnetRunFile_WorksFromRepositoryAndForeignWorkingDirectory()
     {
         RequireLinuxDisplay();

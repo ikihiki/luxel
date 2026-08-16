@@ -23,11 +23,12 @@ export DEBIAN_FRONTEND=noninteractive
     xvfb openbox x11vnc novnc websockify \
     x11-utils x11-xserver-utils xauth xdotool scrot \
     dbus-x11 fonts-dejavu-core fonts-noto-cjk \
+    mesa-vulkan-drivers libvulkan1 vulkan-tools \
     pulseaudio pulseaudio-utils libopenal1 libopenal-dev \
     clang zlib1g-dev binutils file
 
 printf '%s\n' "Installed commands:"
-for command_name in Xvfb openbox x11vnc websockify xdpyinfo xwininfo xdotool scrot pactl parec pulseaudio; do
+for command_name in Xvfb openbox x11vnc websockify xdpyinfo xwininfo xdotool scrot pactl parec pulseaudio vulkaninfo vkcube; do
     printf '  %-12s %s\n' "${command_name}" "$(command -v "${command_name}" || echo missing)"
 done
 

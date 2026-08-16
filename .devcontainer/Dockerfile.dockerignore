@@ -1,0 +1,7 @@
+**
+!.devcontainer/
+!.devcontainer/Dockerfile
+!.devcontainer/Playwright.csproj
+!eng/
+!eng/desktop/
+!eng/desktop/**

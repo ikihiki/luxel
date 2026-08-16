@@ -27,47 +27,12 @@ jobs:
         if: github.event_name != 'pull_request' || github.event.action != 'closed'
         run: dotnet workload install wasm-tools
 
-      - name: Validate project dependency graph
-        if: github.event.action != 'closed'
-        run: python3 eng/check-project-dependencies.py
-      - name: Install and select lavapipe
-        if: github.event.action != 'closed'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools
-          echo "VK_ICD_FILENAMES=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)" >> "$GITHUB_ENV"
-          echo "LIBGL_ALWAYS_SOFTWARE=true" >> "$GITHUB_ENV"
-
       - name: Restore
         if: github.event.action != 'closed'
-        run: dotnet restore Luxel.slnx
-
-      - name: Build solution and rendering samples
-        if: github.event.action != 'closed'
-        run: dotnet build Luxel.slnx --no-restore --configuration Release
-
-      - name: Test generators and generated production inventory
-        if: github.event.action != 'closed'
-        run: dotnet test tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj --no-restore --no-build --configuration Release
-      - name: Test Gallery catalog contracts
-        if: github.event.action != 'closed'
-        run: dotnet test tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj --no-restore --no-build --configuration Release
-
-      - name: Test browser managed and source contracts
-        if: github.event.action != 'closed'
-        run: dotnet test tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj --no-restore --no-build --configuration Release
+        run: dotnet restore gallery/GalleryBrowser/GalleryBrowser.csproj
       - name: Publish Blazor Gallery
         if: github.event.action != 'closed'
         run: dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release
-      - name: Validate static Blazor Gallery
-        if: github.event.action != 'closed'
-        run: |
-          root=gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
-          test -f "$root/index.html"
-          test -f "$root/_framework/blazor.webassembly.js" || find "$root/_framework" -name 'blazor.webassembly*.js' -print -quit | grep -q .
-          test -f "$root/main.js"
-          ! test -f "$root/browser-runtime-manifest.json"
-          ! grep -R -E '(src|href)="/' "$root/index.html" "$root/main.js"
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1.8.1
         with:

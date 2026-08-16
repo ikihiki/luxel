@@ -235,3 +235,51 @@ openal_library_ready() {
     ldconfig -p 2>/dev/null | grep -F 'libopenal.so.1' >/dev/null || \
         find /usr/lib /lib -name 'libopenal.so.1' -print -quit 2>/dev/null | grep -q .
 }
+
+hardware_vulkan_device_index() {
+    local summary_file="$1"
+    local preferred_vendor="${LUXEL_VULKAN_VENDOR_ID:-}"
+    awk -F= -v preferred_vendor="${preferred_vendor,,}" '
+        /^GPU[0-9]+:/ {
+            gpu = $0
+            sub(/^GPU/, "", gpu)
+            sub(/:.*/, "", gpu)
+            type = ""
+            vendor = ""
+        }
+        /^[[:space:]]*vendorID[[:space:]]*=/ {
+            vendor = tolower($2)
+            gsub(/[[:space:]]/, "", vendor)
+        }
+        /^[[:space:]]*deviceType[[:space:]]*=/ {
+            type = $2
+        }
+        /^[[:space:]]*deviceName[[:space:]]*=/ {
+            name = tolower($2)
+            hardware = type !~ /PHYSICAL_DEVICE_TYPE_CPU/ && name !~ /(lavapipe|llvmpipe|swiftshader)/
+            vendor_matches = preferred_vendor == "" || vendor == preferred_vendor
+            if (hardware && vendor_matches) {
+                print gpu
+                exit
+            }
+        }
+    ' "${summary_file}"
+}
+
+vulkan_device_name() {
+    local summary_file="$1"
+    local target_index="$2"
+    awk -F= -v target="${target_index}" '
+        /^GPU[0-9]+:/ {
+            gpu = $0
+            sub(/^GPU/, "", gpu)
+            sub(/:.*/, "", gpu)
+        }
+        gpu == target && /^[[:space:]]*deviceName[[:space:]]*=/ {
+            name = $2
+            sub(/^[[:space:]]*/, "", name)
+            print name
+            exit
+        }
+    ' "${summary_file}"
+}
