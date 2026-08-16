@@ -218,6 +218,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
               .Append(", RealWindowOnly: ").Append(s.RealWindowOnly ? "true" : "false");
             if (s.SchemaMethod is not null) sb.Append(", ArgDefinitions: ").Append(s.SchemaMethod).Append("()");
             if (s.CapabilityNote is not null) sb.Append(", CapabilityNote: ").Append(Literal(s.CapabilityNote));
+            if (!IsPageNavigationCandidate(s.SourceFile)) sb.Append(", IncludeInPageNavigation: false");
             sb.AppendLine("));");
         }
         sb.AppendLine("        }");
@@ -227,6 +228,9 @@ public sealed class StoryGenerator : IIncrementalGenerator
     }
 
     private static string Literal(string s) => Microsoft.CodeAnalysis.CSharp.SymbolDisplay.FormatLiteral(s, true);
+
+    internal static bool IsPageNavigationCandidate(string sourceFile)
+        => !sourceFile.EndsWith(".Samples.cs", StringComparison.Ordinal);
 
     internal static string Sanitize(string s)
     {

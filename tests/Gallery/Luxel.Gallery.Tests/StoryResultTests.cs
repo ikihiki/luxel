@@ -124,4 +124,49 @@ public sealed class StoryResultTests
         Assert.NotNull(firstCatalog.Find("Test/One"));
         Assert.Null(secondCatalog.Find("Test/One"));
     }
+
+    [Fact]
+    public void Page_navigation_uses_catalog_order_within_the_same_group_and_skips_samples()
+    {
+        var builder = new StoryCatalogBuilder();
+        var overview = new StoryInfo("Tutorials/3DApp/Overview", _ => StoryResult.FromMarkdown("# Overview"));
+        var sample = new StoryInfo("Tutorials/3DApp/TriangleSample", _ => Luxel.Controls.Kit.Text("sample"),
+            IncludeInPageNavigation: false);
+        var firstFrame = new StoryInfo("Tutorials/3DApp/FirstFrame", _ => StoryResult.FromMarkdown("# First frame"));
+        var finish = new StoryInfo("Tutorials/3DApp/Finish", _ => StoryResult.FromMarkdown("# Finish"));
+        builder.Add(overview);
+        builder.Add(sample);
+        builder.Add(firstFrame);
+        builder.Add(finish);
+        builder.Add(new StoryInfo("Tutorials/UIApp/Overview", _ => StoryResult.FromMarkdown("# UI")));
+        StoryCatalog catalog = builder.Build();
+
+        StoryPageNavigation navigation = StoryPageNavigation.Resolve(catalog, firstFrame);
+
+        Assert.Equal(overview.Path, navigation.Previous?.Path);
+        Assert.Equal(finish.Path, navigation.Next?.Path);
+    }
+
+    [Fact]
+    public void Page_navigation_hides_missing_sides_and_is_empty_for_excluded_stories()
+    {
+        var builder = new StoryCatalogBuilder();
+        var first = new StoryInfo("Learn/Guide/First", _ => StoryResult.FromMarkdown("# First"));
+        var last = new StoryInfo("Learn/Guide/Last", _ => StoryResult.FromMarkdown("# Last"));
+        var sample = new StoryInfo("Learn/Guide/Sample", _ => Luxel.Controls.Kit.Text("sample"),
+            IncludeInPageNavigation: false);
+        builder.Add(first);
+        builder.Add(last);
+        builder.Add(sample);
+        StoryCatalog catalog = builder.Build();
+
+        StoryPageNavigation firstNavigation = StoryPageNavigation.Resolve(catalog, first);
+        StoryPageNavigation lastNavigation = StoryPageNavigation.Resolve(catalog, last);
+
+        Assert.Null(firstNavigation.Previous);
+        Assert.Equal(last.Path, firstNavigation.Next?.Path);
+        Assert.Equal(first.Path, lastNavigation.Previous?.Path);
+        Assert.Null(lastNavigation.Next);
+        Assert.True(StoryPageNavigation.Resolve(catalog, sample).IsEmpty);
+    }
 }

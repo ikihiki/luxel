@@ -478,7 +478,8 @@ public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Buil
                                IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null, string? CapabilityNote = null,
                                StoryRegistrationKind RegistrationKind = StoryRegistrationKind.Authored,
                                GeneratedComponentStoryDescriptor? ProductionComponent = null,
-                               StoryOwnership? Ownership = null)
+                               StoryOwnership? Ownership = null,
+                               bool IncludeInPageNavigation = true)
 {
     /// <summary>パスの先頭セグメント (章 — サイドバーのトップレベル)。</summary>
     public string Component => Path.IndexOf('/') is >= 0 and var i ? Path[..i] : Path;

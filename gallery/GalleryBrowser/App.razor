@@ -70,7 +70,26 @@ else
             }
             @if (_documentHtml is not null)
             {
-                <article class="markdown-document">@((MarkupString)_documentHtml)</article>
+                <article class="markdown-document">
+                    @((MarkupString)_documentHtml)
+                    @if (!_pageNavigation.IsEmpty)
+                    {
+                        <nav class="markdown-page-navigation" aria-label="ページナビゲーション">
+                            @if (_pageNavigation.Previous is { } previous)
+                            {
+                                <a class="previous" href="@StoryHref(previous.Path)">
+                                    <small>前へ</small><strong>← @previous.Name</strong>
+                                </a>
+                            }
+                            @if (_pageNavigation.Next is { } next)
+                            {
+                                <a class="next" href="@StoryHref(next.Path)">
+                                    <small>次へ</small><strong>@next.Name →</strong>
+                                </a>
+                            }
+                        </nav>
+                    }
+                </article>
             }
             else
             {
@@ -193,6 +212,7 @@ else
     private string _argsJson = "{}";
     private string _search = "";
     private string? _documentHtml;
+    private StoryPageNavigation _pageNavigation;
     private string _runtimeUrl = "";
     private string _runtimeInstance = "";
     private string _activeTab = "Args";
@@ -266,6 +286,7 @@ else
             ?? throw new InvalidOperationException($"Unknown browser story '{requested}'.");
         _argsJson = query.GetValueOrDefault("args") ?? "{}";
         _documentHtml = _embedded ? null : TryRenderDocument(_story, _argsJson);
+        _pageNavigation = _documentHtml is null ? default : StoryPageNavigation.Resolve(Catalog, _story);
         _argDefinitions = (_story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>())
             .OrderBy(definition => definition.Order).ThenBy(definition => definition.Name, StringComparer.Ordinal).ToArray();
         StoryArgs canonicalArgs = StoryArgs.Parse(_argsJson).WithDefaults(_argDefinitions);

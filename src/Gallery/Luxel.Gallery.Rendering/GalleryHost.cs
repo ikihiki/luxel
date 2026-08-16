@@ -211,7 +211,8 @@ public sealed class GalleryHost : IDisposable
         _ctx.SetNavigator(p => Commands.Enqueue("story.select", JsonSerializer.SerializeToElement(new { id = p })));
         StoryResult result = _story.Build(_ctx);
         _root = result.Kind == StoryResultKind.Markdown
-            ? StoryMarkdownRenderer.Build(_story, _ctx, result)
+            ? StoryMarkdownRenderer.Build(_story, _ctx, result,
+                _catalog is null ? default : StoryPageNavigation.Resolve(_catalog, _story))
             : result.Widget ?? throw new InvalidOperationException($"Story '{_story.Path}' returned an empty Widget result.");
         _host.SetRoot(_root);
         CreateRasterTarget();

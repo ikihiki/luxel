@@ -83,6 +83,22 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Samples_files_are_excluded_from_page_navigation()
+    {
+        GeneratorDriverRunResult page = Run("""
+            [Story]
+            public static StoryResult Overview() => new Widget();
+            """, sourceFile: "Tutorial3DApp.cs");
+        GeneratorDriverRunResult sample = Run("""
+            [Story]
+            public static StoryResult Triangle() => new Widget();
+            """, sourceFile: "Tutorial3DApp.Samples.cs");
+
+        Assert.DoesNotContain("IncludeInPageNavigation", Assert.Single(page.GeneratedTrees).ToString(), StringComparison.Ordinal);
+        Assert.Contains("IncludeInPageNavigation: false", Assert.Single(sample.GeneratedTrees).ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Runtime_descriptor_schema_is_emitted_without_building_the_story()
     {
         GeneratorDriverRunResult result = Run("""
@@ -155,7 +171,7 @@ public sealed class StoryGeneratorTests
         return literal.Token.ValueText;
     }
 
-    private static GeneratorDriverRunResult Run(string storyMethod, string title = "Demo")
+    private static GeneratorDriverRunResult Run(string storyMethod, string title = "Demo", string sourceFile = "Stories.cs")
     {
         string source = $$"""
             using System;
@@ -193,7 +209,7 @@ public sealed class StoryGeneratorTests
                 public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Build,
                     string? Source = null, bool RealWindowOnly = false,
                     System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
-                    string? CapabilityNote = null);
+                    string? CapabilityNote = null, bool IncludeInPageNavigation = true);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
             }
 
@@ -208,7 +224,7 @@ public sealed class StoryGeneratorTests
             """;
 
         CSharpParseOptions parseOptions = new(LanguageVersion.Preview);
-        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions);
+        SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(source, parseOptions, sourceFile);
         MetadataReference[] references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
             .Split(Path.PathSeparator).Select(path => MetadataReference.CreateFromFile(path)).ToArray();
         CSharpCompilation compilation = CSharpCompilation.Create("GeneratorTests", [syntaxTree], references,
