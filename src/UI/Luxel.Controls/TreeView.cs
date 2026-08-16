@@ -1,4 +1,6 @@
 ﻿using Luxel.UI;
+using Luxel.Graphics.TwoD;
+using Luxel.Typography.TwoD;
 using static Luxel.Controls.Kit;
 
 namespace Luxel.Controls;
@@ -11,6 +13,24 @@ public sealed record TreeNode(string Key, string Label, IReadOnlyList<TreeNode>?
 {
     public bool HasChildren => Children is { Count: > 0 };
 }
+
+/// <summary>TreeView の行レイアウトと配色をまとめて指定する外観設定。</summary>
+public sealed record TreeViewAppearance(
+    float RowHeight = 31,
+    float RowSpacing = 1,
+    float Indent = 16,
+    float PaddingX = 8,
+    float Radius = 6,
+    float FolderFontSize = 12,
+    float LeafFontSize = 13,
+    float ChevronSize = 10,
+    uint? FolderColor = null,
+    uint? LeafColor = null,
+    uint? HoverColor = null,
+    uint? SelectedColor = null,
+    uint? HoverBackground = null,
+    uint? SelectedBackground = null,
+    uint? ChevronColor = null);
 
 /// <summary>
 /// ツリービュー (展開/折りたたみ + 選択 + 絞り込み)。行 = インデント + シェブロン (子持ちのみ) + ラベル。
@@ -43,6 +63,9 @@ public sealed partial class TreeView : CompositeControl
     /// <summary>絞り込みクエリ (大小無視の部分一致)。signal を渡せばタイプ毎に TreeView だけ再構築される。</summary>
     [UiParam] private readonly BindableString _filter = new();
 
+    /// <summary>省略時は従来のコンパクト表示。指定時は行全体の hover/選択表示を使う。</summary>
+    [UiParam] private readonly Bindable<TreeViewAppearance> _appearance = new();
+
     private readonly Signal<int> _version = new(0);   // 開閉トグルで進める (TrackBuild が再構築)
     private ISet<string>? _ownExpanded;   // Expanded 未指定時の自前セット (遅延生成)
 
@@ -72,12 +95,15 @@ public sealed partial class TreeView : CompositeControl
         {
             Flatten(roots, ExpandedSet, 0, flat);
         }
+        TreeViewAppearance? appearance = Appearance.Get();
         var rows = new List<Widget>();
         foreach ((TreeNode n, int depth) in flat)
-            rows.Add(Row(n, depth, n.Key == sel, filtered: filter.Length > 0));
+            rows.Add(appearance is null
+                ? Row(n, depth, n.Key == sel, filtered: filter.Length > 0)
+                : StyledRow(n, depth, n.Key == sel, filtered: filter.Length > 0, appearance));
         if (rows.Count == 0)
             rows.Add(LinkText(null, "(該当なし)", margin: new Thickness(4, 2, 0, 0)));
-        return VStack(3)[rows.ToArray()];
+        return VStack(appearance?.RowSpacing ?? 3)[rows.ToArray()];
     }
 
     /// <summary>展開状態に従って可視行を列挙する (テスト用に分離)。</summary>
@@ -139,10 +165,117 @@ public sealed partial class TreeView : CompositeControl
             LinkText(onLabel, n.Label, active: selected)];
     }
 
+    private Widget StyledRow(TreeNode n, int depth, bool selected, bool filtered, TreeViewAppearance appearance)
+    {
+        bool open = filtered || ExpandedSet.Contains(n.Key);
+        Action activate = n.HasChildren && n.Tag is null
+            ? () => Toggle(n)
+            : () =>
+            {
+                if (n.HasChildren) Expand(n.Key);
+                OnSelect.Invoke(this, n);
+            };
+        return new TreeViewRow(n.Label, depth, n.HasChildren, open, selected, appearance,
+            activate, n.HasChildren ? () => Toggle(n) : null);
+    }
+
     private void Toggle(TreeNode n)
     {
         ISet<string> expanded = ExpandedSet;
         if (!expanded.Remove(n.Key)) expanded.Add(n.Key);
         _version.Value++;
+    }
+}
+
+/// <summary>背景を含む TreeView の一行。TreeViewAppearance 指定時だけ利用する。</summary>
+internal sealed class TreeViewRow(
+    string label,
+    int depth,
+    bool hasChildren,
+    bool open,
+    bool selected,
+    TreeViewAppearance appearance,
+    Action activate,
+    Action? toggle) : Widget
+{
+    public override string? DebugDetail => label;
+
+    protected override void PerformLayout(Constraints c, LayoutContext ctx)
+    {
+        float fontSize = hasChildren ? appearance.FolderFontSize : appearance.LeafFontSize;
+        float labelX = appearance.PaddingX + depth * appearance.Indent
+                     + (hasChildren ? appearance.ChevronSize + 7 : 0);
+        float intrinsic = labelX + ctx.Font.Measure(label, fontSize).width + appearance.PaddingX;
+        float width = float.IsFinite(c.MaxW) ? c.MaxW : intrinsic;
+        Size = c.Constrain(new Size(width, appearance.RowHeight));
+    }
+
+    public override float MaxIntrinsicWidth(float height, LayoutContext ctx)
+    {
+        float fontSize = hasChildren ? appearance.FolderFontSize : appearance.LeafFontSize;
+        float prefix = appearance.PaddingX + depth * appearance.Indent
+                     + (hasChildren ? appearance.ChevronSize + 7 : 0);
+        return prefix + ctx.Font.Measure(label, fontSize).width + appearance.PaddingX;
+    }
+
+    protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
+    {
+        UiNode node = CreateRoot(ctx, parent, worldOrigin);
+
+        UiNode background = ctx.Canvas.AddChild(node);
+        var backgroundScene = new Scene2D();
+        backgroundScene.FillRoundedRect(Color2D.White, 0, 0, Size.Width, appearance.RowHeight, appearance.Radius);
+        background.Content = backgroundScene;
+
+        float fontSize = hasChildren ? appearance.FolderFontSize : appearance.LeafFontSize;
+        float baseX = appearance.PaddingX + depth * appearance.Indent;
+        float labelX = baseX + (hasChildren ? appearance.ChevronSize + 7 : 0);
+        float textHeight = ctx.Font.Measure("Mg", fontSize).height;
+        float baseline = (appearance.RowHeight - textHeight) / 2 + ctx.Font.Ascent(fontSize);
+
+        UiNode text = ctx.Canvas.AddChild(node);
+        text.Z = 1;
+        var textScene = new Scene2D();
+        ctx.Font.AppendText(textScene, label, labelX, baseline, fontSize, Color2D.White);
+        text.Content = textScene;
+
+        UiNode? chevron = null;
+        if (hasChildren)
+        {
+            chevron = ctx.Canvas.AddChild(node);
+            chevron.Z = 1;
+            var iconScene = new Scene2D();
+            Icon.Draw(iconScene, open ? IconKind.ChevronDown : IconKind.ChevronRight,
+                appearance.ChevronSize, 1.5f);
+            chevron.Content = iconScene;
+            chevron.Transform = Affine2D.Translate(baseX,
+                (appearance.RowHeight - appearance.ChevronSize) / 2);
+        }
+
+        ctx.Effect(() =>
+        {
+            Theme theme = ctx.Theme.Value;
+            bool hovered = Hovered.Value;
+            uint normalText = hasChildren
+                ? appearance.FolderColor ?? theme.TextMuted
+                : appearance.LeafColor ?? theme.Text;
+            text.Color = selected
+                ? appearance.SelectedColor ?? theme.Primary
+                : hovered ? appearance.HoverColor ?? theme.Text : normalText;
+            background.Color = selected
+                ? appearance.SelectedBackground ?? theme.SurfaceAlt
+                : hovered ? appearance.HoverBackground ?? theme.SurfaceAlt : 0x00000000u;
+            if (chevron is not null)
+                chevron.Color = appearance.ChevronColor ?? theme.TextMuted;
+        });
+
+        ctx.AddHit(node, new Rect(0, 0, Size.Width, appearance.RowHeight),
+            onClick: activate, onHover: h => Hovered.Value = h, cursor: CursorKind.Hand);
+        if (hasChildren && toggle is not null)
+        {
+            float hitX = MathF.Max(0, baseX - 3);
+            ctx.AddHit(node, new Rect(hitX, 0, appearance.ChevronSize + 6, appearance.RowHeight),
+                onClick: toggle, onHover: h => Hovered.Value = h, cursor: CursorKind.Hand);
+        }
     }
 }

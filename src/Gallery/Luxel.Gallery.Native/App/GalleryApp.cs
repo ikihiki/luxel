@@ -381,7 +381,15 @@ public sealed class GalleryApp : IDisposable
                         doc.ScrollToSource(block);   // block = 見出しのソースオフセット
                 }
             },
-            selected: _currentPath ?? "", filter: _search);
+            selected: _currentPath ?? "", filter: _search,
+            appearance: new TreeViewAppearance(
+                FolderColor: GalleryChromeTheme.TreeFolder,
+                LeafColor: GalleryChromeTheme.TreeLeaf,
+                HoverColor: GalleryChromeTheme.TreeHoverText,
+                SelectedColor: GalleryChromeTheme.TreeSelectedText,
+                HoverBackground: GalleryChromeTheme.TreeHover,
+                SelectedBackground: GalleryChromeTheme.AccentSoft,
+                ChevronColor: GalleryChromeTheme.TreeChevron));
         // Blazor 版と同じ検索 chrome。
         _searchField ??= TextField(_search, "Storyを検索", width: _sidebarW - 28,
             background: GalleryChromeTheme.Search, fontSize: 13)[
