@@ -190,14 +190,29 @@ public sealed unsafe class D3D12Backend : IGpuBackend
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
         };
 
-        var resDesc = ResourceDescription.Buffer(size, ResourceFlags.AllowUnorderedAccess);
+        bool isReadback = kind == GpuMemoryKind.HostCached;
+        ResourceFlags resourceFlags = isReadback
+            ? ResourceFlags.None
+            : ResourceFlags.AllowUnorderedAccess;
+        ResourceStates initialState = isReadback
+            ? ResourceStates.CopyDest
+            : ResourceStates.Common;
+        var resDesc = ResourceDescription.Buffer(size, resourceFlags);
         ID3D12Resource resource = _device.CreateCommittedResource(
-            new HeapProperties(heapType), HeapFlags.None, resDesc, ResourceStates.Common);
+            new HeapProperties(heapType), HeapFlags.None, resDesc, initialState);
 
         // CPU マップ (host-visible なヒープのみ)。バッファは COMMON から暗黙昇格する。
         void* mapped = null;
         bool hostVisible = heapType is HeapType.GpuUpload or HeapType.Upload or HeapType.Readback;
         if (hostVisible) mapped = resource.Map<byte>(0);
+
+        // Readback heaps can only be copy destinations and cannot expose a UAV.
+        // They are CPU-only staging resources, so they do not need a bindless slot.
+        if (isReadback)
+        {
+            return new D3D12Buffer(resource, size, resource.GPUVirtualAddress,
+                uint.MaxValue, mapped, kind, static () => { });
+        }
 
         // raw UAV を bindless ヒープに登録。
         uint index;
@@ -237,7 +252,7 @@ public sealed unsafe class D3D12Backend : IGpuBackend
             throw;
         }
 
-        return new D3D12Buffer(resource, size, resource.GPUVirtualAddress, index, mapped,
+        return new D3D12Buffer(resource, size, resource.GPUVirtualAddress, index, mapped, kind,
             () => _resourceSlots.Free(index));
     }
 

@@ -1400,6 +1400,10 @@ public sealed partial class TextEditorView : Widget, ITextInput, ISemanticDocume
         _widgets.Clear();
     }
 
+    /// <summary>Markdown内に実体化した埋め込みWidgetもDevToolsのUI Treeへ公開する。</summary>
+    public override IEnumerable<Widget> DebugChildren()
+        => _widgets.Values.Select(static hosted => hosted.Widget);
+
     private void DisposeHosted(Hosted h)
     {
         h.Widget.Scope?.Release();

@@ -23,7 +23,8 @@ struct Path { uint segStart, segCount, transformSlot, styleSlot;
               float bminx, bminy, bmaxx, bmaxy;
               float strokeHalfWidth; uint srcStride, srcW, srcH, srcX, srcY; };   // 72B
 struct Tf { float a, b, c, d, e, f; uint p0, p1; };
-struct Cl { float minx, miny, maxx, maxy; };
+struct Cl { float minx, miny, maxx, maxy;
+            float radiusX, radiusY; uint corners, parentSlot; };   // 32B
 
 float2 affine(float a, float b, float c, float d, float e, float f, float2 p)
 {
@@ -48,14 +49,17 @@ void main(uint3 tid : SV_DispatchThreadID)
     Tf tf = g_buffers[args.transformIndex].Load<Tf>(path.transformSlot * 32);
 
     float2 clo = float2(-1e30, -1e30), chi = float2(1e30, 1e30);
-    if (path.clipSlot != 0xFFFFFFFFu)
+    uint clipSlot = path.clipSlot;
+    for (uint depth = 0; clipSlot != 0xFFFFFFFFu && depth < 64; depth++)
     {
-        Cl cl = g_buffers[args.clipIndex].Load<Cl>(path.clipSlot * 16);
+        Cl cl = g_buffers[args.clipIndex].Load<Cl>(clipSlot * 32);
         float2 k0 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.minx, cl.miny));
         float2 k1 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.maxx, cl.miny));
         float2 k2 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.minx, cl.maxy));
         float2 k3 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.maxx, cl.maxy));
-        clo = min(min(k0, k1), min(k2, k3)); chi = max(max(k0, k1), max(k2, k3));
+        clo = max(clo, min(min(k0, k1), min(k2, k3)));
+        chi = min(chi, max(max(k0, k1), max(k2, k3)));
+        clipSlot = cl.parentSlot;
     }
 
     float2 q0 = toScreen(float2(path.bminx, path.bminy), tf);

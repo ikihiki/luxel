@@ -37,9 +37,8 @@ public sealed class GalleryApp : IDisposable
         ?? throw new InvalidOperationException("Gallery GPU resources have not been configured.");
     private GallerySlangCompilation? _slangCompilation;
     private (GpuDevice Device, Luxel.Typography.VectorFont Font)? _hostGpu;
-    // Log は ListView — 追記時は items signal へ流す (行ノードの差し替えのみ、chrome の SetRoot 不要)
-    private readonly Signal<IReadOnlyList<string>> _logItems = new([]);
-    private readonly Signal<int> _logCountSig = new(0);
+    // Log は構造化 entry を signal へ流す (行ノードの差し替えのみ、chrome の SetRoot 不要)
+    private readonly Signal<IReadOnlyList<StoryLogEntry>> _logEntries = new([]);
     private int _logCount = -1;
 
     // ペイン寸法 (Splitter ドラッグで変更 → chrome 再構築)
@@ -185,19 +184,8 @@ public sealed class GalleryApp : IDisposable
         if (count != _logCount)
         {
             _logCount = count;
-            _logCountSig.Value = count;
-            _logItems.Value = LogLines();
+            _logEntries.Value = _ctx?.LogSnapshot() ?? [];
         }
-    }
-
-    /// <summary>ログ行 (全件、新しい順)。</summary>
-    private string[] LogLines()
-    {
-        StoryLogEntry[] entries = _ctx?.LogSnapshot() ?? [];
-        var lines = new string[entries.Length];
-        for (int i = 0; i < entries.Length; i++)
-            lines[i] = $"{entries[^(i + 1)].Time}  {entries[^(i + 1)].Message}";
-        return lines;
     }
 
     /// <summary>ギャラリー chrome のルート widget を構築する (初回 + ストーリー選択/ペインリサイズ時)。</summary>
@@ -463,10 +451,9 @@ public sealed class GalleryApp : IDisposable
     {
         float paneW = MathF.Max(140, MainW());
         float innerH = BottomInnerH();
-        _logItems.Value = LogLines();
-        return BottomPanel(VStack(2)[
-            Text($"({_logCountSig})", 11, color: Bind.From(() => UiTheme.T.TextMuted)),
-            ListView(MathF.Max(24, innerH - 16), 16f, items: _logItems, width: MathF.Max(120, paneW - 40))]);
+        _logEntries.Value = _ctx?.LogSnapshot() ?? [];
+        return BottomPanel(Scroll(innerH, width: paneW - 32)[
+            new GalleryOutputPane(_logEntries, MathF.Max(120, paneW - 48))]);
     }
 
     private Widget BuildKnobsPane()
@@ -475,6 +462,12 @@ public sealed class GalleryApp : IDisposable
         float paneW = MathF.Max(140, MainW());
         return BottomPanel(Scroll(BottomInnerH(), width: paneW - 32)[
             global::Luxel.Gallery.UI.Kit.KnobsTable(_ctx?.Knobs ?? [], width: paneW - 48,
+                appearance: new global::Luxel.Gallery.UI.KnobsTableAppearance(
+                    BorderColor: GalleryChromeTheme.Border,
+                    RowBackground: GalleryChromeTheme.Panel,
+                    NameColor: GalleryChromeTheme.TreeHoverText,
+                    TypeColor: GalleryChromeTheme.TreeChevron,
+                    DescriptionColor: GalleryChromeTheme.TreeFolder),
                 onEdit: (_, k, v) => _ctx?.QueueKnobEdit(k, v))]);
     }
 
@@ -538,7 +531,14 @@ public sealed class GalleryApp : IDisposable
     }
 
     private Widget BuildSourcePane()
-        => BottomPanel(BuildStorySourcePane(_currentStory, MathF.Max(140, MainW()) - 32, BottomInnerH()));
+    {
+        float width = MathF.Max(140, MainW()) - 32;
+        float height = BottomInnerH();
+        return BottomPanel(Border(background: GalleryChromeTheme.Border, padding: new Thickness(1),
+            rounded: 7, clip: true, width: width, height: height)[
+                Border(background: GalleryChromeTheme.PanelCode, width: width - 2, height: height - 2)[
+                    BuildStorySourcePane(_currentStory, width - 2, height - 2)]]);
+    }
 
     private static Widget BuildStorySourcePane(StoryInfo? story, float width = 640f, float height = 240f)
         => GalleryStorySourcePane.Build(story, width, height);

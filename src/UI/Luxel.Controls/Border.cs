@@ -23,6 +23,8 @@ public sealed partial class Border : Widget
     [UiParam] private readonly Bindable<float> _scale = 1f;
     /// <summary>角丸半径 (px)。</summary>
     [UiParam] private readonly Bindable<float> _rounded = new();
+    /// <summary>丸める角。接続されたパネルでは外周側の角だけを選べる。</summary>
+    [UiParam] private readonly Bindable<RectCorners> _corners = RectCorners.All;
     [UiParam] private readonly Bindable<Thickness> _padding = new();
 
     /// <summary>子要素の宣言: <c>Border(...) [ child ]</c>。</summary>
@@ -76,10 +78,10 @@ public sealed partial class Border : Widget
 
         var s = new Scene2D();
         float r = Rounded.Get();
-        if (r > 0) s.FillRoundedRect(Color2D.White, 0, 0, Size.Width, Size.Height, r);
+        if (r > 0) s.FillRoundedRect(Color2D.White, 0, 0, Size.Width, Size.Height, r, Corners.Get());
         else s.FillRect(Color2D.White, 0, 0, Size.Width, Size.Height);
         node.Content = s;
-        if (Clip.Get()) node.Clip = new RectClip(0, 0, Size.Width, Size.Height);
+        if (Clip.Get()) node.Clip = new RectClip(0, 0, Size.Width, Size.Height, r, Corners.Get());
 
         // 配色: 状態変化 (signal) / テーマ変化で recolor を部分更新。
         // transform 成分 (TF) は CreateRoot が配線済み、一様 Scale はその handle へ合成。

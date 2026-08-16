@@ -11,7 +11,7 @@ namespace Luxel.Graphics.TwoD.Skia;
 /// ヘッドレスの <c>new RetainedCanvas()</c> と組み合わせると GpuDevice が一切要らない。
 ///
 /// 意味論は GPU 側に合わせる: 描画順 = pre-order + Z 昇順、ノード色 (パスは白描き + Color が実色、
-/// AbsoluteColor/ContentColors シェイプは自色)、実効 opacity = 親 × 自分、クリップ = 祖先 AABB 交差、
+/// AbsoluteColor/ContentColors シェイプは自色)、実効 opacity = 親 × 自分、クリップ = 祖先の角丸矩形の交差、
 /// ストローク幅 = 画面ピクセル (カメラで太らない)。
 /// 出力は GPU と同じ RGBA8 (R が下位バイト)。**AA の実装が違う** (GPU = 4x4 SS / Skia = 解析的) ため
 /// エッジ画素は一致しない — 検証は形状内部の色・構造・レイアウトで行うこと。
@@ -25,7 +25,7 @@ public static class SkiaRenderer
     public static byte[] RenderRgba(RetainedCanvas canvas, Camera2D camera, int width, int height,
         bool transparent = false)
         => Draw(width, height, transparent, c => DrawNode(c, canvas.Root, camera,
-            Affine2D.Identity, 1f, null));
+            Affine2D.Identity, 1f));
 
     /// <summary>即時シーンを CPU でラスタライズして RGBA8 を返す。GPU の即時モード
     /// (<c>GpuDeviceRasterizer2D.Encode</c> + <c>Render</c>) に相当 — シェイプは自色で描く。</summary>
@@ -64,37 +64,50 @@ public static class SkiaRenderer
     }
 
     private static void DrawNode(SKCanvas c, UiNode n, in Camera2D cam,
-        Affine2D parentWorld, float parentOpacity, SKRect? parentClip)
+        Affine2D parentWorld, float parentOpacity)
     {
         if (!n.Visible) return;   // サブツリーごと除外 (BuildOrder と同じ)
         Affine2D world = Affine2D.Mul(parentWorld, n.Transform);
         float opacity = parentOpacity * n.Opacity;
 
-        // クリップ: 祖先 AABB の交差 (RetainedCanvas.ResolveClip と同じ軸並行前提)
-        SKRect? clip = parentClip;
+        // Save/Restore をノードのサブツリー全体へ適用することで、祖先の角丸クリップを
+        // 平たい AABB に潰さず、GPU の ParentSlot 連鎖と同じ交差を表現する。
+        int subtreeSave = c.Save();
         if (n.Clip is RectClip rc)
         {
             SKRect r = ScreenAabb(rc, world, cam);
-            clip = clip is SKRect pc ? SKRect.Intersect(pc, r) : r;
+            float radius = MathF.Min(MathF.Max(0, rc.Radius), MathF.Min(rc.W, rc.H) * 0.5f);
+            if (radius > 0 && rc.Corners != RectCorners.None)
+            {
+                (float rx, float ry) = ScreenRadii(radius, world, cam, r);
+                SKPoint Rounded(RectCorners corner) => (rc.Corners & corner) != 0
+                    ? new SKPoint(rx, ry) : SKPoint.Empty;
+                using var rr = new SKRoundRect();
+                rr.SetRectRadii(r,
+                [
+                    Rounded(RectCorners.TopLeft), Rounded(RectCorners.TopRight),
+                    Rounded(RectCorners.BottomRight), Rounded(RectCorners.BottomLeft),
+                ]);
+                c.ClipRoundRect(rr, SKClipOperation.Intersect, antialias: true);
+            }
+            else c.ClipRect(r, SKClipOperation.Intersect, antialias: false);
         }
 
         if (n.Content is Scene2D scene && scene.Shapes.Count > 0)
         {
-            int save = c.Save();
-            if (clip is SKRect cr) c.ClipRect(cr, SKClipOperation.Intersect, antialias: false);
             foreach (Scene2D.Shape shape in scene.Shapes)
             {
                 // 1 ノード 1 色: パスは白描き + ノード Color が実色。AbsoluteColor/ContentColors は自色
                 bool abs = n.ContentColors || shape.AbsoluteColor;
                 DrawShape(c, shape, cam, world, abs ? shape.Color : n.Color, opacity);
             }
-            c.RestoreToCount(save);
         }
 
         // 描画順 = pre-order + Z 昇順 (RetainedCanvas.SortedChildren と同じ)
         IEnumerable<UiNode> children = n.Children.Count <= 1 ? n.Children : n.Children.OrderBy(x => x.Z);
         foreach (UiNode child in children)
-            DrawNode(c, child, cam, world, opacity, clip);
+            DrawNode(c, child, cam, world, opacity);
+        c.RestoreToCount(subtreeSave);
     }
 
     private static void DrawShape(SKCanvas c, Scene2D.Shape shape, in Camera2D cam, in Affine2D world,
@@ -159,5 +172,17 @@ public static class SkiaRenderer
             maxx = MathF.Max(maxx, pts[i].X); maxy = MathF.Max(maxy, pts[i].Y);
         }
         return new SKRect(minx, miny, maxx, maxy);
+    }
+
+    private static (float rx, float ry) ScreenRadii(float radius, in Affine2D world,
+        in Camera2D cam, in SKRect rect)
+    {
+        float ax = cam.A * world.A + cam.C * world.B;
+        float ay = cam.B * world.A + cam.D * world.B;
+        float bx = cam.A * world.C + cam.C * world.D;
+        float by = cam.B * world.C + cam.D * world.D;
+        float rx = MathF.Min(radius * MathF.Sqrt(ax * ax + ay * ay), rect.Width * 0.5f);
+        float ry = MathF.Min(radius * MathF.Sqrt(bx * bx + by * by), rect.Height * 0.5f);
+        return (rx, ry);
     }
 }

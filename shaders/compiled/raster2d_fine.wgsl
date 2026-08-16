@@ -35,6 +35,227 @@ fn affine_0( a_1 : f32,  b_1 : f32,  c_1 : f32,  d_1 : f32,  e_1 : f32,  f_1 : f
     return vec2<f32>(a_1 * _S1 + c_1 * _S2 + e_1, b_1 * _S1 + d_1 * _S2 + f_1);
 }
 
+struct Cl_0
+{
+     minx_0 : f32,
+     miny_0 : f32,
+     maxx_0 : f32,
+     maxy_0 : f32,
+     radiusX_0 : f32,
+     radiusY_0 : f32,
+     corners_0 : u32,
+     parentSlot_0 : u32,
+};
+
+fn insideRoundedClip_0( p_1 : vec2<f32>,  cl_0 : Cl_0) -> bool
+{
+    var k0_0 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(cl_0.minx_0, cl_0.miny_0));
+    var k1_0 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(cl_0.maxx_0, cl_0.miny_0));
+    var k2_0 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(cl_0.minx_0, cl_0.maxy_0));
+    var k3_0 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(cl_0.maxx_0, cl_0.maxy_0));
+    var lo_0 : vec2<f32> = min(min(k0_0, k1_0), min(k2_0, k3_0));
+    var hi_0 : vec2<f32> = max(max(k0_0, k1_0), max(k2_0, k3_0));
+    var _S3 : f32 = p_1.x;
+    var _S4 : f32 = lo_0.x;
+    var _S5 : bool;
+    if(_S3 < _S4)
+    {
+        _S5 = true;
+    }
+    else
+    {
+        _S5 = _S3 > (hi_0.x);
+    }
+    if(_S5)
+    {
+        _S5 = true;
+    }
+    else
+    {
+        _S5 = (p_1.y) < (lo_0.y);
+    }
+    if(_S5)
+    {
+        _S5 = true;
+    }
+    else
+    {
+        _S5 = (p_1.y) > (hi_0.y);
+    }
+    if(_S5)
+    {
+        return false;
+    }
+    var radius_0 : vec2<f32> = min(vec2<f32>(cl_0.radiusX_0 * length(vec2<f32>(args_0.a_0, args_0.b_0)), cl_0.radiusY_0 * length(vec2<f32>(args_0.c_0, args_0.d_0))), (hi_0 - lo_0) * vec2<f32>(0.5f));
+    if((cl_0.corners_0) == u32(0))
+    {
+        _S5 = true;
+    }
+    else
+    {
+        _S5 = (radius_0.x) <= 0.0f;
+    }
+    if(_S5)
+    {
+        _S5 = true;
+    }
+    else
+    {
+        _S5 = (radius_0.y) <= 0.0f;
+    }
+    if(_S5)
+    {
+        return true;
+    }
+    if((((cl_0.corners_0) & (u32(1)))) != u32(0))
+    {
+        _S5 = _S3 < (_S4 + radius_0.x);
+    }
+    else
+    {
+        _S5 = false;
+    }
+    if(_S5)
+    {
+        _S5 = (p_1.y) < (lo_0.y + radius_0.y);
+    }
+    else
+    {
+        _S5 = false;
+    }
+    var q_0 : vec2<f32>;
+    if(_S5)
+    {
+        q_0 = (p_1 - (lo_0 + radius_0)) / radius_0;
+    }
+    else
+    {
+        if((((cl_0.corners_0) & (u32(2)))) != u32(0))
+        {
+            _S5 = _S3 > (hi_0.x - radius_0.x);
+        }
+        else
+        {
+            _S5 = false;
+        }
+        if(_S5)
+        {
+            _S5 = (p_1.y) < (lo_0.y + radius_0.y);
+        }
+        else
+        {
+            _S5 = false;
+        }
+        if(_S5)
+        {
+            q_0 = (p_1 - vec2<f32>(hi_0.x - radius_0.x, lo_0.y + radius_0.y)) / radius_0;
+        }
+        else
+        {
+            if((((cl_0.corners_0) & (u32(4)))) != u32(0))
+            {
+                _S5 = _S3 > (hi_0.x - radius_0.x);
+            }
+            else
+            {
+                _S5 = false;
+            }
+            if(_S5)
+            {
+                _S5 = (p_1.y) > (hi_0.y - radius_0.y);
+            }
+            else
+            {
+                _S5 = false;
+            }
+            if(_S5)
+            {
+                q_0 = (p_1 - (hi_0 - radius_0)) / radius_0;
+            }
+            else
+            {
+                if((((cl_0.corners_0) & (u32(8)))) != u32(0))
+                {
+                    _S5 = _S3 < (_S4 + radius_0.x);
+                }
+                else
+                {
+                    _S5 = false;
+                }
+                if(_S5)
+                {
+                    _S5 = (p_1.y) > (hi_0.y - radius_0.y);
+                }
+                else
+                {
+                    _S5 = false;
+                }
+                var _S6 : vec2<f32>;
+                if(_S5)
+                {
+                    _S6 = (p_1 - vec2<f32>(_S4 + radius_0.x, hi_0.y - radius_0.y)) / radius_0;
+                }
+                else
+                {
+                    return true;
+                }
+                q_0 = _S6;
+            }
+        }
+    }
+    return (dot(q_0, q_0)) <= 1.0f;
+}
+
+fn insideAllClips_0( p_2 : vec2<f32>,  clipSlot_0 : u32) -> bool
+{
+    var _S7 : u32 = clipSlot_0;
+    var depth_0 : u32 = u32(0);
+    for(;;)
+    {
+        var _S8 : bool;
+        if(_S7 != u32(4294967295))
+        {
+            _S8 = depth_0 < u32(64);
+        }
+        else
+        {
+            _S8 = false;
+        }
+        if(_S8)
+        {
+        }
+        else
+        {
+            break;
+        }
+        var _S9 : u32 = args_0.clipIndex_0;
+        var _S10 : u32 = _S7 * u32(32);
+        var _S11 : u32 = g_buffers_0[(((args_0.clipIndex_0) * 64u) + ((_S10)/4))];
+        var _S12 : f32 = bitcast<f32>(_S11);
+        var _S13 : u32 = g_buffers_0[(((_S9) * 64u) + ((_S10 + u32(4))/4))];
+        var _S14 : f32 = bitcast<f32>(_S13);
+        var _S15 : u32 = g_buffers_0[(((_S9) * 64u) + ((_S10 + u32(8))/4))];
+        var _S16 : f32 = bitcast<f32>(_S15);
+        var _S17 : u32 = g_buffers_0[(((_S9) * 64u) + ((_S10 + u32(12))/4))];
+        var _S18 : f32 = bitcast<f32>(_S17);
+        var _S19 : u32 = g_buffers_0[(((_S9) * 64u) + ((_S10 + u32(16))/4))];
+        var _S20 : f32 = bitcast<f32>(_S19);
+        var _S21 : u32 = g_buffers_0[(((_S9) * 64u) + ((_S10 + u32(20))/4))];
+        var _S22 : f32 = bitcast<f32>(_S21);
+        var _S23 : u32 = g_buffers_0[(((_S9) * 64u) + ((_S10 + u32(24))/4))];
+        var _S24 : u32 = g_buffers_0[(((_S9) * 64u) + ((_S10 + u32(28))/4))];
+        var _S25 : Cl_0 = Cl_0( _S12, _S14, _S16, _S18, _S20, _S22, _S23, _S24 );
+        if(!insideRoundedClip_0(p_2, _S25))
+        {
+            return false;
+        }
+        var _S26 : u32 = depth_0 + u32(1);
+        _S7 = _S24;
+        depth_0 = _S26;
+    }
+    return true;
+}
+
 struct Tf_0
 {
      a_2 : f32,
@@ -52,9 +273,9 @@ fn toScreen_0( w_0 : vec2<f32>,  tf_0 : Tf_0) -> vec2<f32>
     return affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, affine_0(tf_0.a_2, tf_0.b_2, tf_0.c_2, tf_0.d_2, tf_0.e_2, tf_0.f_2, w_0));
 }
 
-fn distSeg_0( p_1 : vec2<f32>,  a_3 : vec2<f32>,  b_3 : vec2<f32>) -> f32
+fn distSeg_0( p_3 : vec2<f32>,  a_3 : vec2<f32>,  b_3 : vec2<f32>) -> f32
 {
-    var pa_0 : vec2<f32> = p_1 - a_3;
+    var pa_0 : vec2<f32> = p_3 - a_3;
     var ba_0 : vec2<f32> = b_3 - a_3;
     return length(pa_0 - ba_0 * vec2<f32>(saturate(dot(pa_0, ba_0) / max(dot(ba_0, ba_0), 9.99999997475242708e-07f))));
 }
@@ -78,40 +299,41 @@ fn packRgba_0( c_4 : vec4<f32>) -> u32
 @workgroup_size(8, 8, 1)
 fn main(@builtin(global_invocation_id) tid_0 : vec3<u32>)
 {
-    var _S3 : u32 = tid_0.x;
-    var _S4 : bool;
-    if(_S3 >= (args_0.width_0))
+    var wind_0 : i32;
+    var _S27 : u32 = tid_0.x;
+    var hasRounded_0 : bool;
+    if(_S27 >= (args_0.width_0))
     {
-        _S4 = true;
+        hasRounded_0 = true;
     }
     else
     {
-        _S4 = (tid_0.y) >= (args_0.height_0);
+        hasRounded_0 = (tid_0.y) >= (args_0.height_0);
     }
-    if(_S4)
+    if(hasRounded_0)
     {
         return;
     }
-    var _S5 : f32 = f32(_S3);
-    var _S6 : f32 = _S5 + 0.5f;
-    var _S7 : u32 = tid_0.y;
-    var _S8 : f32 = f32(_S7);
-    var _S9 : f32 = _S8 + 0.5f;
-    var _S10 : vec2<f32> = vec2<f32>(_S6, _S9);
-    let _S11 : vec4<f32> = vec4<f32>(0.0f, 0.0f, 0.0f, 0.0f);
-    var tile_0 : u32 = _S3 / u32(16) + _S7 / u32(16) * args_0.tilesX_0;
-    var _S12 : u32 = g_buffers_0[(((args_0.tileCountIndex_0) * 64u) + ((tile_0 * u32(4))/4))];
-    var binned_0 : bool = _S12 <= (args_0.tileCap_0);
+    var _S28 : f32 = f32(_S27);
+    var _S29 : f32 = _S28 + 0.5f;
+    var _S30 : u32 = tid_0.y;
+    var _S31 : f32 = f32(_S30);
+    var _S32 : f32 = _S31 + 0.5f;
+    var _S33 : vec2<f32> = vec2<f32>(_S29, _S32);
+    let _S34 : vec4<f32> = vec4<f32>(0.0f, 0.0f, 0.0f, 0.0f);
+    var tile_0 : u32 = _S27 / u32(16) + _S30 / u32(16) * args_0.tilesX_0;
+    var _S35 : u32 = g_buffers_0[(((args_0.tileCountIndex_0) * 64u) + ((tile_0 * u32(4))/4))];
+    var binned_0 : bool = _S35 <= (args_0.tileCap_0);
     var outPacked_0 : u32;
     if(binned_0)
     {
-        outPacked_0 = _S12;
+        outPacked_0 = _S35;
     }
     else
     {
         outPacked_0 = args_0.orderCount_0;
     }
-    var acc_0 : vec4<f32> = _S11;
+    var acc_0 : vec4<f32> = _S34;
     var i_0 : u32 = u32(0);
     for(;;)
     {
@@ -125,197 +347,363 @@ fn main(@builtin(global_invocation_id) tid_0 : vec3<u32>)
         var oi_0 : u32;
         if(binned_0)
         {
-            var _S13 : u32 = g_buffers_0[(((args_0.tileListIndex_0) * 64u) + (((tile_0 * args_0.tileCap_0 + i_0) * u32(4))/4))];
-            oi_0 = _S13;
+            var _S36 : u32 = g_buffers_0[(((args_0.tileListIndex_0) * 64u) + (((tile_0 * args_0.tileCap_0 + i_0) * u32(4))/4))];
+            oi_0 = _S36;
         }
         else
         {
             oi_0 = i_0;
         }
-        var _S14 : u32 = g_buffers_0[(((args_0.orderIndex_0) * 64u) + ((oi_0 * u32(4))/4))];
-        var _S15 : u32 = args_0.pathIndex_0;
-        var _S16 : u32 = _S14 * u32(72);
-        var _S17 : u32 = g_buffers_0[(((args_0.pathIndex_0) * 64u) + ((_S16)/4))];
-        var _S18 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(4))/4))];
-        var _S19 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(8))/4))];
-        var _S20 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(12))/4))];
-        var _S21 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(16))/4))];
-        var _S22 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(20))/4))];
-        var _S23 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(24))/4))];
-        var _S24 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(28))/4))];
-        var _S25 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(32))/4))];
-        var _S26 : f32 = bitcast<f32>(_S25);
-        var _S27 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(36))/4))];
-        var _S28 : f32 = bitcast<f32>(_S27);
-        var _S29 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(40))/4))];
-        var _S30 : f32 = bitcast<f32>(_S29);
-        var _S31 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(44))/4))];
-        var _S32 : f32 = bitcast<f32>(_S31);
-        var _S33 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(48))/4))];
-        var _S34 : f32 = bitcast<f32>(_S33);
-        var _S35 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(52))/4))];
-        var _S36 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(56))/4))];
-        var _S37 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(60))/4))];
-        var _S38 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(64))/4))];
-        var _S39 : u32 = g_buffers_0[(((_S15) * 64u) + ((_S16 + u32(68))/4))];
-        var _S40 : u32 = args_0.transformIndex_0;
-        var _S41 : u32 = _S19 * u32(32);
-        var _S42 : u32 = g_buffers_0[(((args_0.transformIndex_0) * 64u) + ((_S41)/4))];
-        var _S43 : f32 = bitcast<f32>(_S42);
-        var _S44 : u32 = g_buffers_0[(((_S40) * 64u) + ((_S41 + u32(4))/4))];
-        var _S45 : f32 = bitcast<f32>(_S44);
-        var _S46 : u32 = g_buffers_0[(((_S40) * 64u) + ((_S41 + u32(8))/4))];
-        var _S47 : f32 = bitcast<f32>(_S46);
-        var _S48 : u32 = g_buffers_0[(((_S40) * 64u) + ((_S41 + u32(12))/4))];
+        var _S37 : u32 = g_buffers_0[(((args_0.orderIndex_0) * 64u) + ((oi_0 * u32(4))/4))];
+        var _S38 : u32 = args_0.pathIndex_0;
+        var _S39 : u32 = _S37 * u32(72);
+        var _S40 : u32 = g_buffers_0[(((args_0.pathIndex_0) * 64u) + ((_S39)/4))];
+        var _S41 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(4))/4))];
+        var _S42 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(8))/4))];
+        var _S43 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(12))/4))];
+        var _S44 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(16))/4))];
+        var _S45 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(20))/4))];
+        var _S46 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(24))/4))];
+        var _S47 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(28))/4))];
+        var _S48 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(32))/4))];
         var _S49 : f32 = bitcast<f32>(_S48);
-        var _S50 : u32 = g_buffers_0[(((_S40) * 64u) + ((_S41 + u32(16))/4))];
+        var _S50 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(36))/4))];
         var _S51 : f32 = bitcast<f32>(_S50);
-        var _S52 : u32 = g_buffers_0[(((_S40) * 64u) + ((_S41 + u32(20))/4))];
+        var _S52 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(40))/4))];
         var _S53 : f32 = bitcast<f32>(_S52);
-        var _S54 : u32 = g_buffers_0[(((_S40) * 64u) + ((_S41 + u32(24))/4))];
-        var _S55 : u32 = g_buffers_0[(((_S40) * 64u) + ((_S41 + u32(28))/4))];
-        var _S56 : Tf_0 = Tf_0( _S43, _S45, _S47, _S49, _S51, _S53, _S54, _S55 );
-        let _S57 : vec2<f32> = vec2<f32>(-1.00000001504746622e+30f, -1.00000001504746622e+30f);
-        let _S58 : vec2<f32> = vec2<f32>(1.00000001504746622e+30f, 1.00000001504746622e+30f);
-        var _S59 : bool;
-        var _S60 : bool;
+        var _S54 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(44))/4))];
+        var _S55 : f32 = bitcast<f32>(_S54);
+        var _S56 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(48))/4))];
+        var _S57 : f32 = bitcast<f32>(_S56);
+        var _S58 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(52))/4))];
+        var _S59 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(56))/4))];
+        var _S60 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(60))/4))];
+        var _S61 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(64))/4))];
+        var _S62 : u32 = g_buffers_0[(((_S38) * 64u) + ((_S39 + u32(68))/4))];
+        var _S63 : u32 = args_0.transformIndex_0;
+        var _S64 : u32 = _S42 * u32(32);
+        var _S65 : u32 = g_buffers_0[(((args_0.transformIndex_0) * 64u) + ((_S64)/4))];
+        var _S66 : f32 = bitcast<f32>(_S65);
+        var _S67 : u32 = g_buffers_0[(((_S63) * 64u) + ((_S64 + u32(4))/4))];
+        var _S68 : f32 = bitcast<f32>(_S67);
+        var _S69 : u32 = g_buffers_0[(((_S63) * 64u) + ((_S64 + u32(8))/4))];
+        var _S70 : f32 = bitcast<f32>(_S69);
+        var _S71 : u32 = g_buffers_0[(((_S63) * 64u) + ((_S64 + u32(12))/4))];
+        var _S72 : f32 = bitcast<f32>(_S71);
+        var _S73 : u32 = g_buffers_0[(((_S63) * 64u) + ((_S64 + u32(16))/4))];
+        var _S74 : f32 = bitcast<f32>(_S73);
+        var _S75 : u32 = g_buffers_0[(((_S63) * 64u) + ((_S64 + u32(20))/4))];
+        var _S76 : f32 = bitcast<f32>(_S75);
+        var _S77 : u32 = g_buffers_0[(((_S63) * 64u) + ((_S64 + u32(24))/4))];
+        var _S78 : u32 = g_buffers_0[(((_S63) * 64u) + ((_S64 + u32(28))/4))];
+        var _S79 : Tf_0 = Tf_0( _S66, _S68, _S70, _S72, _S74, _S76, _S77, _S78 );
+        let _S80 : vec2<f32> = vec2<f32>(-1.00000001504746622e+30f, -1.00000001504746622e+30f);
+        let _S81 : vec2<f32> = vec2<f32>(1.00000001504746622e+30f, 1.00000001504746622e+30f);
+        var _S82 : bool;
+        var _S83 : bool;
+        var _S84 : bool;
+        var s_0 : u32;
+        var bit_0 : u32;
+        var clipMask_0 : u32;
         var clo_0 : vec2<f32>;
         var chi_0 : vec2<f32>;
-        if(_S23 != u32(4294967295))
+        var clipSamples_0 : i32;
+        var inside_0 : i32;
+        if(_S46 != u32(4294967295))
         {
-            var _S61 : u32 = args_0.clipIndex_0;
-            var _S62 : u32 = _S23 * u32(16);
-            var _S63 : u32 = g_buffers_0[(((args_0.clipIndex_0) * 64u) + ((_S62)/4))];
-            var _S64 : f32 = bitcast<f32>(_S63);
-            var _S65 : u32 = g_buffers_0[(((_S61) * 64u) + ((_S62 + u32(4))/4))];
-            var _S66 : f32 = bitcast<f32>(_S65);
-            var _S67 : u32 = g_buffers_0[(((_S61) * 64u) + ((_S62 + u32(8))/4))];
-            var _S68 : f32 = bitcast<f32>(_S67);
-            var _S69 : u32 = g_buffers_0[(((_S61) * 64u) + ((_S62 + u32(12))/4))];
-            var _S70 : f32 = bitcast<f32>(_S69);
-            var k0_0 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(_S64, _S66));
-            var k1_0 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(_S68, _S66));
-            var k2_0 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(_S64, _S70));
-            var k3_0 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(_S68, _S70));
-            var clo_1 : vec2<f32> = min(min(k0_0, k1_0), min(k2_0, k3_0));
-            var chi_1 : vec2<f32> = max(max(k0_0, k1_0), max(k2_0, k3_0));
-            if(_S6 < (clo_1.x))
-            {
-                _S4 = true;
-            }
-            else
-            {
-                _S4 = _S6 > (chi_1.x);
-            }
-            if(_S4)
-            {
-                _S59 = true;
-            }
-            else
-            {
-                _S59 = _S9 < (clo_1.y);
-            }
-            if(_S59)
-            {
-                _S60 = true;
-            }
-            else
-            {
-                _S60 = _S9 > (chi_1.y);
-            }
-            if(_S60)
-            {
-                i_0 = i_0 + u32(1);
-                continue;
-            }
-            clo_0 = clo_1;
-            chi_0 = chi_1;
-        }
-        else
-        {
-            clo_0 = _S57;
-            chi_0 = _S58;
-        }
-        var _S71 : vec2<f32> = vec2<f32>(_S26, _S28);
-        var q0_0 : vec2<f32> = toScreen_0(_S71, _S56);
-        var q1_0 : vec2<f32> = toScreen_0(vec2<f32>(_S30, _S28), _S56);
-        var q2_0 : vec2<f32> = toScreen_0(vec2<f32>(_S26, _S32), _S56);
-        var q3_0 : vec2<f32> = toScreen_0(vec2<f32>(_S30, _S32), _S56);
-        var _S72 : vec2<f32> = vec2<f32>((_S34 + 1.5f));
-        var lo_0 : vec2<f32> = max(min(min(q0_0, q1_0), min(q2_0, q3_0)) - _S72, clo_0);
-        var hi_0 : vec2<f32> = min(max(max(q0_0, q1_0), max(q2_0, q3_0)) + _S72, chi_0);
-        if(_S6 < (lo_0.x))
-        {
-            _S4 = true;
-        }
-        else
-        {
-            _S4 = _S6 > (hi_0.x);
-        }
-        if(_S4)
-        {
-            _S59 = true;
-        }
-        else
-        {
-            _S59 = _S9 < (lo_0.y);
-        }
-        if(_S59)
-        {
-            _S60 = true;
-        }
-        else
-        {
-            _S60 = _S9 > (hi_0.y);
-        }
-        if(_S60)
-        {
-            i_0 = i_0 + u32(1);
-            continue;
-        }
-        var s_0 : u32;
-        var cov_0 : f32;
-        if(_S22 == u32(1))
-        {
-            cov_0 = 1.0e+09f;
-            s_0 = u32(0);
+            s_0 = _S46;
+            clo_0 = _S80;
+            chi_0 = _S81;
+            hasRounded_0 = false;
+            bit_0 = u32(0);
             for(;;)
             {
-                if(s_0 < _S18)
+                if(s_0 != u32(4294967295))
+                {
+                    _S82 = bit_0 < u32(64);
+                }
+                else
+                {
+                    _S82 = false;
+                }
+                if(_S82)
                 {
                 }
                 else
                 {
                     break;
                 }
-                var _S73 : u32 = args_0.segIndex_0;
-                var _S74 : u32 = (_S17 + s_0) * u32(32);
-                var _S75 : u32 = g_buffers_0[(((args_0.segIndex_0) * 64u) + ((_S74)/4))];
-                var _S76 : f32 = bitcast<f32>(_S75);
-                var _S77 : u32 = g_buffers_0[(((_S73) * 64u) + ((_S74 + u32(4))/4))];
-                var _S78 : f32 = bitcast<f32>(_S77);
-                var _S79 : u32 = g_buffers_0[(((_S73) * 64u) + ((_S74 + u32(8))/4))];
-                var _S80 : f32 = bitcast<f32>(_S79);
-                var _S81 : u32 = g_buffers_0[(((_S73) * 64u) + ((_S74 + u32(12))/4))];
-                var _S82 : f32 = bitcast<f32>(_S81);
-                var _S83 : u32 = g_buffers_0[(((_S73) * 64u) + ((_S74 + u32(16))/4))];
-                var _S84 : u32 = g_buffers_0[(((_S73) * 64u) + ((_S74 + u32(20))/4))];
-                var _S85 : u32 = g_buffers_0[(((_S73) * 64u) + ((_S74 + u32(24))/4))];
-                var _S86 : u32 = g_buffers_0[(((_S73) * 64u) + ((_S74 + u32(28))/4))];
-                var _S87 : f32 = min(cov_0, distSeg_0(_S10, toScreen_0(vec2<f32>(_S76, _S78), _S56), toScreen_0(vec2<f32>(_S80, _S82), _S56)));
-                var _S88 : u32 = s_0 + u32(1);
-                cov_0 = _S87;
-                s_0 = _S88;
+                var _S85 : u32 = args_0.clipIndex_0;
+                var _S86 : u32 = s_0 * u32(32);
+                var _S87 : u32 = g_buffers_0[(((args_0.clipIndex_0) * 64u) + ((_S86)/4))];
+                var _S88 : f32 = bitcast<f32>(_S87);
+                var _S89 : u32 = g_buffers_0[(((_S85) * 64u) + ((_S86 + u32(4))/4))];
+                var _S90 : f32 = bitcast<f32>(_S89);
+                var _S91 : u32 = g_buffers_0[(((_S85) * 64u) + ((_S86 + u32(8))/4))];
+                var _S92 : f32 = bitcast<f32>(_S91);
+                var _S93 : u32 = g_buffers_0[(((_S85) * 64u) + ((_S86 + u32(12))/4))];
+                var _S94 : f32 = bitcast<f32>(_S93);
+                var _S95 : u32 = g_buffers_0[(((_S85) * 64u) + ((_S86 + u32(16))/4))];
+                var _S96 : f32 = bitcast<f32>(_S95);
+                var _S97 : u32 = g_buffers_0[(((_S85) * 64u) + ((_S86 + u32(20))/4))];
+                var _S98 : f32 = bitcast<f32>(_S97);
+                var _S99 : u32 = g_buffers_0[(((_S85) * 64u) + ((_S86 + u32(24))/4))];
+                var _S100 : u32 = g_buffers_0[(((_S85) * 64u) + ((_S86 + u32(28))/4))];
+                var k0_1 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(_S88, _S90));
+                var k1_1 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(_S92, _S90));
+                var k2_1 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(_S88, _S94));
+                var k3_1 : vec2<f32> = affine_0(args_0.a_0, args_0.b_0, args_0.c_0, args_0.d_0, args_0.e_0, args_0.f_0, vec2<f32>(_S92, _S94));
+                var _S101 : vec2<f32> = max(clo_0, min(min(k0_1, k1_1), min(k2_1, k3_1)));
+                var _S102 : vec2<f32> = min(chi_0, max(max(k0_1, k1_1), max(k2_1, k3_1)));
+                if(hasRounded_0)
+                {
+                    hasRounded_0 = true;
+                }
+                else
+                {
+                    if(_S99 != u32(0))
+                    {
+                        _S83 = _S96 > 0.0f;
+                    }
+                    else
+                    {
+                        _S83 = false;
+                    }
+                    if(_S83)
+                    {
+                        _S84 = _S98 > 0.0f;
+                    }
+                    else
+                    {
+                        _S84 = false;
+                    }
+                    hasRounded_0 = _S84;
+                }
+                var _S103 : u32 = bit_0 + u32(1);
+                s_0 = _S100;
+                clo_0 = _S101;
+                chi_0 = _S102;
+                bit_0 = _S103;
             }
-            cov_0 = 1.0f - smoothstep(_S34 - 0.75f, _S34 + 0.75f, cov_0);
+            var _S104 : vec2<f32> = vec2<f32>(tid_0.xy);
+            var pixelHi_0 : vec2<f32> = _S104 + vec2<f32>(1.0f);
+            var _S105 : f32 = pixelHi_0.x;
+            var _S106 : f32 = clo_0.x;
+            if(_S105 <= _S106)
+            {
+                _S83 = true;
+            }
+            else
+            {
+                _S83 = (_S104.x) >= (chi_0.x);
+            }
+            if(_S83)
+            {
+                _S84 = true;
+            }
+            else
+            {
+                _S84 = (pixelHi_0.y) <= (clo_0.y);
+            }
+            var _S107 : bool;
+            if(_S84)
+            {
+                _S107 = true;
+            }
+            else
+            {
+                _S107 = (_S104.y) >= (chi_0.y);
+            }
+            if(_S107)
+            {
+                i_0 = i_0 + u32(1);
+                continue;
+            }
+            var _S108 : bool;
+            if(hasRounded_0)
+            {
+                _S108 = true;
+            }
+            else
+            {
+                _S108 = (_S104.x) < _S106;
+            }
+            var _S109 : bool;
+            if(_S108)
+            {
+                _S109 = true;
+            }
+            else
+            {
+                _S109 = _S105 > (chi_0.x);
+            }
+            var _S110 : bool;
+            if(_S109)
+            {
+                _S110 = true;
+            }
+            else
+            {
+                _S110 = (_S104.y) < (clo_0.y);
+            }
+            var _S111 : bool;
+            if(_S110)
+            {
+                _S111 = true;
+            }
+            else
+            {
+                _S111 = (pixelHi_0.y) > (chi_0.y);
+            }
+            if(_S111)
+            {
+                clipSamples_0 = i32(0);
+                var clipMask_1 : u32 = u32(0);
+                for(;;)
+                {
+                    if(clipSamples_0 < i32(4))
+                    {
+                    }
+                    else
+                    {
+                        break;
+                    }
+                    inside_0 = i32(0);
+                    clipMask_0 = clipMask_1;
+                    for(;;)
+                    {
+                        if(inside_0 < i32(4))
+                        {
+                        }
+                        else
+                        {
+                            break;
+                        }
+                        var bit_1 : u32 = u32(clipSamples_0 * i32(4) + inside_0);
+                        if(insideAllClips_0(vec2<f32>(_S28 + (f32(inside_0) + 0.5f) * 0.25f, _S31 + (f32(clipSamples_0) + 0.5f) * 0.25f), _S46))
+                        {
+                            clipMask_0 = (clipMask_0 | (((u32(1) << (bit_1)))));
+                        }
+                        inside_0 = inside_0 + i32(1);
+                    }
+                    clipSamples_0 = clipSamples_0 + i32(1);
+                    clipMask_1 = clipMask_0;
+                }
+                if(clipMask_1 == u32(0))
+                {
+                    i_0 = i_0 + u32(1);
+                    continue;
+                }
+                clipMask_0 = clipMask_1;
+            }
+            else
+            {
+                clipMask_0 = u32(65535);
+            }
         }
         else
         {
-            var sy_0 : i32 = i32(0);
-            var inside_0 : i32 = i32(0);
+            clo_0 = _S80;
+            chi_0 = _S81;
+            clipMask_0 = u32(65535);
+        }
+        var _S112 : vec2<f32> = vec2<f32>(_S49, _S51);
+        var q0_0 : vec2<f32> = toScreen_0(_S112, _S79);
+        var q1_0 : vec2<f32> = toScreen_0(vec2<f32>(_S53, _S51), _S79);
+        var q2_0 : vec2<f32> = toScreen_0(vec2<f32>(_S49, _S55), _S79);
+        var q3_0 : vec2<f32> = toScreen_0(vec2<f32>(_S53, _S55), _S79);
+        var _S113 : vec2<f32> = vec2<f32>((_S57 + 1.5f));
+        var lo_1 : vec2<f32> = max(min(min(q0_0, q1_0), min(q2_0, q3_0)) - _S113, clo_0);
+        var hi_1 : vec2<f32> = min(max(max(q0_0, q1_0), max(q2_0, q3_0)) + _S113, chi_0);
+        if(_S29 < (lo_1.x))
+        {
+            hasRounded_0 = true;
+        }
+        else
+        {
+            hasRounded_0 = _S29 > (hi_1.x);
+        }
+        if(hasRounded_0)
+        {
+            _S82 = true;
+        }
+        else
+        {
+            _S82 = _S32 < (lo_1.y);
+        }
+        if(_S82)
+        {
+            _S83 = true;
+        }
+        else
+        {
+            _S83 = _S32 > (hi_1.y);
+        }
+        if(_S83)
+        {
+            i_0 = i_0 + u32(1);
+            continue;
+        }
+        var cov_0 : f32;
+        if(_S45 == u32(1))
+        {
+            cov_0 = 1.0e+09f;
+            s_0 = u32(0);
             for(;;)
             {
-                if(sy_0 < i32(4))
+                if(s_0 < _S41)
+                {
+                }
+                else
+                {
+                    break;
+                }
+                var _S114 : u32 = args_0.segIndex_0;
+                var _S115 : u32 = (_S40 + s_0) * u32(32);
+                var _S116 : u32 = g_buffers_0[(((args_0.segIndex_0) * 64u) + ((_S115)/4))];
+                var _S117 : f32 = bitcast<f32>(_S116);
+                var _S118 : u32 = g_buffers_0[(((_S114) * 64u) + ((_S115 + u32(4))/4))];
+                var _S119 : f32 = bitcast<f32>(_S118);
+                var _S120 : u32 = g_buffers_0[(((_S114) * 64u) + ((_S115 + u32(8))/4))];
+                var _S121 : f32 = bitcast<f32>(_S120);
+                var _S122 : u32 = g_buffers_0[(((_S114) * 64u) + ((_S115 + u32(12))/4))];
+                var _S123 : f32 = bitcast<f32>(_S122);
+                var _S124 : u32 = g_buffers_0[(((_S114) * 64u) + ((_S115 + u32(16))/4))];
+                var _S125 : u32 = g_buffers_0[(((_S114) * 64u) + ((_S115 + u32(20))/4))];
+                var _S126 : u32 = g_buffers_0[(((_S114) * 64u) + ((_S115 + u32(24))/4))];
+                var _S127 : u32 = g_buffers_0[(((_S114) * 64u) + ((_S115 + u32(28))/4))];
+                var _S128 : f32 = min(cov_0, distSeg_0(_S33, toScreen_0(vec2<f32>(_S117, _S119), _S79), toScreen_0(vec2<f32>(_S121, _S123), _S79)));
+                var _S129 : u32 = s_0 + u32(1);
+                cov_0 = _S128;
+                s_0 = _S129;
+            }
+            var cov_1 : f32 = 1.0f - smoothstep(_S57 - 0.75f, _S57 + 0.75f, cov_0);
+            bit_0 = u32(0);
+            clipSamples_0 = i32(0);
+            for(;;)
+            {
+                if(bit_0 < u32(16))
+                {
+                }
+                else
+                {
+                    break;
+                }
+                if(((clipMask_0 & (((u32(1) << (bit_0)))))) != u32(0))
+                {
+                    clipSamples_0 = clipSamples_0 + i32(1);
+                }
+                bit_0 = bit_0 + u32(1);
+            }
+            cov_0 = cov_1 * (f32(clipSamples_0) / 16.0f);
+        }
+        else
+        {
+            clipSamples_0 = i32(0);
+            inside_0 = i32(0);
+            for(;;)
+            {
+                if(clipSamples_0 < i32(4))
                 {
                 }
                 else
@@ -333,77 +721,85 @@ fn main(@builtin(global_invocation_id) tid_0 : vec3<u32>)
                     {
                         break;
                     }
-                    var _S89 : f32 = _S5 + (f32(sx_0) + 0.5f) * 0.25f;
-                    var _S90 : f32 = _S8 + (f32(sy_0) + 0.5f) * 0.25f;
+                    if(((clipMask_0 & (((u32(1) << (u32(clipSamples_0 * i32(4) + sx_0))))))) == u32(0))
+                    {
+                        sx_0 = sx_0 + i32(1);
+                        continue;
+                    }
+                    var _S130 : f32 = _S28 + (f32(sx_0) + 0.5f) * 0.25f;
+                    var _S131 : f32 = _S31 + (f32(clipSamples_0) + 0.5f) * 0.25f;
                     s_0 = u32(0);
-                    var wind_0 : i32 = i32(0);
+                    var wind_1 : i32 = i32(0);
                     for(;;)
                     {
-                        if(s_0 < _S18)
+                        if(s_0 < _S41)
                         {
                         }
                         else
                         {
                             break;
                         }
-                        var _S91 : u32 = args_0.segIndex_0;
-                        var _S92 : u32 = (_S17 + s_0) * u32(32);
-                        var _S93 : u32 = g_buffers_0[(((args_0.segIndex_0) * 64u) + ((_S92)/4))];
-                        var _S94 : f32 = bitcast<f32>(_S93);
-                        var _S95 : u32 = g_buffers_0[(((_S91) * 64u) + ((_S92 + u32(4))/4))];
-                        var _S96 : f32 = bitcast<f32>(_S95);
-                        var _S97 : u32 = g_buffers_0[(((_S91) * 64u) + ((_S92 + u32(8))/4))];
-                        var _S98 : f32 = bitcast<f32>(_S97);
-                        var _S99 : u32 = g_buffers_0[(((_S91) * 64u) + ((_S92 + u32(12))/4))];
-                        var _S100 : f32 = bitcast<f32>(_S99);
-                        var _S101 : u32 = g_buffers_0[(((_S91) * 64u) + ((_S92 + u32(16))/4))];
-                        var _S102 : u32 = g_buffers_0[(((_S91) * 64u) + ((_S92 + u32(20))/4))];
-                        var _S103 : u32 = g_buffers_0[(((_S91) * 64u) + ((_S92 + u32(24))/4))];
-                        var _S104 : u32 = g_buffers_0[(((_S91) * 64u) + ((_S92 + u32(28))/4))];
-                        var A_0 : vec2<f32> = toScreen_0(vec2<f32>(_S94, _S96), _S56);
-                        var B_0 : vec2<f32> = toScreen_0(vec2<f32>(_S98, _S100), _S56);
-                        var _S105 : f32 = A_0.y;
-                        var _S106 : f32 = B_0.y;
-                        if((_S105 <= _S90) != (_S106 <= _S90))
+                        var _S132 : u32 = args_0.segIndex_0;
+                        var _S133 : u32 = (_S40 + s_0) * u32(32);
+                        var _S134 : u32 = g_buffers_0[(((args_0.segIndex_0) * 64u) + ((_S133)/4))];
+                        var _S135 : f32 = bitcast<f32>(_S134);
+                        var _S136 : u32 = g_buffers_0[(((_S132) * 64u) + ((_S133 + u32(4))/4))];
+                        var _S137 : f32 = bitcast<f32>(_S136);
+                        var _S138 : u32 = g_buffers_0[(((_S132) * 64u) + ((_S133 + u32(8))/4))];
+                        var _S139 : f32 = bitcast<f32>(_S138);
+                        var _S140 : u32 = g_buffers_0[(((_S132) * 64u) + ((_S133 + u32(12))/4))];
+                        var _S141 : f32 = bitcast<f32>(_S140);
+                        var _S142 : u32 = g_buffers_0[(((_S132) * 64u) + ((_S133 + u32(16))/4))];
+                        var _S143 : u32 = g_buffers_0[(((_S132) * 64u) + ((_S133 + u32(20))/4))];
+                        var _S144 : u32 = g_buffers_0[(((_S132) * 64u) + ((_S133 + u32(24))/4))];
+                        var _S145 : u32 = g_buffers_0[(((_S132) * 64u) + ((_S133 + u32(28))/4))];
+                        var A_0 : vec2<f32> = toScreen_0(vec2<f32>(_S135, _S137), _S79);
+                        var B_0 : vec2<f32> = toScreen_0(vec2<f32>(_S139, _S141), _S79);
+                        var _S146 : f32 = A_0.y;
+                        var _S147 : f32 = B_0.y;
+                        if((_S146 <= _S131) != (_S147 <= _S131))
                         {
-                            var _S107 : f32 = A_0.x;
-                            var wind_1 : i32;
-                            if((_S107 + (_S90 - _S105) / (_S106 - _S105) * (B_0.x - _S107)) > _S89)
+                            var _S148 : f32 = A_0.x;
+                            if((_S148 + (_S131 - _S146) / (_S147 - _S146) * (B_0.x - _S148)) > _S130)
                             {
-                                if(_S106 > _S105)
+                                if(_S147 > _S146)
                                 {
-                                    wind_1 = i32(1);
+                                    wind_0 = i32(1);
                                 }
                                 else
                                 {
-                                    wind_1 = i32(-1);
+                                    wind_0 = i32(-1);
                                 }
-                                wind_1 = wind_0 + wind_1;
+                                wind_0 = wind_1 + wind_0;
                             }
                             else
                             {
-                                wind_1 = wind_0;
+                                wind_0 = wind_1;
                             }
-                            wind_0 = wind_1;
+                            wind_1 = wind_0;
                         }
                         s_0 = s_0 + u32(1);
                     }
-                    var _S108 : bool;
-                    if(_S21 == u32(0))
+                    if(_S44 == u32(0))
                     {
-                        _S108 = wind_0 != i32(0);
+                        _S84 = wind_1 != i32(0);
                     }
                     else
                     {
-                        _S108 = ((wind_0 & (i32(1)))) != i32(0);
+                        _S84 = ((wind_1 & (i32(1)))) != i32(0);
                     }
-                    if(_S108)
+                    if(_S84)
                     {
-                        inside_1 = inside_1 + i32(1);
+                        wind_0 = inside_1 + i32(1);
                     }
+                    else
+                    {
+                        wind_0 = inside_1;
+                    }
+                    inside_1 = wind_0;
                     sx_0 = sx_0 + i32(1);
                 }
-                sy_0 = sy_0 + i32(1);
+                clipSamples_0 = clipSamples_0 + i32(1);
                 inside_0 = inside_1;
             }
             cov_0 = f32(inside_0) / 16.0f;
@@ -411,21 +807,21 @@ fn main(@builtin(global_invocation_id) tid_0 : vec3<u32>)
         var acc_1 : vec4<f32>;
         if(cov_0 > 0.0f)
         {
-            var _S109 : u32 = args_0.styleIndex_0;
-            var _S110 : u32 = _S20 * u32(16);
-            var _S111 : u32 = g_buffers_0[(((args_0.styleIndex_0) * 64u) + ((_S110)/4))];
-            var _S112 : u32 = g_buffers_0[(((_S109) * 64u) + ((_S110 + u32(4))/4))];
-            var _S113 : f32 = bitcast<f32>(_S112);
-            var _S114 : u32 = g_buffers_0[(((_S109) * 64u) + ((_S110 + u32(8))/4))];
-            var _S115 : u32 = g_buffers_0[(((_S109) * 64u) + ((_S110 + u32(12))/4))];
-            if(_S22 == u32(2))
+            var _S149 : u32 = args_0.styleIndex_0;
+            var _S150 : u32 = _S43 * u32(16);
+            var _S151 : u32 = g_buffers_0[(((args_0.styleIndex_0) * 64u) + ((_S150)/4))];
+            var _S152 : u32 = g_buffers_0[(((_S149) * 64u) + ((_S150 + u32(4))/4))];
+            var _S153 : f32 = bitcast<f32>(_S152);
+            var _S154 : u32 = g_buffers_0[(((_S149) * 64u) + ((_S150 + u32(8))/4))];
+            var _S155 : u32 = g_buffers_0[(((_S149) * 64u) + ((_S150 + u32(12))/4))];
+            if(_S45 == u32(2))
             {
-                var ca_0 : f32 = args_0.a_0 * _S43 + args_0.c_0 * _S45;
-                var cb_0 : f32 = args_0.b_0 * _S43 + args_0.d_0 * _S45;
-                var cc_0 : f32 = args_0.a_0 * _S47 + args_0.c_0 * _S49;
-                var cd_0 : f32 = args_0.b_0 * _S47 + args_0.d_0 * _S49;
-                var ce_0 : f32 = args_0.a_0 * _S51 + args_0.c_0 * _S53 + args_0.e_0;
-                var cf_0 : f32 = args_0.b_0 * _S51 + args_0.d_0 * _S53 + args_0.f_0;
+                var ca_0 : f32 = args_0.a_0 * _S66 + args_0.c_0 * _S68;
+                var cb_0 : f32 = args_0.b_0 * _S66 + args_0.d_0 * _S68;
+                var cc_0 : f32 = args_0.a_0 * _S70 + args_0.c_0 * _S72;
+                var cd_0 : f32 = args_0.b_0 * _S70 + args_0.d_0 * _S72;
+                var ce_0 : f32 = args_0.a_0 * _S74 + args_0.c_0 * _S76 + args_0.e_0;
+                var cf_0 : f32 = args_0.b_0 * _S74 + args_0.d_0 * _S76 + args_0.f_0;
                 var det_0 : f32 = ca_0 * cd_0 - cc_0 * cb_0;
                 var id_0 : f32;
                 if((abs(det_0)) < 9.999999960041972e-13f)
@@ -436,35 +832,35 @@ fn main(@builtin(global_invocation_id) tid_0 : vec3<u32>)
                 {
                     id_0 = 1.0f / det_0;
                 }
-                var rel_0 : vec2<f32> = _S10 - vec2<f32>(ce_0, cf_0);
-                var _S116 : f32 = rel_0.x;
-                var _S117 : f32 = rel_0.y;
-                var tex_0 : vec2<f32> = (vec2<f32>((cd_0 * _S116 - cc_0 * _S117) * id_0, (- cb_0 * _S116 + ca_0 * _S117) * id_0) - _S71) / max(vec2<f32>(_S30 - _S26, _S32 - _S28), vec2<f32>(9.99999997475242708e-07f)) * vec2<f32>(f32(_S36), f32(_S37)) - vec2<f32>(0.5f);
+                var rel_0 : vec2<f32> = _S33 - vec2<f32>(ce_0, cf_0);
+                var _S156 : f32 = rel_0.x;
+                var _S157 : f32 = rel_0.y;
+                var tex_0 : vec2<f32> = (vec2<f32>((cd_0 * _S156 - cc_0 * _S157) * id_0, (- cb_0 * _S156 + ca_0 * _S157) * id_0) - _S112) / max(vec2<f32>(_S53 - _S49, _S55 - _S51), vec2<f32>(9.99999997475242708e-07f)) * vec2<f32>(f32(_S59), f32(_S60)) - vec2<f32>(0.5f);
                 var tf_1 : vec2<f32> = floor(tex_0);
                 var fr_0 : vec2<f32> = tex_0 - tf_1;
-                var tmax_0 : vec2<i32> = vec2<i32>(i32(_S36) - i32(1), i32(_S37) - i32(1));
+                var tmax_0 : vec2<i32> = vec2<i32>(i32(_S59) - i32(1), i32(_S60) - i32(1));
                 var t0_0 : vec2<i32> = clamp(vec2<i32>(tf_1), vec2<i32>(i32(0), i32(0)), tmax_0);
                 var t1_0 : vec2<i32> = min(t0_0 + vec2<i32>(i32(1), i32(1)), tmax_0);
-                var _S118 : u32 = (u32(t0_0.y) + _S39) * _S35;
-                var _S119 : u32 = u32(t0_0.x);
-                var _S120 : u32 = g_buffers_0[(((_S24) * 64u) + (((_S118 + _S119 + _S38) * u32(4))/4))];
-                var c00_0 : vec4<f32> = unpack_0(_S120);
-                var _S121 : u32 = u32(t1_0.x);
-                var _S122 : u32 = g_buffers_0[(((_S24) * 64u) + (((_S118 + _S121 + _S38) * u32(4))/4))];
-                var c10_0 : vec4<f32> = unpack_0(_S122);
-                var _S123 : u32 = (u32(t1_0.y) + _S39) * _S35;
-                var _S124 : u32 = g_buffers_0[(((_S24) * 64u) + (((_S123 + _S119 + _S38) * u32(4))/4))];
-                var c01_0 : vec4<f32> = unpack_0(_S124);
-                var _S125 : u32 = g_buffers_0[(((_S24) * 64u) + (((_S123 + _S121 + _S38) * u32(4))/4))];
-                var _S126 : vec4<f32> = vec4<f32>(fr_0.x);
-                var ic_0 : vec4<f32> = mix(mix(c00_0, c10_0, _S126), mix(c01_0, unpack_0(_S125), _S126), vec4<f32>(fr_0.y));
-                var f_3 : f32 = _S113 * cov_0;
+                var _S158 : u32 = (u32(t0_0.y) + _S62) * _S58;
+                var _S159 : u32 = u32(t0_0.x);
+                var _S160 : u32 = g_buffers_0[(((_S47) * 64u) + (((_S158 + _S159 + _S61) * u32(4))/4))];
+                var c00_0 : vec4<f32> = unpack_0(_S160);
+                var _S161 : u32 = u32(t1_0.x);
+                var _S162 : u32 = g_buffers_0[(((_S47) * 64u) + (((_S158 + _S161 + _S61) * u32(4))/4))];
+                var c10_0 : vec4<f32> = unpack_0(_S162);
+                var _S163 : u32 = (u32(t1_0.y) + _S62) * _S58;
+                var _S164 : u32 = g_buffers_0[(((_S47) * 64u) + (((_S163 + _S159 + _S61) * u32(4))/4))];
+                var c01_0 : vec4<f32> = unpack_0(_S164);
+                var _S165 : u32 = g_buffers_0[(((_S47) * 64u) + (((_S163 + _S161 + _S61) * u32(4))/4))];
+                var _S166 : vec4<f32> = vec4<f32>(fr_0.x);
+                var ic_0 : vec4<f32> = mix(mix(c00_0, c10_0, _S166), mix(c01_0, unpack_0(_S165), _S166), vec4<f32>(fr_0.y));
+                var f_3 : f32 = _S153 * cov_0;
                 acc_1 = vec4<f32>(ic_0.xyz * vec3<f32>(f_3), ic_0.w * f_3);
             }
             else
             {
-                var col_0 : vec4<f32> = unpack_0(_S111);
-                var a_4 : f32 = col_0.w * _S113 * cov_0;
+                var col_0 : vec4<f32> = unpack_0(_S151);
+                var a_4 : f32 = col_0.w * _S153 * cov_0;
                 acc_1 = vec4<f32>(col_0.xyz * vec3<f32>(a_4), a_4);
             }
             acc_1 = acc_1 + acc_0 * vec4<f32>((1.0f - acc_1.w));
@@ -484,6 +880,6 @@ fn main(@builtin(global_invocation_id) tid_0 : vec3<u32>)
     {
         outPacked_0 = packRgba_0(acc_0);
     }
-    g_buffers_0[(((args_0.fbIndex_0) * 64u) + (((_S7 * args_0.width_0 + _S3) * u32(4))/4))] = outPacked_0;
+    g_buffers_0[(((args_0.fbIndex_0) * 64u) + (((_S30 * args_0.width_0 + _S27) * u32(4))/4))] = outPacked_0;
     return;
 }

@@ -373,6 +373,19 @@ public static class MarkdownDecorations
                 continue;
             }
 
+            // HTMLコメントはMarkdown文書のメタデータであり、read-only表示では描画しない。
+            // TOC展開が生成する <!-- luxel-toc --> / <!-- /luxel-toc --> もここで幅0になる。
+            if (trimmed.StartsWith("<!--", StringComparison.Ordinal)
+                && trimmed.EndsWith("-->", StringComparison.Ordinal))
+            {
+                marks.Add(Hide(lineStart)
+                    ? new MarkDecoration(lineStart, end, Hidden: true)
+                    : new MarkDecoration(lineStart, end, Foreground: muted));
+                Consume(consumed, lineStart, end);
+                lineStart = end + 1;
+                continue;
+            }
+
             // ATX 見出し (# .. ######、行頭)
             int h = 0;
             while (h < line.Length && line[h] == '#') h++;
