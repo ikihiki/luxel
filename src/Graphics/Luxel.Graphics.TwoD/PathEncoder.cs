@@ -45,12 +45,19 @@ internal static class PathEncoder
                 TransformSlot = 0,                 // 即時モードは恒等変換 (slot 0)
                 StyleSlot = (uint)pi,
                 ClipSlot = GpuPath.NoClip,
-                FillRule = (uint)shape.Rule,
                 BMinX = minX,
                 BMinY = minY,
                 BMaxX = maxX,
                 BMaxY = maxY,
-                Kind = shape.Kind switch { PaintKind.Stroke => 1u, PaintKind.Image => 2u, _ => 0u },
+                Kind = shape.Kind switch
+                {
+                    PaintKind.Stroke => 1u,
+                    PaintKind.Image => 2u,
+                    PaintKind.Mask => 3u,
+                    _ => 0u,
+                },
+                // Mask では FillRule スロットをサンプリング方式として再利用する。
+                FillRule = shape.Kind == PaintKind.Mask ? (uint)shape.MaskSampling : (uint)shape.Rule,
                 StrokeHalfWidth = shape.StrokeWidth * 0.5f,
                 SrcIndex = shape.SrcIndex,
                 SrcStride = shape.SrcStride,

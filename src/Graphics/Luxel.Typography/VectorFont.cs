@@ -15,6 +15,8 @@ namespace Luxel.Typography;
 /// </summary>
 public sealed class VectorFont : IDisposable
 {
+    private readonly byte[] _fontData;
+    private readonly int _fontIndex;
     private readonly GCHandle _pin;
     private readonly Blob _blob;
     private readonly Face _face;
@@ -35,6 +37,9 @@ public sealed class VectorFont : IDisposable
     /// <summary>TTF/TTC を読み込む。TTC (フォントコレクション) は fontIndex で番号指定。</summary>
     public VectorFont(byte[] ttf, int fontIndex = 0)
     {
+        ArgumentNullException.ThrowIfNull(ttf);
+        _fontData = ttf;
+        _fontIndex = fontIndex;
         _pin = GCHandle.Alloc(ttf, GCHandleType.Pinned);
         _blob = new Blob(_pin.AddrOfPinnedObject(), ttf.Length, MemoryMode.ReadOnly);
         _face = new Face(_blob, fontIndex);   // TTC の面選択は HarfBuzz が行う
@@ -47,6 +52,12 @@ public sealed class VectorFont : IDisposable
     }
 
     public static VectorFont Load(string path, int fontIndex = 0) => new(File.ReadAllBytes(path), fontIndex);
+
+    /// <summary>描画アダプターが同じフォント面を生成するための元 OpenType データ。</summary>
+    public ReadOnlyMemory<byte> FontData => _fontData;
+
+    /// <summary>TTC 内のフォント面番号。単体 TTF/OTF では 0。</summary>
+    public int FontIndex => _fontIndex;
 
     /// <summary>
     /// システムフォントを探して読み込む (既定はラテン)。既定候補がない環境では、

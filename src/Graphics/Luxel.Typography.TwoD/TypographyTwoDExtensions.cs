@@ -159,6 +159,9 @@ public static class TypographyTwoDExtensions
             return;
         }
 
+        if (GlyphMaskRendering.TryAppend(font, scene, glyphId, x, baselineY, pixelHeight, color))
+            return;
+
         if (font.GetOutline(glyphId) is VectorFont.GlyphOutline glyphOutline)
             EmitGlyphCached(font, scene, glyphId, glyphOutline, x, baselineY, pixelHeight, color);
     }
