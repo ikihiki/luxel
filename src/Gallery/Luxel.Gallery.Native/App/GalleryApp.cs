@@ -63,8 +63,7 @@ public sealed class GalleryApp : IDisposable
     private readonly Signal<int> _matchCur = new(0), _matchTotal = new(0);
     private string _appliedQuery = "";
     private Widget? _appliedRoot;   // 適用先ルート (同一パス再選択でもルートは変わる — 参照で比較)
-    private int _pendingScroll = -1;      // 見出しクリックでページ遷移した後のスクロール先ブロック
-    private Dictionary<string, DocsPage>? _docsIndex;   // 初回 BuildRoot で構築 (path → 本文+TOC)
+    private Dictionary<string, DocsPage>? _docsIndex;   // 初回 BuildRoot で構築 (path → 検索対象の本文)
     private long _frame;
     private bool _disposed;
 
@@ -323,10 +322,9 @@ public sealed class GalleryApp : IDisposable
     private Widget BuildSidebarPane()
     {
         float winH = _winH;
-        // ---- サイドバー: Component > Story > 見出し の 3 階層ツリー + 検索 ----
+        // ---- サイドバー: StoryMeta のパス階層 + ストーリー検索 ----
         // 展開状態 (_treeExpanded) は GalleryApp が所有 — chrome 再構築をまたいで保持。
         // 初回は全 Component を展開 (従来の全件表示と同じ見え方から始める)。
-        // 見出し (TOC) は DocsIndex から全ページ分を常設 (Tag = (StoryInfo, ブロック index))
         _docsIndex ??= DocsIndex.Build(_catalog.All, Resources, _catalog);
         // 本家 Storybook と同じく、**パスのスラッシュ区切りがそのまま階層** (title 相当)。
         // 末尾セグメント = ストーリー、手前 = フォルダ (章/コンポーネント/…、深さ任意)。
@@ -351,23 +349,13 @@ public sealed class GalleryApp : IDisposable
                 level = children;
             }
             DocsPage? page = _docsIndex.GetValueOrDefault(s.Path);
-            List<TreeNode>? heads = page is { Headings.Count: > 0 }
-                ? page.Headings.Select(h => new TreeNode($"{s.Path}#{h.Block}", h.Text,
-                    Tag: (s, h.Block))).ToList()
-                : null;
-            level.Add(new TreeNode(s.Path, s.Name, heads, Tag: s, SearchText: page?.Text));
+            level.Add(new TreeNode(s.Path, s.Name, Tag: s, SearchText: page?.Text));
         }
         _treeInit = false;
         TreeView tree = TreeView(roots, _treeExpanded,
             onSelect: (_, n) =>
             {
                 if (n.Tag is StoryInfo s) Select(s);
-                else if (n.Tag is (StoryInfo hs, int block))
-                {
-                    if (hs.Path != _currentPath) { Select(hs); _pendingScroll = block; }
-                    else if (_storyRoot is not null && DocsIndex.FindMarkdownDoc(_storyRoot) is { } doc)
-                        doc.ScrollToSource(block);   // block = 見出しのソースオフセット
-                }
             },
             selected: _currentPath ?? "", filter: _search,
             appearance: new TreeViewAppearance(
@@ -572,15 +560,10 @@ public sealed class GalleryApp : IDisposable
     }
 
     /// <summary>検索状態の同期 (Update 毎): クエリ/ページが変わったら開いている docs へハイライトを
-    /// 適用し、n/m を更新する。見出しクリックのページ跨ぎスクロールも実体化を待ってここで消費。</summary>
+    /// 適用し、n/m を更新する。</summary>
     private void SyncSearch()
     {
         TextEditorView? doc = _storyRoot is null ? null : DocsIndex.FindMarkdownDoc(_storyRoot);
-        if (_pendingScroll >= 0 && doc is { Scope: not null })
-        {
-            doc.ScrollToSource(_pendingScroll);
-            _pendingScroll = -1;
-        }
         string q = _search.Value;
         if (q == _appliedQuery && ReferenceEquals(_storyRoot, _appliedRoot)) return;
         _appliedQuery = q;
@@ -776,7 +759,6 @@ public sealed class GalleryApp : IDisposable
             prefix = i == 0 ? segments[i] : $"{prefix}/{segments[i]}";
             _treeExpanded.Add($"g:{prefix}");
         }
-        _treeExpanded.Add(story.Path);   // docs story自身も開いてTOCを見せる
     }
 
     private void StorySelectionChanged()

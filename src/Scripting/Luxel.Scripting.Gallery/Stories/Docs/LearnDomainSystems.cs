@@ -138,6 +138,6 @@ public static partial class LearnDomainSystems
 
         実行へ渡したCancellationTokenを停止し、worker、scope、生成Widget、Resource leaseを順番に解放します。画面を閉じた後に古いrevisionがOutputへ書き込まないことも確認してください。
 
-        完成例は[Examples/Scripting](story:Examples/Scripting/HotReload)で確認できます。存在する機能名は環境ごとに異なるため、Native専用Storyには明示的な対応範囲を記載します。
+        完成例は[Examples/Scripting](story:Examples/Scripting/Playground)で確認できます。存在する機能名は環境ごとに異なるため、Native専用Storyには明示的な対応範囲を記載します。
         """;
 }

@@ -58,7 +58,7 @@ public static partial class LearnAudio
 
         {{Toc()}}
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/EnvironmentAndBackends", "Beginner", "Standalone / Framework / CI / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Audio overview")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/Environment", "Beginner", "Standalone / Framework / CI / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Audio overview")}}
 
         ## 境界と責務
 
@@ -83,7 +83,7 @@ public static partial class LearnAudio
         | Framework native | `LuxelHostBuilder.Create().UseAudio()` | `Luxel.Framework.Game.Native`がWindows=XAudio2、Linux/macOS=OpenALを選択 |
         | Browser WASM | `Luxel.Audio.Browser.BrowserAudioBackend` | Web Audio、autoplay unlock、browser lifecycle |
 
-        portableな`Luxel.Framework.Game`では`UseAudio(factory)`でbackendを注入します。desktopでは`Luxel.Framework.Game.Native`を参照するとparameterlessな`UseAudio()`を利用できます。Windows実音の統合確認は [RealWindow/Tone](story:RealWindow/Tone)、browser実音は`samples/LuxelAudioBrowser`を使います。
+        portableな`Luxel.Framework.Game`では`UseAudio(factory)`でbackendを注入します。desktopでは`Luxel.Framework.Game.Native`を参照するとparameterlessな`UseAudio()`を利用できます。実音の統合確認にはdesktopのサンプルと`samples/LuxelAudioBrowser`を使います。
 
         ## Web Audioの非同期ライフサイクル
 
@@ -112,7 +112,7 @@ public static partial class LearnAudio
 
         {{Toc()}}
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/FormatsClipsAndLoading", "Beginner", "Standalone / Resources / Browser WASM", "Backend neutral PCM16 / Web Audio", "Environment and backends")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/Formats", "Beginner", "Standalone / Resources / Browser WASM", "Backend neutral PCM16 / Web Audio", "Environment and backends")}}
 
         ## sample、frame、byte
 
@@ -145,7 +145,7 @@ public static partial class LearnAudio
 
         {{Toc()}}
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/VoicesAndMixer", "Beginner", "Game loop / Headless / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Formats, clips, and loading")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/Voices", "Beginner", "Game loop / Headless / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Formats, clips, and loading")}}
 
         ## voiceの状態モデル
 
@@ -175,7 +175,7 @@ public static partial class LearnAudio
 
         {{Toc()}}
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/ClipsSourcesAndBuses", "Beginner", "Game loop / Browser WASM", "Backend neutral source + Web Audio voice", "Voices and mixer")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/Sources", "Beginner", "Game loop / Browser WASM", "Backend neutral source + Web Audio voice", "Voices and mixer")}}
 
         ## AudioSourceを使うとき
 
@@ -212,7 +212,7 @@ public static partial class LearnAudio
 
         {{Toc()}}
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/SpatialAudio", "Intermediate", "Game loop / Headless / Browser WASM", "C# attenuation + backend pan", "Clips, sources, and buses")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/Spatial", "Intermediate", "Game loop / Headless / Browser WASM", "C# attenuation + backend pan", "Clips, sources, and buses")}}
 
         ## メンタルモデル
 
@@ -277,7 +277,7 @@ public static partial class LearnAudio
 
         {{Toc()}}
 
-        {{AudioCourseCatalog.Meta("Learn/Audio/SpatialStreamingAndTesting", "Intermediate", "CI / Headless / Windows / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Streaming audio")}}
+        {{AudioCourseCatalog.Meta("Learn/Audio/Testing", "Intermediate", "CI / Headless / Windows / Linux / macOS / Browser WASM", "Null / XAudio2 / Silk OpenAL / Web Audio", "Streaming audio")}}
 
         このページは既存Story IDを保ちながら、spatial/streamingを含むaudio全体のtesting入口にします。
 
@@ -302,6 +302,6 @@ public static partial class LearnAudio
 
         Null testは時間やspeakerに依存しないlogic contractです。XAudio2 integration testはWindows device、実時間のqueue完了、可聴結果を別層で確認します。Silk OpenAL backendは全OS共通のfake contractを持ち、OpenAL Soft runtimeのある環境では`ALC_SOFT_loopback`の決定的な440 Hz/RMS/pitch/pan testを実行できます。Linux CIではさらにPulseAudio null sinkのWAV captureを検証します。Web Audioはmanaged fake interopでlifecycle、PCM validation、ownershipを、mock `AudioContext`を使うJavaScript contract testで連続schedule、`onended` queue accounting、pause/pitch時のnode再生成を検証します。autoplay unlockと実音はbrowser sampleで手動確認します。AudioWorklet/SABは現行backendのtest対象ではありません。
 
-        実音の最後の確認は [RealWindow/Tone](story:RealWindow/Tone) です。
+        実音の最後の確認はdesktopのサンプルと`samples/LuxelAudioBrowser`で行います。
         """;
 }

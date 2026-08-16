@@ -60,7 +60,7 @@ internal static class RenderingCourseCatalog
             string label = route[(route.LastIndexOf('/') + 1)..];
             return $"{index + 1}. [{label}](story:{route})";
         });
-        return string.Join("\n", lines.Append($"{GraphicsRoutes.Length}. [Gallery Triangle](story:Examples/3D/Triangle)"));
+        return string.Join("\n", lines.Append($"{GraphicsRoutes.Length}. [Gallery Triangle](story:Learn/Graphics/TriangleSample)"));
     }
 
     internal static (string? Previous, string? Next) Navigation(string path)
