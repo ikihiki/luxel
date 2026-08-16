@@ -20,9 +20,9 @@ struct RasterArgs
 [[vk::push_constant]] RasterArgs args;
 
 struct Path { uint segStart, segCount, transformSlot, styleSlot;
-              uint fillRule, kind, clipSlot, srcIndex;           // kind: 0=fill 1=stroke 2=image
-              float bminx, bminy, bmaxx, bmaxy;                  // image は bbox が UV 矩形を兼ねる
-              float strokeHalfWidth; uint srcStride, srcW, srcH, srcX, srcY; };   // 72B (srcX/Y=アトラス原点オフセット px)
+              uint fillRule, kind, clipSlot, srcIndex;           // kind: 0=fill 1=stroke 2=image 3=R8 mask
+              float bminx, bminy, bmaxx, bmaxy;                  // image/mask は bbox が UV 矩形を兼ねる
+              float strokeHalfWidth; uint srcStride, srcW, srcH, srcX, srcY; };   // 72B (mask の srcStride は byte)
 struct Tf { float a, b, c, d, e, f; uint p0, p1; };             // 32B
 struct St { uint colorRgba; float opacity; uint p0, p1; };      // 16B
 struct Cl { float minx, miny, maxx, maxy;
@@ -67,6 +67,16 @@ uint packRgba(float4 c)
     uint b = (uint)(saturate(c.b) * 255.0 + 0.5);
     uint a = (uint)(saturate(c.a) * 255.0 + 0.5);
     return r | (g << 8) | (b << 16) | (a << 24);
+}
+
+// R8 は 4 texel/word で ByteAddressBuffer に格納する。各行を 4 byte 境界へ揃えることで、
+// Vulkan/DX12/WebGPU の全 backend で aligned uint Load だけを使用できる。
+float loadMask(Path path, int2 texel)
+{
+    uint byteOffset = (uint(texel.y) + path.srcY) * path.srcStride + uint(texel.x) + path.srcX;
+    uint word = g_buffers[path.srcIndex].Load<uint>(byteOffset & ~3u);
+    uint shift = (byteOffset & 3u) * 8u;
+    return ((word >> shift) & 0xffu) / 255.0;
 }
 
 bool insideRoundedClip(float2 p, Cl cl)
@@ -252,6 +262,46 @@ void main(uint3 tid : SV_DispatchThreadID)
                 float4 ic = lerp(lerp(c00, c10, fr.x), lerp(c01, c11, fr.x), fr.y);
                 float f = st.opacity * cov;
                 src = float4(ic.rgb * f, ic.a * f);
+            }
+            else if (path.kind == 3)
+            {
+                // R8 マスク: 画面座標をローカルへ戻して atlas sub-rect を読む。
+                // fillRule は mask だけ sampling (0=nearest, 1=linear) として使用する。
+                float ca = args.a * tf.a + args.c * tf.b;
+                float cb = args.b * tf.a + args.d * tf.b;
+                float cc = args.a * tf.c + args.c * tf.d;
+                float cd = args.b * tf.c + args.d * tf.d;
+                float ce = args.a * tf.e + args.c * tf.f + args.e;
+                float cf = args.b * tf.e + args.d * tf.f + args.f;
+                float det = ca * cd - cc * cb;
+                float id = abs(det) < 1e-12 ? 0.0 : 1.0 / det;
+                float2 rel = pix - float2(ce, cf);
+                float2 local = float2((cd * rel.x - cc * rel.y) * id, (-cb * rel.x + ca * rel.y) * id);
+                float2 ext = max(float2(path.bmaxx - path.bminx, path.bmaxy - path.bminy), 1e-6);
+                float2 uv = (local - float2(path.bminx, path.bminy)) / ext;
+                float2 tex = uv * float2(path.srcW, path.srcH) - 0.5;
+                int2 tmax = int2(int(path.srcW) - 1, int(path.srcH) - 1);
+                float mask;
+                if (path.fillRule == 0u)
+                {
+                    int2 tn = clamp(int2(floor(tex + 0.5)), int2(0, 0), tmax);
+                    mask = loadMask(path, tn);
+                }
+                else
+                {
+                    float2 tb = floor(tex);
+                    float2 fr = tex - tb;
+                    int2 t0 = clamp(int2(tb), int2(0, 0), tmax);
+                    int2 t1 = min(t0 + int2(1, 1), tmax);
+                    float m00 = loadMask(path, t0);
+                    float m10 = loadMask(path, int2(t1.x, t0.y));
+                    float m01 = loadMask(path, int2(t0.x, t1.y));
+                    float m11 = loadMask(path, t1);
+                    mask = lerp(lerp(m00, m10, fr.x), lerp(m01, m11, fr.x), fr.y);
+                }
+                float4 col = unpack(st.colorRgba);
+                float a = col.a * st.opacity * cov * mask;
+                src = float4(col.rgb * a, a);
             }
             else
             {

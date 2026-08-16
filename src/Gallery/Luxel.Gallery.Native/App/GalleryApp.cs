@@ -371,6 +371,8 @@ public sealed class GalleryApp : IDisposable
             },
             selected: _currentPath ?? "", filter: _search,
             appearance: new TreeViewAppearance(
+                FolderFontSize: 14,
+                LeafFontSize: 14,
                 FolderColor: GalleryChromeTheme.TreeFolder,
                 LeafColor: GalleryChromeTheme.TreeLeaf,
                 HoverColor: GalleryChromeTheme.TreeHoverText,

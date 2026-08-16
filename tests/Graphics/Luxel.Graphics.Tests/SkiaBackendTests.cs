@@ -93,6 +93,15 @@ public class SkiaBackendTests
     }
 
     [Fact]
+    public void RasterizerContract_RejectsBindlessAlphaMasks()
+    {
+        using var rasterizer = new SkiaRasterizer2D();
+        var scene = new Scene2D();
+        scene.MaskSubRect(1, 4, 0, 0, 1, 1, 0, 0, 1, 1, Color2D.White);
+        Assert.Throws<NotSupportedException>(() => rasterizer.CreateScene(scene));
+    }
+
+    [Fact]
     public void RasterizerContract_RejectsUseAfterSessionOrRasterizerDispose()
     {
         var rasterizer = new SkiaRasterizer2D();

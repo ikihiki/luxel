@@ -64,8 +64,8 @@ public sealed class SkiaRasterizer2D : IRasterizer2D
     internal static void EnsureSupported(Scene2D scene)
     {
         foreach (Scene2D.Shape shape in scene.Shapes)
-            if (shape.Kind == PaintKind.Image)
-                throw new NotSupportedException("SkiaRasterizer2D does not support bindless image shapes.");
+            if (shape.Kind is PaintKind.Image or PaintKind.Mask)
+                throw new NotSupportedException("SkiaRasterizer2D does not support bindless image or alpha-mask shapes.");
     }
 
     private static void EnsureSupported(UiNode node)

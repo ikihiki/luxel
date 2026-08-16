@@ -113,7 +113,7 @@ public static class SkiaRenderer
     private static void DrawShape(SKCanvas c, Scene2D.Shape shape, in Camera2D cam, in Affine2D world,
         uint colorRgba, float opacity)
     {
-        if (shape.Kind == PaintKind.Image) return;   // bindless GPU バッファ参照 — CPU では非対応
+        if (shape.Kind is PaintKind.Image or PaintKind.Mask) return;   // bindless GPU バッファ参照 — CPU では非対応
 
         using var path = new SKPath();
         path.FillType = shape.Rule == FillRule.EvenOdd ? SKPathFillType.EvenOdd : SKPathFillType.Winding;

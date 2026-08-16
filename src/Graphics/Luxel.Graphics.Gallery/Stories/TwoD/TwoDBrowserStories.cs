@@ -117,6 +117,36 @@ public static class TwoDBrowserStories
     }
 
     [Story(CapabilityNote = BrowserNote)]
+    public static Widget AlphaMasks(StoryContext ctx)
+    {
+        if (ctx.DeviceOrNull is not { } device) return Snapshot(ctx, Muted("GPU runtime required"));
+
+        const int atlasWidth = 40, atlasHeight = 24;
+        int stride = AlphaMaskAtlas.RequiredRowStride(atlasWidth);
+        GpuBuffer maskBuffer = device.Malloc((ulong)(stride * atlasHeight), GpuMemoryKind.HostMapped);
+        FillMaskAtlas(maskBuffer.Span<byte>(stride * atlasHeight), stride);
+
+        var atlas = new AlphaMaskAtlas();
+        atlas.Bind(maskBuffer.BindlessIndex, atlasWidth, atlasHeight, stride);
+
+        var scene = new Scene2D();
+        scene.FillRect(Color2D.Rgba(245, 247, 250), 0, 0, 420, 220);
+        scene.DrawMask(atlas, new MaskRect(2, 2, 16, 20), new RectF(24, 28, 16, 20),
+            Color2D.Rgba(28, 40, 64), MaskSampling.Nearest);
+        scene.DrawMask(atlas, new MaskRect(2, 2, 16, 20), new RectF(76, 26, 80, 100),
+            Color2D.Rgba(47, 111, 237), MaskSampling.Nearest);
+        scene.DrawMask(atlas, new MaskRect(2, 2, 16, 20), new RectF(190, 26, 80, 100),
+            Color2D.Rgba(236, 72, 100), MaskSampling.Linear);
+        scene.DrawMask(atlas, new MaskRect(20, 2, 18, 18), new RectF(310, 38, 72, 72),
+            Color2D.Rgba(34, 197, 94), MaskSampling.Linear);
+
+        return Snapshot(ctx, VStack(4)[
+            Muted("R8 mask — 1:1 / nearest / linear / soft coverage"),
+            RasterView(ctx, 420, 220, scene, Camera2D.Pixels, maskBuffer)
+        ]);
+    }
+
+    [Story(CapabilityNote = BrowserNote)]
     public static Widget InputPaths(StoryContext ctx) => Diagnostic(ctx, "open stroke / closed fill", scene =>
     {
         scene.BeginStroke(Color2D.Rgba(245, 158, 11), 7).MoveTo(26, 168).LineTo(96, 52).LineTo(168, 168).End();
@@ -299,6 +329,43 @@ public static class TwoDBrowserStories
                 pixels[offset + 2] = border ? (byte)30 : marker ? (byte)245 : colors[frame].B;
                 pixels[offset + 3] = 255;
             }
+        }
+    }
+
+    private static void FillMaskAtlas(Span<byte> pixels, int stride)
+    {
+        pixels.Clear();
+        // 16x20 の A。4x4 supersampling で coverage を作り、低水準 mask API の入力例にする。
+        for (int y = 0; y < 20; y++)
+        for (int x = 0; x < 16; x++)
+        {
+            int covered = 0;
+            for (int sy = 0; sy < 4; sy++)
+            for (int sx = 0; sx < 4; sx++)
+            {
+                var p = new Vector2(x + (sx + 0.5f) / 4, y + (sy + 0.5f) / 4);
+                float left = DistanceToSegment(p, new Vector2(1.5f, 19), new Vector2(7.5f, 1));
+                float right = DistanceToSegment(p, new Vector2(7.5f, 1), new Vector2(14, 19));
+                bool bar = p.Y >= 11 && p.Y <= 13 && p.X >= 4 && p.X <= 11.5f;
+                if (left <= 1.25f || right <= 1.25f || bar) covered++;
+            }
+            pixels[(y + 2) * stride + x + 2] = (byte)((covered * 255 + 8) / 16);
+        }
+
+        // 18x18 の soft circle。外周2pxを coverage gradient にする。
+        for (int y = 0; y < 18; y++)
+        for (int x = 0; x < 18; x++)
+        {
+            float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), new Vector2(9, 9));
+            float coverage = Math.Clamp((9f - distance) / 2f, 0, 1);
+            pixels[(y + 2) * stride + x + 20] = (byte)(coverage * 255 + 0.5f);
+        }
+
+        static float DistanceToSegment(Vector2 p, Vector2 a, Vector2 b)
+        {
+            Vector2 ab = b - a;
+            float t = Math.Clamp(Vector2.Dot(p - a, ab) / Vector2.Dot(ab, ab), 0, 1);
+            return Vector2.Distance(p, a + ab * t);
         }
     }
 }

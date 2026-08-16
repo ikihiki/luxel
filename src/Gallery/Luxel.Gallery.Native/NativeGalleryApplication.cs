@@ -4,7 +4,9 @@ using Luxel.DevTools;
 using Luxel.Diagnostics;
 using Luxel.Framework.UI;
 using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD.Skia;
 using Luxel.Platform;
+using Luxel.Typography.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Gallery.Native;
@@ -70,6 +72,7 @@ public sealed class NativeGalleryApplication : IDisposable
         int port = _args.Length > 1 && int.TryParse(_args[1], out int p) ? p : 5180;
         int seconds = _args.Length > 2 && int.TryParse(_args[2], out int s) ? s : 0;
         var gallery = new GalleryApp(_catalog);
+        GpuGlyphMaskRenderer2D? glyphMasks = null;
         bool storyRegistered = false;
         LuxelAppBuilder builder = LuxelApp.CreateBuilder(_args);
         builder.Options.Title = "Luxel Gallery";
@@ -84,9 +87,12 @@ public sealed class NativeGalleryApplication : IDisposable
         {
             runtime.Own(gallery);
             gallery.HostGpu = (runtime.Device, runtime.Font);
+            glyphMasks = runtime.Own(new GpuGlyphMaskRenderer2D(runtime.Device, new SkiaGlyphMaskRasterizer()));
+            runtime.Own(GlyphMaskRendering.Register(runtime.Font, glyphMasks));
         });
         builder.OnStarted(runtime =>
         {
+            glyphMasks!.RenderScale = runtime.MainWindow.Window.Scale;
             Console.WriteLine($"=== Luxel.Gallery app (device: {runtime.Device.Name}) ===");
             if (runtime.MainWindow.Content is UiContent content)
                 content.Host.RegisterShortcut(new KeyGesture(Key.D, Ctrl: true), gallery.ToggleTheme);
@@ -104,6 +110,7 @@ public sealed class NativeGalleryApplication : IDisposable
         });
         builder.OnFrame((runtime, _) =>
         {
+            glyphMasks!.RenderScale = runtime.MainWindow.Window.Scale;
             gallery.Update();
             if (runtime.MainWindow.Content is not UiContent content) return;
             gallery.SetWindowSize(content.Host.Width, content.Host.Height);

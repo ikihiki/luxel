@@ -3,7 +3,7 @@
 namespace Luxel.Graphics.TwoD;
 
 /// <summary>図形の種別。</summary>
-public enum PaintKind { Fill, Stroke, Image }
+public enum PaintKind { Fill, Stroke, Image, Mask }
 
 /// <summary>角丸矩形の丸める角の選択 (入力グループの接合面を直角にする等)。</summary>
 [Flags]
@@ -37,8 +37,9 @@ public sealed class Scene2D
         public uint Color;
         public FillRule Rule;
         public float StrokeWidth;
-        public uint SrcIndex, SrcStride, SrcW, SrcH;   // Image 用 (bindless バッファソース)
-        public uint SrcX, SrcY;                        // Image 用: アトラス原点オフセット(px, texel)
+        public uint SrcIndex, SrcStride, SrcW, SrcH;   // Image/Mask 用 (bindless バッファソース)
+        public uint SrcX, SrcY;                        // Image/Mask 用: アトラス原点オフセット(px, texel)
+        public MaskSampling MaskSampling;
         /// <summary>true = 保持型キャンバスでノード色に畳まれず自分の色で描かれる (カラー絵文字のレイヤ等)。</summary>
         public bool AbsoluteColor;
         public readonly List<Contour> Contours = new();
@@ -177,6 +178,58 @@ public sealed class Scene2D
         };
         MoveTo(x, y); LineTo(x + w, y); LineTo(x + w, y + h); LineTo(x, y + h); Close();
         return End();
+    }
+
+    /// <summary>
+    /// R8 アトラスのサブ矩形を被覆率マスクとして描き、<paramref name="color"/> で着色する。
+    /// <paramref name="srcStrideBytes"/> は 4 byte 境界へパディング済みの行ピッチ。
+    /// クリップ・変換・描画順・ノード透明度は通常の塗り図形と同様に適用される。
+    /// </summary>
+    public Scene2D MaskSubRect(
+        uint srcIndex, uint srcStrideBytes, uint srcX, uint srcY, uint srcW, uint srcH,
+        float x, float y, float w, float h, uint color,
+        MaskSampling sampling = MaskSampling.Linear, bool absoluteColor = false)
+    {
+        if (srcStrideBytes == 0 || (srcStrideBytes & 3) != 0)
+            throw new ArgumentOutOfRangeException(nameof(srcStrideBytes), "R8 row stride must be a non-zero multiple of four bytes.");
+        if (srcW == 0) throw new ArgumentOutOfRangeException(nameof(srcW));
+        if (srcH == 0) throw new ArgumentOutOfRangeException(nameof(srcH));
+        if (srcW > srcStrideBytes || srcX > srcStrideBytes - srcW)
+            throw new ArgumentOutOfRangeException(nameof(srcX), "The source rectangle must fit inside the R8 row stride.");
+        if (!float.IsFinite(x) || !float.IsFinite(y) || !float.IsFinite(w) || !float.IsFinite(h) || w <= 0 || h <= 0)
+            throw new ArgumentOutOfRangeException(nameof(w), "The destination rectangle must be finite and have a positive size.");
+        if (sampling is not MaskSampling.Nearest and not MaskSampling.Linear)
+            throw new ArgumentOutOfRangeException(nameof(sampling));
+
+        FlushContour();
+        _shape = new Shape
+        {
+            Kind = PaintKind.Mask,
+            Color = color,
+            SrcIndex = srcIndex,
+            SrcStride = srcStrideBytes,
+            SrcW = srcW,
+            SrcH = srcH,
+            SrcX = srcX,
+            SrcY = srcY,
+            MaskSampling = sampling,
+            AbsoluteColor = absoluteColor,
+        };
+        MoveTo(x, y); LineTo(x + w, y); LineTo(x + w, y + h); LineTo(x, y + h); Close();
+        return End();
+    }
+
+    /// <summary><see cref="AlphaMaskAtlas"/> の矩形を、指定した宛先矩形へ描く。</summary>
+    public Scene2D DrawMask(
+        AlphaMaskAtlas atlas, MaskRect source, RectF destination, uint color,
+        MaskSampling sampling = MaskSampling.Linear, bool absoluteColor = false)
+    {
+        ArgumentNullException.ThrowIfNull(atlas);
+        atlas.Validate(source);
+        return MaskSubRect(
+            atlas.SrcIndex, atlas.RowStrideBytes,
+            checked((uint)source.X), checked((uint)source.Y), checked((uint)source.Width), checked((uint)source.Height),
+            destination.X, destination.Y, destination.W, destination.H, color, sampling, absoluteColor);
     }
 
     /// <summary>アトラスのスプライト <paramref name="name"/> を、ピボットが (<paramref name="x"/>,<paramref name="y"/>) に

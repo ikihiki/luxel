@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\DevTools\Luxel.DevTools\Luxel.DevTools.csproj" />
     <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
   </ItemGroup>
   <Import Project="..\..\..\assets\Luxel.FontAssets.targets" />
