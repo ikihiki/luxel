@@ -1,5 +1,7 @@
 ﻿using Luxel.Controls;
 using Xunit;
+using Luxel.Typography;
+using Luxel.UI;
 
 namespace Luxel.Tests;
 
@@ -56,5 +58,20 @@ public class TreeViewTests
         // 葉 (子なし) のキーが展開セットにあっても何も起きない
         var flat = Flat(new HashSet<string> { "c" });
         Assert.Equal(3, flat.Count);
+    }
+
+    [Fact]
+    public void Appearance_UsesConfiguredRowMetrics()
+    {
+        var appearance = new TreeViewAppearance(RowHeight: 31, Indent: 16, LeafFontSize: 13);
+        var row = new TreeViewRow("Leaf", depth: 2, hasChildren: false, open: false,
+            selected: false, appearance, activate: () => { }, toggle: null);
+        var ctx = new LayoutContext { Font = VectorFont.LoadSystem() };
+
+        row.Layout(new Constraints(0, 240, 0, 100), ctx);
+
+        Assert.Equal(31, row.Size.Height);
+        Assert.Equal(240, row.Size.Width);
+        Assert.Equal("Leaf", row.DebugDetail);
     }
 }

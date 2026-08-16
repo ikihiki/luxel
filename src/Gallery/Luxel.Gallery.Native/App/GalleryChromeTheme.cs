@@ -10,6 +10,12 @@ internal static class GalleryChromeTheme
     public static uint Preview => C(0x10, 0x15, 0x1d);
     public static uint Search => C(0x0b, 0x12, 0x1b);
     public static uint AccentSoft => C(0x18, 0x34, 0x5c);
+    public static uint TreeHover => C(0x18, 0x23, 0x31);
+    public static uint TreeFolder => C(0x87, 0x99, 0xaf);
+    public static uint TreeLeaf => C(0xbd, 0xca, 0xda);
+    public static uint TreeHoverText => C(0xf5, 0xf8, 0xfc);
+    public static uint TreeSelectedText => C(0xcf, 0xe2, 0xff);
+    public static uint TreeChevron => C(0x5f, 0x72, 0x8a);
 
     public static Theme Create()
     {
