@@ -220,6 +220,7 @@ else
     private string _runtimeSummary = "Storyランタイムを待機しています。";
     private int _revision;
     private StoryInfo _story = null!;
+    private IReadOnlyList<StoryInfo> _displayStories = Array.Empty<StoryInfo>();
     private IReadOnlyList<StoryArgDefinition> _argDefinitions = Array.Empty<StoryArgDefinition>();
     private Dictionary<string, JsonElement> _argValues = new(StringComparer.Ordinal);
     private readonly List<OutputEntry> _output = [];
@@ -236,6 +237,7 @@ else
 
     protected override void OnInitialized()
     {
+        _displayStories = StoryPresentationOrder.Apply(Catalog.All);
         LoadLocation(Navigation.Uri);
         if (!_embedded) Navigation.LocationChanged += OnLocationChanged;
     }
@@ -282,7 +284,7 @@ else
         _embedded = query.GetValueOrDefault("embed") is "1" or "true";
         _compact = !_embedded && query.GetValueOrDefault("compact") is "1" or "true";
         string? requested = query.GetValueOrDefault("story");
-        _story = requested is null ? Catalog.All[0] : Catalog.Find(requested)
+        _story = requested is null ? _displayStories[0] : Catalog.Find(requested)
             ?? throw new InvalidOperationException($"Unknown browser story '{requested}'.");
         _argsJson = query.GetValueOrDefault("args") ?? "{}";
         _documentHtml = _embedded ? null : TryRenderDocument(_story, _argsJson);
@@ -409,7 +411,7 @@ else
     private IReadOnlyList<GalleryStoryTreeNode> FilteredTree()
     {
         string needle = _search.Trim();
-        IEnumerable<StoryInfo> stories = Catalog.All;
+        IEnumerable<StoryInfo> stories = _displayStories;
         if (needle.Length > 0)
             stories = stories.Where(story => SearchText(story).Contains(needle, StringComparison.OrdinalIgnoreCase));
         return GalleryStoryTree.Build(stories);

@@ -331,7 +331,7 @@ public sealed class GalleryApp : IDisposable
         // 表示層のマップは持たない — 章替え/整理はパス改名 (+ golden の git mv) で行う。
         var roots = new List<TreeNode>();
         var folders = new Dictionary<string, List<TreeNode>>();   // "Examples/2D" → 子リスト
-        foreach (StoryInfo s in _catalog.All)
+        foreach (StoryInfo s in StoryPresentationOrder.Apply(_catalog.All))
         {
             string[] seg = s.Path.Split('/');
             List<TreeNode> level = roots;

@@ -17,7 +17,7 @@ internal static class GalleryStoryTree
     public static IReadOnlyList<GalleryStoryTreeNode> Build(IEnumerable<StoryInfo> stories)
     {
         var roots = new List<GalleryStoryTreeNode>();
-        foreach (StoryInfo story in stories)
+        foreach (StoryInfo story in StoryPresentationOrder.Apply(stories))
         {
             List<GalleryStoryTreeNode> level = roots;
             string[] segments = story.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
