@@ -1,0 +1,72 @@
+name: Unit Tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unit-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ALSOFT_DRIVERS: 'null'
+  LUXEL_AUDIO_SINK: luxel_null
+  LUXEL_DESKTOP_AUDIO: 'null'
+  LUXEL_WEBGPU_FORCE_FALLBACK_ADAPTER: '1'
+  WGPU_ADAPTER_NAME: llvmpipe
+  WGPU_BACKEND: vulkan
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libopenal1 libopenal-dev libvulkan1 mesa-vulkan-drivers vulkan-tools
+          echo "VK_ICD_FILENAMES=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)" >> "$GITHUB_ENV"
+
+      - name: Install browser WebAssembly workload
+        run: dotnet workload install wasm-tools
+
+      - name: Run .NET unit tests
+        shell: bash
+        run: |
+          mapfile -t projects < <(
+            find tests -name '*.Tests.csproj' -type f \
+              ! -path '*E2E*' \
+              ! -path '*E2e*' \
+              ! -path '*.Present.Tests*' \
+              | sort
+          )
+          printf 'Running %d unit-test projects\n' "${#projects[@]}"
+          for project in "${projects[@]}"; do
+            echo "::group::$project"
+            dotnet test "$project" \
+              --configuration Release \
+              --filter 'Category!=Integration&Category!=WindowsIntegration'
+            echo '::endgroup::'
+          done
+
+      - name: Run JavaScript unit tests
+        run: node --test tests/Audio/Luxel.Audio.Browser.Tests/luxel-audio-browser.test.mjs
