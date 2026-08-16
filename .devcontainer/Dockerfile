@@ -73,6 +73,22 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
 
 RUN dotnet workload install wasm-tools
 
+# Keep the preinstalled browser revision aligned with the .NET E2E project. The project is
+# restored in isolation so application sources do not invalidate this image layer.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY Directory.Build.props /tmp/luxel-playwright/Directory.Build.props
+COPY tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj \
+    /tmp/luxel-playwright/tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/
+RUN dotnet tool install PowerShell --tool-path /usr/local/bin --version 7.6.4 \
+    && dotnet build \
+        /tmp/luxel-playwright/tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj \
+        --configuration Release \
+    && pwsh \
+        /tmp/luxel-playwright/tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 \
+        install --with-deps chromium \
+    && chown -R "${USERNAME}:${USERNAME}" "${PLAYWRIGHT_BROWSERS_PATH}" \
+    && rm -rf /tmp/luxel-playwright /root/.nuget/packages /var/lib/apt/lists/*
+
 COPY eng/desktop /opt/luxel/desktop
 RUN sed -i 's/\r$//' /opt/luxel/desktop/*.sh \
     && chmod -R a+rX /opt/luxel/desktop \

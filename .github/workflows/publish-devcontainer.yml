@@ -5,13 +5,17 @@ on:
     paths:
       - '.devcontainer/**'
       - '.github/workflows/publish-devcontainer.yml'
+      - 'Directory.Build.props'
       - 'eng/desktop/**'
+      - 'tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/**'
   push:
     branches: [main]
     paths:
       - '.devcontainer/**'
       - '.github/workflows/publish-devcontainer.yml'
+      - 'Directory.Build.props'
       - 'eng/desktop/**'
+      - 'tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/**'
   workflow_dispatch:
 
 permissions:
@@ -44,7 +48,15 @@ jobs:
           imageName: ${{ env.DEVCONTAINER_IMAGE }}
           cacheFrom: ${{ env.DEVCONTAINER_IMAGE }}
           push: never
-          runCmd: dotnet --info && node --version && vulkaninfo --summary
+          runCmd: >-
+            dotnet --info &&
+            node --version &&
+            pwsh --version &&
+            vulkaninfo --summary &&
+            dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release -o artifacts/gallery-browser &&
+            dotnet build tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release &&
+            pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 install chromium &&
+            dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release --no-build
 
       - name: Build and publish prebuilt image
         if: github.event_name != 'pull_request'
@@ -54,4 +66,12 @@ jobs:
           imageTag: latest,${{ github.sha }}
           cacheFrom: ${{ env.DEVCONTAINER_IMAGE }}
           push: always
-          runCmd: dotnet --info && node --version && vulkaninfo --summary
+          runCmd: >-
+            dotnet --info &&
+            node --version &&
+            pwsh --version &&
+            vulkaninfo --summary &&
+            dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj -c Release -o artifacts/gallery-browser &&
+            dotnet build tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release &&
+            pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1 install chromium &&
+            dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release --no-build

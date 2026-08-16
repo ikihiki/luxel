@@ -1,6 +1,11 @@
 **
 !.devcontainer/
 !.devcontainer/Dockerfile
+!Directory.Build.props
 !eng/
 !eng/desktop/
 !eng/desktop/**
+!tests/
+!tests/Gallery/
+!tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/
+!tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj
