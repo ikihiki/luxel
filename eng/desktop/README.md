@@ -38,14 +38,14 @@ The default Vulkan renderer is Mesa lavapipe for deterministic remote developmen
 LUXEL_DESKTOP_RENDERER=hardware eng/desktop/start.sh
 ```
 
-Coder workspaces also set `LUXEL_REQUIRE_HARDWARE_VULKAN=1`. With this strict check,
+Hardware-backed workspaces can set `LUXEL_REQUIRE_HARDWARE_VULKAN=1`. With this strict check,
 `healthcheck.sh` requires at least one non-CPU Vulkan device and records its GPU index for
 `run-vkcube.sh`. CPU devices such as llvmpipe may coexist with the Intel iGPU; they only cause a
 failure when no hardware device is available. This prevents a missing `/dev/dri` passthrough from
 silently falling back to software.
 
-Set `LUXEL_VULKAN_VENDOR_ID` to require a specific hardware vendor. The Intel Coder template uses
-`0x8086`, so a different discrete GPU cannot be selected accidentally.
+Set `LUXEL_VULKAN_VENDOR_ID` to require a specific hardware vendor. Use `0x8086` for an Intel
+workspace so a different discrete GPU cannot be selected accidentally.
 
 ## Optional Linux audio
 

@@ -14,6 +14,3 @@ tools/
 node_modules/
 test-results/
 playwright-report/
-
-# Local Terraform provider and module cache (lock files remain tracked).
-.terraform/
