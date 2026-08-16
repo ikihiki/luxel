@@ -68,9 +68,13 @@ internal struct GpuStyle      // 16 バイト
 }
 
 [StructLayout(LayoutKind.Sequential)]
-internal struct GpuClip       // 16 バイト (画面空間 AABB)
+internal struct GpuClip       // 32 バイト (ワールド空間の角丸 AABB + 親クリップ)
 {
     public float MinX, MinY, MaxX, MaxY;
+    public float RadiusX, RadiusY;
+    public uint Corners, ParentSlot;
+
+    public const int SizeBytes = 32;
 }
 
 [StructLayout(LayoutKind.Sequential)]

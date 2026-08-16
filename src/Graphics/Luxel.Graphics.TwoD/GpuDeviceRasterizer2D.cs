@@ -120,7 +120,7 @@ public class GpuDeviceRasterizer2D : IRasterizer2D
         GpuBuffer pathBuf = Upload(paths, GpuPath.SizeBytes);
         GpuBuffer tfBuf = Upload(transforms, 32);
         GpuBuffer styBuf = Upload(styles, 16);
-        GpuBuffer clipBuf = Upload(clips, 16);
+        GpuBuffer clipBuf = Upload(clips, GpuClip.SizeBytes);
         GpuBuffer orderBuf = Upload(order, 4);
 
         return new GpuEncodedScene2D(this, segBuf, pathBuf, tfBuf, styBuf, clipBuf, orderBuf, (uint)paths.Length);
@@ -265,7 +265,7 @@ internal sealed class GpuRetainedRasterScene2D : IRasterScene2D, IRetainedCanvas
         Replace(ref _paths, ref _pathCapacity, canvas.PathSnapshot(), GpuPath.SizeBytes);
         Replace(ref _transforms, ref _transformCapacity, canvas.TransformSnapshot(), 32);
         Replace(ref _styles, ref _styleCapacity, canvas.StyleSnapshot(), 16);
-        Replace(ref _clips, ref _clipCapacity, canvas.ClipSnapshot(), 16);
+        Replace(ref _clips, ref _clipCapacity, canvas.ClipSnapshot(), GpuClip.SizeBytes);
         Replace(ref _order, ref _orderCapacity, canvas.OrderSnapshot(), 4);
         _orderCount = canvas.OrderCount;
     }

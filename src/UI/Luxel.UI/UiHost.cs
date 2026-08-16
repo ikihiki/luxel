@@ -663,7 +663,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
             if (a.Clip is not RectClip rc) continue;
             if (!a.ComputeWorldNow().TryInvert(out Affine2D ai)) return false;
             System.Numerics.Vector2 ap = ai.Apply(new(x, y));
-            if (ap.X < rc.X || ap.X > rc.X + rc.W || ap.Y < rc.Y || ap.Y > rc.Y + rc.H) return false;
+            if (!rc.Contains(ap.X, ap.Y)) return false;
         }
         lx = p.X; ly = p.Y;
         return true;

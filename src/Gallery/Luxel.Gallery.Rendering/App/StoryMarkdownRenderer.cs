@@ -61,66 +61,14 @@ public static class StoryMarkdownRenderer
                 Center(width: 640)[body]];
             Widget details = new StoryReferenceDetails(
                 context, story, context.Knobs.Skip(before).ToArray(), logStart);
-            Widget card = new StoryReferenceCard(VStack(0, width: 640)[preview, details]);
+            Widget card = Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 7,
+                clip: true, width: 640)[VStack(0, width: 640)[preview, details]];
             return Center()[VStack(6, width: 640)[
                 Text(reference.Path, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
                 card
             ]];
         }
         finally { context.SuppressPlays = suppressed; }
-    }
-
-    /// <summary>
-    /// RectClipは角丸を表現できないため、子が全面を塗るWidget Storyでも外周が四角く
-    /// 戻らないよう、最前面で角の外側だけをMarkdown背景色に戻す。
-    /// </summary>
-    private sealed class StoryReferenceCard(Widget child) : Widget
-    {
-        private const float CardWidth = 640f;
-        private const float Radius = 7f;
-
-        public override IEnumerable<Widget> DebugChildren() => [child];
-
-        protected override void PerformLayout(Constraints c, LayoutContext ctx)
-        {
-            float width = MathF.Min(CardWidth, c.MaxW);
-            Size childSize = child.Layout(new Constraints(width, width, 0, c.MaxH), ctx,
-                parentUsesSize: true);
-            child.Offset = new Point(0, 0);
-            Size = c.Constrain(new Size(width, childSize.Height));
-        }
-
-        protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
-        {
-            UiNode root = CreateRoot(ctx, parent, worldOrigin);
-            root.Clip = new RectClip(0, 0, Size.Width, Size.Height);
-            root.Content = new Scene2D().FillRoundedRect(Color2D.White, 0, 0,
-                Size.Width, Size.Height, Radius);
-            ctx.Effect(() => root.Color = ctx.Theme.Value.Surface);
-
-            child.Realize(ctx, root, WorldPos);
-
-            UiNode mask = ctx.Canvas.AddChild(root);
-            mask.Z = 10_000;
-            mask.Content = CornerMask(Size.Width, Size.Height, Radius);
-            ctx.Effect(() => mask.Color = ctx.Theme.Value.Background);
-        }
-
-        private static Scene2D CornerMask(float width, float height, float radius)
-        {
-            var scene = new Scene2D();
-            scene.BeginFill(Color2D.White)
-                .MoveTo(0, 0).LineTo(radius, 0).QuadTo(0, 0, 0, radius).LineTo(0, 0).Close().End();
-            scene.BeginFill(Color2D.White)
-                .MoveTo(width, 0).LineTo(width - radius, 0).QuadTo(width, 0, width, radius).LineTo(width, 0).Close().End();
-            scene.BeginFill(Color2D.White)
-                .MoveTo(width, height).LineTo(width, height - radius).QuadTo(width, height, width - radius, height)
-                .LineTo(width, height).Close().End();
-            scene.BeginFill(Color2D.White)
-                .MoveTo(0, height).LineTo(radius, height).QuadTo(0, height, 0, height - radius)
-                .LineTo(0, height).Close().End();
-            return scene;
-        }
     }
 
     /// <summary>埋め込みStoryにも通常Galleryと同じArgs / Output / Sourceを提供する。</summary>

@@ -1,7 +1,7 @@
 // 2D ベクターラスタライザ (fine)。SoA + per-path 間接化。
-// Order[] の順に Path を処理し、Path ごとの Transform(world)・Style(色)・Clip(AABB) を適用。
+// Order[] の順に Path を処理し、Path ごとの Transform(world)・Style(色)・Clip(角丸矩形の連鎖) を適用。
 // world 変換 → camera 変換で線分を画面へ写し、巻き数(塗り)/距離(ストローク)で被覆を計算、
-// クリップ AABB で抜き、奥→手前 alpha 合成して framebuffer(RGBA8) へ書く。
+// クリップを4x4サンプルで抜き、奥→手前 alpha 合成して framebuffer(RGBA8) へ書く。
 // ジオメトリ(Segment)は不変のまま、Transform/Style/Order の小さな書換だけで移動/色変更/並べ替え可能。
 
 [[vk::binding(0, 0)]]
@@ -25,7 +25,8 @@ struct Path { uint segStart, segCount, transformSlot, styleSlot;
               float strokeHalfWidth; uint srcStride, srcW, srcH, srcX, srcY; };   // 72B (srcX/Y=アトラス原点オフセット px)
 struct Tf { float a, b, c, d, e, f; uint p0, p1; };             // 32B
 struct St { uint colorRgba; float opacity; uint p0, p1; };      // 16B
-struct Cl { float minx, miny, maxx, maxy; };                    // 16B
+struct Cl { float minx, miny, maxx, maxy;
+            float radiusX, radiusY; uint corners, parentSlot; }; // 32B
 struct Seg { float x0, y0, x1, y1; uint pathId, p0, p1, p2; };  // 32B
 
 float2 affine(float a, float b, float c, float d, float e, float f, float2 p)
@@ -68,6 +69,45 @@ uint packRgba(float4 c)
     return r | (g << 8) | (b << 16) | (a << 24);
 }
 
+bool insideRoundedClip(float2 p, Cl cl)
+{
+    float2 k0 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.minx, cl.miny));
+    float2 k1 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.maxx, cl.miny));
+    float2 k2 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.minx, cl.maxy));
+    float2 k3 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.maxx, cl.maxy));
+    float2 lo = min(min(k0, k1), min(k2, k3));
+    float2 hi = max(max(k0, k1), max(k2, k3));
+    if (p.x < lo.x || p.x > hi.x || p.y < lo.y || p.y > hi.y) return false;
+
+    float2 radius = min(float2(cl.radiusX * length(float2(args.a, args.b)),
+                               cl.radiusY * length(float2(args.c, args.d))),
+                        (hi - lo) * 0.5);
+    if (cl.corners == 0 || radius.x <= 0.0 || radius.y <= 0.0) return true;
+
+    float2 q;
+    if ((cl.corners & 1u) != 0 && p.x < lo.x + radius.x && p.y < lo.y + radius.y)
+        q = (p - (lo + radius)) / radius;
+    else if ((cl.corners & 2u) != 0 && p.x > hi.x - radius.x && p.y < lo.y + radius.y)
+        q = (p - float2(hi.x - radius.x, lo.y + radius.y)) / radius;
+    else if ((cl.corners & 4u) != 0 && p.x > hi.x - radius.x && p.y > hi.y - radius.y)
+        q = (p - (hi - radius)) / radius;
+    else if ((cl.corners & 8u) != 0 && p.x < lo.x + radius.x && p.y > hi.y - radius.y)
+        q = (p - float2(lo.x + radius.x, hi.y - radius.y)) / radius;
+    else return true;
+    return dot(q, q) <= 1.0;
+}
+
+bool insideAllClips(float2 p, uint clipSlot)
+{
+    for (uint depth = 0; clipSlot != 0xFFFFFFFFu && depth < 64; depth++)
+    {
+        Cl cl = g_buffers[args.clipIndex].Load<Cl>(clipSlot * 32);
+        if (!insideRoundedClip(p, cl)) return false;
+        clipSlot = cl.parentSlot;
+    }
+    return true;
+}
+
 [shader("compute")]
 [numthreads(8, 8, 1)]
 void main(uint3 tid : SV_DispatchThreadID)
@@ -89,17 +129,41 @@ void main(uint3 tid : SV_DispatchThreadID)
         Path path = g_buffers[args.pathIndex].Load<Path>(pidx * 72);
         Tf tf = g_buffers[args.transformIndex].Load<Tf>(path.transformSlot * 32);
 
-        // クリップ AABB (world 空間で保持) → カメラで画面空間へ (軸並行前提: 4 隅の min/max)。無しは [-inf,inf]。
+        // 祖先を含む角丸クリップをサンプルマスク化。塗りではパスのサンプルと同じ位置を使う。
         float2 clo = float2(-1e30, -1e30), chi = float2(1e30, 1e30);
+        uint clipMask = 0xFFFFu;
         if (path.clipSlot != 0xFFFFFFFFu)
         {
-            Cl cl = g_buffers[args.clipIndex].Load<Cl>(path.clipSlot * 16);
-            float2 k0 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.minx, cl.miny));
-            float2 k1 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.maxx, cl.miny));
-            float2 k2 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.minx, cl.maxy));
-            float2 k3 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.maxx, cl.maxy));
-            clo = min(min(k0, k1), min(k2, k3)); chi = max(max(k0, k1), max(k2, k3));
-            if (pix.x < clo.x || pix.x > chi.x || pix.y < clo.y || pix.y > chi.y) continue;
+            bool hasRounded = false;
+            uint clipSlot = path.clipSlot;
+            for (uint depth = 0; clipSlot != 0xFFFFFFFFu && depth < 64; depth++)
+            {
+                Cl cl = g_buffers[args.clipIndex].Load<Cl>(clipSlot * 32);
+                float2 k0 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.minx, cl.miny));
+                float2 k1 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.maxx, cl.miny));
+                float2 k2 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.minx, cl.maxy));
+                float2 k3 = affine(args.a, args.b, args.c, args.d, args.e, args.f, float2(cl.maxx, cl.maxy));
+                clo = max(clo, min(min(k0, k1), min(k2, k3)));
+                chi = min(chi, max(max(k0, k1), max(k2, k3)));
+                hasRounded = hasRounded || (cl.corners != 0 && cl.radiusX > 0.0 && cl.radiusY > 0.0);
+                clipSlot = cl.parentSlot;
+            }
+
+            float2 pixelLo = float2(tid.xy), pixelHi = pixelLo + 1.0;
+            if (pixelHi.x <= clo.x || pixelLo.x >= chi.x || pixelHi.y <= clo.y || pixelLo.y >= chi.y) continue;
+            // 通常の矩形クリップ内にピクセル全体が収まる大半のケースは16サンプルを省く。
+            if (hasRounded || pixelLo.x < clo.x || pixelHi.x > chi.x || pixelLo.y < clo.y || pixelHi.y > chi.y)
+            {
+                clipMask = 0u;
+                for (int sy = 0; sy < 4; sy++)
+                    for (int sx = 0; sx < 4; sx++)
+                    {
+                        uint bit = uint(sy * 4 + sx);
+                        float2 sp = float2(tid.x + (sx + 0.5) * 0.25, tid.y + (sy + 0.5) * 0.25);
+                        if (insideAllClips(sp, path.clipSlot)) clipMask |= 1u << bit;
+                    }
+                if (clipMask == 0u) continue;
+            }
         }
 
         // パス bbox を画面空間へ (4 隅変換) し、早期スキップ。
@@ -122,6 +186,9 @@ void main(uint3 tid : SV_DispatchThreadID)
                                           toScreen(float2(seg.x1, seg.y1), tf)));
             }
             cov = 1.0 - smoothstep(path.strokeHalfWidth - 0.75, path.strokeHalfWidth + 0.75, md);
+            int clipSamples = 0;
+            for (uint bit = 0; bit < 16; bit++) if ((clipMask & (1u << bit)) != 0) clipSamples++;
+            cov *= clipSamples / 16.0;
         }
         else
         {
@@ -129,6 +196,8 @@ void main(uint3 tid : SV_DispatchThreadID)
             for (int sy = 0; sy < 4; sy++)
                 for (int sx = 0; sx < 4; sx++)
                 {
+                    uint bit = uint(sy * 4 + sx);
+                    if ((clipMask & (1u << bit)) == 0) continue;
                     float2 sp = float2(tid.x + (sx + 0.5) * 0.25, tid.y + (sy + 0.5) * 0.25);
                     int wind = 0;
                     for (uint s = 0; s < path.segCount; s++)

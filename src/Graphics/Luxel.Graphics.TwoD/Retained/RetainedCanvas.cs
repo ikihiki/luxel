@@ -145,7 +145,7 @@ public sealed class RetainedCanvas : IDisposable
             TotalRebuilds++;
             TotalRebuildMicros += LastRebuildMicros;
             TotalUploadBytes += _segments.Count * 32L + _paths.Count * (long)GpuPath.SizeBytes + _transforms.Count * 32L
-                + _styles.Count * 16L + _clips.Count * 16L + _order.Count * 4L;
+                + _styles.Count * 16L + _clips.Count * (long)GpuClip.SizeBytes + _order.Count * 4L;
             EmitFlush(width, height);
             return;
         }
@@ -280,7 +280,7 @@ public sealed class RetainedCanvas : IDisposable
         _transforms.Clear(); _styles.Clear(); _clips.Clear();
         _segments.Clear(); _paths.Clear(); _order.Clear();
 
-        AssignAndEncode(Root, width, height);
+        AssignAndEncode(Root, NoClip);
         BuildOrder(Root);
         foreach (IRetainedCanvasSink sink in _sinks) sink.FullSync(this);
 
@@ -299,13 +299,15 @@ public sealed class RetainedCanvas : IDisposable
         return false;
     }
 
-    private void AssignAndEncode(UiNode node, uint width, uint height)
+    private void AssignAndEncode(UiNode node, uint inheritedClipSlot)
     {
         node.World = node.Parent == null ? node.Transform : Affine2D.Mul(node.Parent.World, node.Transform);
         node.EffectiveOpacity = (node.Parent?.EffectiveOpacity ?? 1f) * node.Opacity;   // 親 × 自分
         node.TransformSlot = _transforms.Count; _transforms.Add(node.World.ToGpu());
         node.StyleSlot = _styles.Count; _styles.Add(new GpuStyle { ColorRgba = node.Color, Opacity = node.EffectiveOpacity });
-        node.ClipSlot = ResolveClip(node, width, height);
+        node.OwnClipSlot = ResolveClip(node, inheritedClipSlot);
+        node.ClipSlot = node.OwnClipSlot >= 0 ? node.OwnClipSlot
+            : inheritedClipSlot == NoClip ? -1 : (int)inheritedClipSlot;
 
         node.PathStart = _paths.Count;
         node.SegStart = _segments.Count;
@@ -351,36 +353,37 @@ public sealed class RetainedCanvas : IDisposable
         }
         node.PathCapacity = _paths.Count - node.PathStart;
 
-        foreach (UiNode child in SortedChildren(node)) AssignAndEncode(child, width, height);
+        uint childClipSlot = node.ClipSlot < 0 ? NoClip : (uint)node.ClipSlot;
+        foreach (UiNode child in SortedChildren(node)) AssignAndEncode(child, childClipSlot);
     }
 
-    private int ResolveClip(UiNode node, uint width, uint height)
+    private int ResolveClip(UiNode node, uint parentSlot)
     {
-        if (EffectiveClipRect(node) is not RectClip r) return -1;
+        if (node.Clip is not RectClip clip) return -1;
         int slot = _clips.Count;
-        _clips.Add(new GpuClip { MinX = r.X, MinY = r.Y, MaxX = r.X + r.W, MaxY = r.Y + r.H });
+        _clips.Add(ToGpuClip(clip, node.World, parentSlot));
         return slot;
     }
 
     /// <summary>クリップスロットの現在値 (テスト用 — 部分更新の追従検証)。</summary>
     internal GpuClip DebugClipAt(int slot) => _clips[slot];
 
-    /// <summary>自分 + 祖先のクリップ矩形を画面空間で交差した実効クリップ (無ければ null)。
-    /// 軸並行 (回転なし) 前提の AABB。Rebuild (ResolveClip) と transform 部分更新の両方が使う —
-    /// 各ノードのクリップスロットには**祖先の分も焼き込まれている**ため、部分更新でも
-    /// 祖先込みで再計算しないと、動いたサブツリーの内容が古い位置のクリップで切られる。</summary>
-    private static RectClip? EffectiveClipRect(UiNode node)
+    /// <summary>ローカルの角丸クリップをワールド空間へ変換する。2D UI と同じ軸並行変換を前提とし、
+    /// 回転・shear は従来どおり AABB へ近似する。</summary>
+    private static GpuClip ToGpuClip(RectClip clip, Affine2D world, uint parentSlot)
     {
-        RectClip? eff = null;
-        for (UiNode? a = node; a != null; a = a.Parent)
-            if (a.Clip is RectClip rc)
-            {
-                var (lo, hi) = ToScreenAabb(rc, a.World);
-                eff = eff is RectClip e
-                    ? Intersect(e, new RectClip(lo.x, lo.y, hi.x - lo.x, hi.y - lo.y))
-                    : new RectClip(lo.x, lo.y, hi.x - lo.x, hi.y - lo.y);
-            }
-        return eff;
+        var (lo, hi) = ToScreenAabb(clip, world);
+        float sx = MathF.Sqrt(world.A * world.A + world.B * world.B);
+        float sy = MathF.Sqrt(world.C * world.C + world.D * world.D);
+        float radius = MathF.Min(MathF.Max(0, clip.Radius), MathF.Min(clip.W, clip.H) * 0.5f);
+        return new GpuClip
+        {
+            MinX = lo.x, MinY = lo.y, MaxX = hi.x, MaxY = hi.y,
+            RadiusX = MathF.Min(radius * sx, (hi.x - lo.x) * 0.5f),
+            RadiusY = MathF.Min(radius * sy, (hi.y - lo.y) * 0.5f),
+            Corners = (uint)clip.Corners,
+            ParentSlot = parentSlot,
+        };
     }
 
     private static ((float x, float y) lo, (float x, float y) hi) ToScreenAabb(RectClip rc, Affine2D world)
@@ -397,13 +400,6 @@ public sealed class RetainedCanvas : IDisposable
             maxx = MathF.Max(maxx, c[i].X); maxy = MathF.Max(maxy, c[i].Y);
         }
         return ((minx, miny), (maxx, maxy));
-    }
-
-    private static RectClip Intersect(RectClip a, RectClip b)
-    {
-        float x = MathF.Max(a.X, b.X), y = MathF.Max(a.Y, b.Y);
-        float r = MathF.Min(a.X + a.W, b.X + b.W), t = MathF.Min(a.Y + a.H, b.Y + b.H);
-        return new RectClip(x, y, MathF.Max(0, r - x), MathF.Max(0, t - y));
     }
 
     private void BuildOrder(UiNode node)
@@ -425,15 +421,14 @@ public sealed class RetainedCanvas : IDisposable
             if (!tfSpan.IsEmpty) tfSpan[node.TransformSlot] = g;
             LastTransformWrites++;
 
-            // クリップスロットは自分のクリップだけでなく**祖先のクリップも交差で焼き込まれている**。
-            // 自分がクリップを持たないノード (祖先クリップだけ継承) のスロットも、サブツリーが
-            // 動いたら再計算しないと古い画面位置で切られる (フローティングパネルのゴースト移動等)
-            if (node.ClipSlot >= 0 && EffectiveClipRect(node) is RectClip r)
+            // 祖先クリップは ParentSlot の連鎖で参照するため、自分が所有する形だけを更新する。
+            if (node.OwnClipSlot >= 0 && node.Clip is RectClip clip)
             {
-                var gc = new GpuClip { MinX = r.X, MinY = r.Y, MaxX = r.X + r.W, MaxY = r.Y + r.H };
-                _clips[node.ClipSlot] = gc;
-                NotifyClip(node.ClipSlot, gc);
-                if (clipSpan.Length > node.ClipSlot) clipSpan[node.ClipSlot] = gc;
+                uint parentSlot = node.Parent is { ClipSlot: >= 0 } parent ? (uint)parent.ClipSlot : NoClip;
+                GpuClip gc = ToGpuClip(clip, node.World, parentSlot);
+                _clips[node.OwnClipSlot] = gc;
+                NotifyClip(node.OwnClipSlot, gc);
+                if (clipSpan.Length > node.OwnClipSlot) clipSpan[node.OwnClipSlot] = gc;
             }
         }
         foreach (UiNode child in SortedChildren(node))

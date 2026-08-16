@@ -184,7 +184,9 @@
     <Message Importance="high" Text="Slang -> WGSL graphics cache: %(SlangGraphicsShader.Filename).slang" />
     <Exec Command="&quot;$(SlangcPath)&quot; &quot;%(SlangGraphicsShader.FullPath)&quot; -target wgsl -o &quot;$(SlangWgslIntermediateDir)%(SlangGraphicsShader.Filename).wgsl&quot;" />
     <Exec Command="dotnet &quot;$(SlangWgslGeneratorDll)&quot; &quot;$(SlangWgslIntermediateDir)%(SlangGraphicsShader.Filename).wgsl&quot; &quot;$(SlangCacheDir)%(SlangGraphicsShader.Filename).wgsl&quot; graphics" />
-    <Exec Command="dotnet &quot;$(SlangWgslGeneratorDll)&quot; --manifest &quot;$(MSBuildThisFileDirectory)&quot; &quot;$(SlangCacheDir)&quot; &quot;$(SlangCacheDir)$(SlangWgslManifestName)&quot;" />
+    <!-- Windows のコマンドラインでは、引用符直前の末尾 \ が引用符をエスケープして引数を連結する。
+         "." を足してディレクトリとして同じ場所を指しつつ、末尾を \ にしない。 -->
+    <Exec Command="dotnet &quot;$(SlangWgslGeneratorDll)&quot; --manifest &quot;$(MSBuildThisFileDirectory).&quot; &quot;$(SlangCacheDir).&quot; &quot;$(SlangCacheDir)$(SlangWgslManifestName)&quot;" />
   </Target>
 
   <Target Name="CompileSlangDxilCache"

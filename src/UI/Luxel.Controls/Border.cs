@@ -81,7 +81,7 @@ public sealed partial class Border : Widget
         if (r > 0) s.FillRoundedRect(Color2D.White, 0, 0, Size.Width, Size.Height, r, Corners.Get());
         else s.FillRect(Color2D.White, 0, 0, Size.Width, Size.Height);
         node.Content = s;
-        if (Clip.Get()) node.Clip = new RectClip(0, 0, Size.Width, Size.Height);
+        if (Clip.Get()) node.Clip = new RectClip(0, 0, Size.Width, Size.Height, r, Corners.Get());
 
         // 配色: 状態変化 (signal) / テーマ変化で recolor を部分更新。
         // transform 成分 (TF) は CreateRoot が配線済み、一様 Scale はその handle へ合成。

@@ -210,6 +210,24 @@ public class SkiaBackendTests
     }
 
     [Fact]
+    public void RoundedClip_CutsCornersAndKeepsSelectedSquareCorners()
+    {
+        var canvas = new RetainedCanvas();
+        UiNode n = canvas.AddChild(canvas.Root);
+        n.Clip = new RectClip(10, 10, 60, 60, 16,
+            RectCorners.TopLeft | RectCorners.BottomRight);
+        n.Content = new Scene2D().FillRect(Color2D.White, 0, 0, 90, 90);
+        n.Color = Color2D.Green;
+
+        byte[] px = Render(canvas, Camera2D.Pixels, 100, 100);
+        uint white = Color2D.Rgba(255, 255, 255);
+        Assert.Equal(white, SkiaRenderer.PixelAt(px, 100, 11, 11));       // 丸めた左上の外側
+        Assert.Equal(Color2D.Green, SkiaRenderer.PixelAt(px, 100, 68, 11)); // 選ばない右上は直角
+        Assert.Equal(Color2D.Green, SkiaRenderer.PixelAt(px, 100, 30, 30)); // 中央
+        Assert.Equal(white, SkiaRenderer.PixelAt(px, 100, 68, 68));       // 丸めた右下の外側
+    }
+
+    [Fact]
     public void AbsoluteColor_And_ImmediateScene_UseShapeColor()
     {
         // 即時モード: シェイプ自身の色で描かれる (GPU の GpuDeviceRasterizer2D.Encode と同じ)

@@ -1,7 +1,38 @@
 namespace Luxel.Graphics.TwoD;
 
-/// <summary>クリップ矩形 (ワールド座標)。</summary>
-public readonly record struct RectClip(float X, float Y, float W, float H);
+/// <summary>
+/// ノードのローカル座標で指定するクリップ矩形。Radius が 0 のときは通常の矩形、
+/// 0 より大きいときは <see cref="Corners"/> で選んだ角を丸める。
+/// </summary>
+public readonly record struct RectClip(
+    float X, float Y, float W, float H,
+    float Radius = 0,
+    RectCorners Corners = RectCorners.All)
+{
+    /// <summary>ローカル座標の点がクリップ形状の内側か。</summary>
+    public bool Contains(float x, float y)
+    {
+        if (x < X || x > X + W || y < Y || y > Y + H) return false;
+        float r = MathF.Min(MathF.Max(0, Radius), MathF.Min(W, H) * 0.5f);
+        if (r <= 0 || Corners == RectCorners.None) return true;
+
+        bool InCorner(float cx, float cy)
+        {
+            float dx = (x - cx) / r, dy = (y - cy) / r;
+            return dx * dx + dy * dy <= 1f;
+        }
+
+        if ((Corners & RectCorners.TopLeft) != 0 && x < X + r && y < Y + r)
+            return InCorner(X + r, Y + r);
+        if ((Corners & RectCorners.TopRight) != 0 && x > X + W - r && y < Y + r)
+            return InCorner(X + W - r, Y + r);
+        if ((Corners & RectCorners.BottomRight) != 0 && x > X + W - r && y > Y + H - r)
+            return InCorner(X + W - r, Y + H - r);
+        if ((Corners & RectCorners.BottomLeft) != 0 && x < X + r && y > Y + H - r)
+            return InCorner(X + r, Y + H - r);
+        return true;
+    }
+}
 
 /// <summary>
 /// 保持型ツリーのノード。ローカル変換・色・不透明度・クリップ・Z・子・コンテンツ(ローカル座標の図形)を持つ。
@@ -72,7 +103,14 @@ public sealed class UiNode
     public RectClip? Clip
     {
         get => _clip;
-        set { _clip = value; _canvas.MarkClipDirty(this); }
+        set
+        {
+            if (_clip == value) return;
+            bool changesTopology = _clip.HasValue != value.HasValue;
+            _clip = value;
+            if (changesTopology) _canvas.MarkStructureDirty();
+            else _canvas.MarkClipDirty(this);
+        }
     }
 
     /// <summary>このノードを再描画対象にする (SoA の再アップロードは style slot 1 個のみ)。
@@ -121,7 +159,7 @@ public sealed class UiNode
     }
 
     // ---- バックエンド (スロット/レンジ/キャッシュ) ----
-    internal int TransformSlot = -1, StyleSlot = -1, ClipSlot = -1;
+    internal int TransformSlot = -1, StyleSlot = -1, ClipSlot = -1, OwnClipSlot = -1;
     /// <summary>ContentColors 用の形状別スタイルレンジ先頭 (PathCapacity 個予約、Rebuild で割当)。</summary>
     internal int ContentStyleStart = -1;
     /// <summary>パスレンジ (Rebuild で割当)。PathCount = 現在の実数、PathCapacity = スラック込みの予約数 —
