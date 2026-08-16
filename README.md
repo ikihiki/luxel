@@ -36,12 +36,10 @@ PSO 爆発のない薄い API を構築する。
 
 ## Linux リモートデスクトップ開発
 
-Coder/Mux の Linux workspace では、Xvfb + openbox + noVNC の開発用 desktop を用意できる。
-Luxel の Silk.NET/X11 backend と Vulkan WSI を開発・検証でき、環境自体の baseline は
-`vkcube` でも確認できる。
+Coder/Mux の Linux workspace では、Dev Container に組み込まれた Xorg/Xvfb + openbox + noVNC の開発用 desktop を利用できる。
+ハードウェアモードでは DRI3 対応 Xorg と Intel virtual head を使い、Luxel の Silk.NET/X11 backend と Vulkan WSI を実GPUで開発・検証できる。環境自体の baseline は `vkcube` でも確認できる。
 
 ```bash
-eng/desktop/install.sh
 eng/desktop/start.sh
 eng/desktop/run-vkcube.sh
 eng/desktop/url.sh

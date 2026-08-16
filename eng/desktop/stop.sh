@@ -18,7 +18,8 @@ stop_process novnc websockify
 stop_process x11vnc x11vnc
 rm -f "${VNC_SOCKET}"
 stop_process openbox openbox
+stop_process xorg Xorg
 stop_process xvfb Xvfb
 
-rm -f "${ENV_FILE}"
+rm -f "${ENV_FILE}" "${STATE_DIR}/xorg.conf"
 log "desktop is stopped"

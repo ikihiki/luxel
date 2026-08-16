@@ -14,7 +14,7 @@ The script packs Luxel, seeds a temporary local feed with its third-party depend
 
 ## Native AOT (`linux-x64`)
 
-Ubuntu requires `clang`, `zlib1g-dev`, `binutils`, and `file`; `eng/desktop/install.sh` installs them. The dedicated project-reference sample is `HelloLuxel.Aot.Linux.cs`.
+Ubuntu requires `clang`, `zlib1g-dev`, `binutils`, and `file`; the Luxel Dev Container image includes them. The dedicated project-reference sample is `HelloLuxel.Aot.Linux.cs`.
 
 ```bash
 source /tmp/luxel-desktop-${UID}/environment

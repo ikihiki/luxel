@@ -3,19 +3,15 @@
 These scripts create an isolated X11 desktop inside the workspace and expose it through Coder's authenticated HTTP port preview:
 
 ```text
-GUI app -> Xvfb -> openbox -> x11vnc (Unix socket, no password)
-        -> websockify/noVNC (loopback HTTP) -> authenticated Coder preview
+software: GUI app -> Xvfb -> openbox -> x11vnc -> websockify/noVNC
+hardware: GUI app -> Xorg + Intel virtual head (DRI3) -> openbox -> x11vnc -> websockify/noVNC
 ```
 
 The VNC server intentionally has no separate password and exposes no TCP listener; x11vnc and websockify communicate through a mode-`0600` Unix socket. Authentication is provided by the Coder preview for noVNC port 6080. **noVNC transports pixels and input only; it does not transport audio.** The optional audio service is independent of X11 and is intended for application testing and WAV capture inside the workspace.
 
-## Install
+## Dev Container prerequisites
 
-```bash
-eng/desktop/install.sh
-```
-
-The installer currently targets Ubuntu/Debian environments with `apt-get`. For reproducible workspaces, bake these packages into the Coder or container image and use the installer only as a bootstrap.
+Desktop, Xorg/DRI3, Vulkan, audio, Native AOT, and noVNC dependencies are installed by `.devcontainer/Dockerfile`. Rebuild the Dev Container after changing these dependencies; runtime helper scripts do not install or modify system packages.
 
 ## Start and open
 
@@ -32,11 +28,19 @@ Load the GUI environment in another shell:
 source "${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/environment"
 ```
 
-The default Vulkan renderer is Mesa lavapipe for deterministic remote development. To use the GPU exposed to the workspace:
+The Luxel Dev Container defaults to hardware rendering. It starts Xorg with a DRI3-capable Intel virtual head and uses the Intel GPU exposed to the workspace:
 
 ```bash
-LUXEL_DESKTOP_RENDERER=hardware eng/desktop/start.sh
+eng/desktop/start.sh
 ```
+
+For an explicit deterministic software fallback, start Xvfb with lavapipe:
+
+```bash
+LUXEL_DESKTOP_RENDERER=lavapipe LUXEL_DESKTOP_SERVER=xvfb eng/desktop/start.sh
+```
+
+The Xorg hardware path requires `/dev/dri/card0`, the Intel Xorg driver, and an Intel GPU that supports `VirtualHeads`.
 
 Hardware-backed workspaces can set `LUXEL_REQUIRE_HARDWARE_VULKAN=1`. With this strict check,
 `healthcheck.sh` requires at least one non-CPU Vulkan device and records its GPU index for
@@ -154,10 +158,11 @@ The stop script validates PID command lines before terminating processes and doe
 | Variable | Default | Purpose |
 |---|---|---|
 | `LUXEL_DESKTOP_DISPLAY` | `:99` | X display |
-| `LUXEL_DESKTOP_GEOMETRY` | `1280x900x24` | Xvfb screen |
+| `LUXEL_DESKTOP_GEOMETRY` | `1280x900x24` | virtual screen size |
+| `LUXEL_DESKTOP_SERVER` | `auto` | `xvfb`, `xorg`, or automatic selection from renderer |
 | `LUXEL_VNC_SOCKET` | state directory `/vnc.sock` | private x11vnc/websockify Unix socket |
 | `LUXEL_NOVNC_PORT` | `6080` | loopback noVNC HTTP/WebSocket port |
-| `LUXEL_DESKTOP_RENDERER` | `lavapipe` | `lavapipe` or `hardware` |
+| `LUXEL_DESKTOP_RENDERER` | Dev Container: `hardware`; script fallback: `lavapipe` | `lavapipe` or `hardware` |
 | `LUXEL_REQUIRE_HARDWARE_VULKAN` | `0` | Set to `1` to require and select at least one hardware Vulkan device |
 | `LUXEL_VULKAN_VENDOR_ID` | empty | Optional hexadecimal vendor ID required of the selected hardware device |
 | `LUXEL_LAVAPIPE_ICD` | `/usr/share/vulkan/icd.d/lvp_icd.json` | software Vulkan ICD |
@@ -173,7 +178,7 @@ The stop script validates PID command lines before terminating processes and doe
 
 ## Security assumptions
 
-- Xvfb disables TCP with `-nolisten tcp`.
+- Xvfb and Xorg disable TCP with `-nolisten tcp`.
 - x11vnc exposes only a mode-`0600` Unix socket; no VNC TCP port is opened.
 - noVNC binds to `127.0.0.1` only.
 - x11vnc uses `-nopw`; Coder's authenticated preview is the trust boundary.

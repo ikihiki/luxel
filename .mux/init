@@ -6,13 +6,13 @@ if [[ "$(uname -s)" != "Linux" ]]; then
 fi
 
 missing=()
-for command_name in Xvfb openbox x11vnc websockify xdpyinfo xwininfo scrot clang readelf file; do
+for command_name in Xvfb Xorg gtf openbox x11vnc websockify xdpyinfo xwininfo scrot glxinfo clang readelf file; do
     command -v "${command_name}" >/dev/null 2>&1 || missing+=("${command_name}")
 done
 
 if ((${#missing[@]} > 0)); then
     printf '[luxel-desktop] optional desktop tools missing: %s\n' "${missing[*]}"
-    printf '[luxel-desktop] install with: eng/desktop/install.sh\n'
+    printf '[luxel-desktop] rebuild the Dev Container image to install them\n'
 else
     printf '[luxel-desktop] desktop prerequisites are installed\n'
     eng/desktop/status.sh || true

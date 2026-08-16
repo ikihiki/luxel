@@ -21,6 +21,14 @@ ENV_FILE="${STATE_DIR}/environment"
 LOCK_FILE="${STATE_DIR}/desktop.lock"
 AUDIO_LOCK_FILE="${STATE_DIR}/audio.lock"
 DESKTOP_RENDERER="${LUXEL_DESKTOP_RENDERER:-lavapipe}"
+DESKTOP_SERVER="${LUXEL_DESKTOP_SERVER:-auto}"
+if [[ "${DESKTOP_SERVER}" == "auto" ]]; then
+    if [[ "${DESKTOP_RENDERER}" == "hardware" ]]; then
+        DESKTOP_SERVER="xorg"
+    else
+        DESKTOP_SERVER="xvfb"
+    fi
+fi
 LAVAPIPE_ICD="${LUXEL_LAVAPIPE_ICD:-/usr/share/vulkan/icd.d/lvp_icd.json}"
 AUDIO_MODE="${LUXEL_DESKTOP_AUDIO:-off}"
 AUDIO_MODE_FILE="${STATE_DIR}/audio.mode"
@@ -32,6 +40,11 @@ AUDIO_SINK="${LUXEL_AUDIO_SINK:-luxel_null}"
 AUDIO_RATE=48000
 AUDIO_CHANNELS=2
 CAPTURE_DIR="${STATE_DIR}/captures"
+
+case "${DESKTOP_SERVER}" in
+    xvfb|xorg) ;;
+    *) printf '[luxel-desktop] error: invalid LUXEL_DESKTOP_SERVER %q (expected auto, xvfb, or xorg)\n' "${DESKTOP_SERVER}" >&2; exit 1 ;;
+esac
 
 case "${AUDIO_MODE}" in
     off|null|system) ;;
@@ -77,7 +90,7 @@ fail() {
 }
 
 require_command() {
-    command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1 (run eng/desktop/install.sh)"
+    command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1 (rebuild the Dev Container image)"
 }
 
 pid_file() {
@@ -197,6 +210,7 @@ export LUXEL_DESKTOP_STATE_DIR='${STATE_DIR}'
 export LUXEL_VNC_SOCKET='${VNC_SOCKET}'
 export LUXEL_NOVNC_PORT='${NOVNC_PORT}'
 export LUXEL_DESKTOP_RENDERER='${DESKTOP_RENDERER}'
+export LUXEL_DESKTOP_SERVER='${DESKTOP_SERVER}'
 export LUXEL_DESKTOP_AUDIO='${AUDIO_MODE}'
 export LUXEL_AUDIO_SINK='${AUDIO_SINK}'
 export LUXEL_AUDIO_RATE='${AUDIO_RATE}'

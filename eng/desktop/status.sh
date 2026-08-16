@@ -8,12 +8,18 @@ source "${SCRIPT_DIR}/common.sh"
 printf 'State directory: %s\n' "${STATE_DIR}"
 printf 'DISPLAY:         %s\n' "${DESKTOP_DISPLAY}"
 printf 'Geometry:        %s\n' "${DESKTOP_GEOMETRY}"
+printf 'Display server:  %s\n' "${DESKTOP_SERVER}"
 printf 'noVNC URL:       %s/vnc.html?autoconnect=1&resize=scale\n' "$(coder_preview_url)"
 printf 'Vulkan ICD:      %s\n' "${VK_ICD_FILENAMES:-auto (host GPU)}"
 printf '\n%-10s %-8s %s\n' SERVICE STATUS PID
 
 failed=0
-for spec in "xvfb:Xvfb" "openbox:openbox" "x11vnc:x11vnc" "novnc:websockify"; do
+if [[ "${DESKTOP_SERVER}" == "xorg" ]]; then
+    display_service="xorg:Xorg"
+else
+    display_service="xvfb:Xvfb"
+fi
+for spec in "${display_service}" "openbox:openbox" "x11vnc:x11vnc" "novnc:websockify"; do
     name="${spec%%:*}"
     expected="${spec#*:}"
     if pid_is_running "${name}" "${expected}"; then
