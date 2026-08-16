@@ -279,17 +279,9 @@ Preserve `/tmp/luxel-xvfb.log` and `/tmp/luxel-openbox.log` when a test fails.
 
 Native AOT and broader desktop tests use the repository helper scripts rather than manually starting Xvfb.
 
-### Ubuntu packages used by CI
+### Dev Container packages
 
-```bash
-sudo apt-get update
-sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  xvfb openbox x11vnc novnc websockify x11-utils x11-xserver-utils xauth xdotool scrot \
-  dbus-x11 fonts-dejavu-core fonts-noto-cjk mesa-vulkan-drivers libvulkan1 vulkan-tools \
-  clang zlib1g-dev binutils file
-```
-
-This is privileged and machine-wide; ask for approval first.
+The complete desktop environment is provisioned by `.devcontainer/Dockerfile`, including Xorg with the Intel virtual-head driver, Xvfb software fallback, openbox/noVNC, Vulkan tooling, audio libraries, and Native AOT prerequisites. Rebuild the Dev Container when these dependencies change; do not install them from the runtime test workflow.
 
 ### Start, verify, and stop
 

@@ -36,6 +36,7 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
         libxi6 \
         libxinerama1 \
         libxrandr2 \
+        mesa-utils \
         mesa-vulkan-drivers \
         ninja-build \
         novnc \
@@ -57,6 +58,9 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
         x11vnc \
         xauth \
         xdotool \
+        xserver-xorg-core \
+        xserver-xorg-video-dummy \
+        xserver-xorg-video-intel \
         xvfb \
         zip \
         zlib1g-dev \
@@ -89,7 +93,10 @@ RUN sed -i 's/\r$//' /opt/luxel/desktop/*.sh \
     && chmod -R a+rX /opt/luxel/desktop \
     && find /opt/luxel/desktop -maxdepth 1 -name '*.sh' -exec chmod a+x {} +
 
-ENV LUXEL_DESKTOP_RENDERER=lavapipe \
+ENV LUXEL_DESKTOP_RENDERER=hardware \
+    LUXEL_DESKTOP_SERVER=xorg \
+    LUXEL_REQUIRE_HARDWARE_VULKAN=1 \
+    LUXEL_VULKAN_VENDOR_ID=0x8086 \
     LUXEL_DESKTOP_AUDIO=off \
     LUXEL_NOVNC_PORT=6080
 

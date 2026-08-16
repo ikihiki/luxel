@@ -27,6 +27,9 @@ check() {
 failures=0
 if [[ "${AUDIO_ONLY}" == false ]]; then
     check "X display" env DISPLAY="${DESKTOP_DISPLAY}" xdpyinfo || failures=$((failures + 1))
+    if [[ "${DESKTOP_SERVER}" == "xorg" ]]; then
+        check "X DRI3 extension" bash -c 'DISPLAY="$1" xdpyinfo | grep -q "^[[:space:]]*DRI3$"' _ "${DESKTOP_DISPLAY}" || failures=$((failures + 1))
+    fi
     check "Window manager/root" env DISPLAY="${DESKTOP_DISPLAY}" xwininfo -root -tree || failures=$((failures + 1))
     check "VNC Unix socket" test -S "${VNC_SOCKET}" || failures=$((failures + 1))
     check "noVNC HTTP" curl --fail --silent --show-error "http://${NOVNC_HOST}:${NOVNC_PORT}/vnc.html" || failures=$((failures + 1))
