@@ -50,7 +50,17 @@ if [[ "${AUDIO_ONLY}" == false ]]; then
         if env DISPLAY="${DESKTOP_DISPLAY}" XDG_RUNTIME_DIR="${RUNTIME_DIR}" \
             vulkaninfo --summary >"${LOG_DIR}/vulkaninfo.log" 2>&1; then
             device="$(grep -m1 'deviceName' "${LOG_DIR}/vulkaninfo.log" | sed 's/^[[:space:]]*//' || true)"
-            printf 'ok%s\n' "${device:+ (${device})}"
+            hardware_gpu="$(hardware_vulkan_device_index "${LOG_DIR}/vulkaninfo.log")"
+            if [[ "${LUXEL_REQUIRE_HARDWARE_VULKAN:-0}" == "1" && -z "${hardware_gpu}" ]]; then
+                printf 'FAILED (no matching hardware Vulkan device; first device: %s)\n' "${device:-unknown}"
+                failures=$((failures + 1))
+            else
+                if [[ -n "${hardware_gpu}" ]]; then
+                    printf '%s\n' "${hardware_gpu}" > "${STATE_DIR}/vulkan-gpu.index"
+                    device="deviceName = $(vulkan_device_name "${LOG_DIR}/vulkaninfo.log" "${hardware_gpu}")"
+                fi
+                printf 'ok%s\n' "${device:+ (${device})}"
+            fi
         else
             printf 'FAILED (see %s)\n' "${LOG_DIR}/vulkaninfo.log"
             failures=$((failures + 1))

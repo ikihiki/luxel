@@ -38,6 +38,15 @@ The default Vulkan renderer is Mesa lavapipe for deterministic remote developmen
 LUXEL_DESKTOP_RENDERER=hardware eng/desktop/start.sh
 ```
 
+Coder workspaces also set `LUXEL_REQUIRE_HARDWARE_VULKAN=1`. With this strict check,
+`healthcheck.sh` requires at least one non-CPU Vulkan device and records its GPU index for
+`run-vkcube.sh`. CPU devices such as llvmpipe may coexist with the Intel iGPU; they only cause a
+failure when no hardware device is available. This prevents a missing `/dev/dri` passthrough from
+silently falling back to software.
+
+Set `LUXEL_VULKAN_VENDOR_ID` to require a specific hardware vendor. The Intel Coder template uses
+`0x8086`, so a different discrete GPU cannot be selected accidentally.
+
 ## Optional Linux audio
 
 Audio defaults to `off` so starting the web desktop never changes the host audio configuration. Select one of these modes with `LUXEL_DESKTOP_AUDIO`:
@@ -149,6 +158,8 @@ The stop script validates PID command lines before terminating processes and doe
 | `LUXEL_VNC_SOCKET` | state directory `/vnc.sock` | private x11vnc/websockify Unix socket |
 | `LUXEL_NOVNC_PORT` | `6080` | loopback noVNC HTTP/WebSocket port |
 | `LUXEL_DESKTOP_RENDERER` | `lavapipe` | `lavapipe` or `hardware` |
+| `LUXEL_REQUIRE_HARDWARE_VULKAN` | `0` | Set to `1` to require and select at least one hardware Vulkan device |
+| `LUXEL_VULKAN_VENDOR_ID` | empty | Optional hexadecimal vendor ID required of the selected hardware device |
 | `LUXEL_LAVAPIPE_ICD` | `/usr/share/vulkan/icd.d/lvp_icd.json` | software Vulkan ICD |
 | `LUXEL_DESKTOP_STATE_DIR` | runtime directory | PID/log/screenshot state |
 | `LUXEL_NOVNC_WEBROOT` | auto-detected | directory containing `vnc.html` |

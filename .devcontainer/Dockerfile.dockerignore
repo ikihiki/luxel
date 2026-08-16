@@ -1,0 +1,6 @@
+**
+!.devcontainer/
+!.devcontainer/Dockerfile
+!eng/
+!eng/desktop/
+!eng/desktop/**
