@@ -13,10 +13,16 @@ public static class StoryMarkdownRenderer
     public static string EffectiveMarkdown(StoryInfo story, string markdown)
         => MarkdownDoc.RenderTocPlaceholder(markdown);
 
-    public static Widget Build(StoryInfo story, StoryContext context, StoryResult authored, bool fill = true)
+    public static Widget Build(StoryInfo story, StoryContext context, StoryResult authored,
+        StoryPageNavigation navigation = default, bool fill = true)
     {
         if (authored.Kind == StoryResultKind.Widget && authored.Widget is not null) return authored.Widget;
         StoryResult result = authored.WithMarkdown(EffectiveMarkdown(story, authored.Markdown));
+        if (fill && !navigation.IsEmpty)
+        {
+            result.AppendLiteral("\n\n");
+            result.AppendFormatted(BuildPageNavigation(context, navigation));
+        }
 
         (VectorFont? bold, _, _, VectorFont? mono) = RenderingStoryKit.EditorFaces.Value;
         var fences = new Dictionary<string, Func<string, Widget>>
@@ -42,6 +48,20 @@ public static class StoryMarkdownRenderer
         return editor;
     }
 
+    private static Widget BuildPageNavigation(StoryContext context, StoryPageNavigation navigation)
+    {
+        Widget previous = navigation.Previous is { } prev
+            ? Button(_ => context.Navigate(prev.Path), $"← 前へ: {prev.Name}",
+                variant: Variant.Outline, width: 304, height: 52)
+            : Spacer(width: 304, height: 52);
+        Widget next = navigation.Next is { } following
+            ? Button(_ => context.Navigate(following.Path), $"次へ: {following.Name} →",
+                variant: Variant.Outline, width: 304, height: 52)
+            : Spacer(width: 304, height: 52);
+        return Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 8,
+            padding: new Thickness(8), width: 640)[HStack(16)[previous, next]];
+    }
+
     private static Widget BuildReference(StoryContext context, StoryReference reference)
     {
         StoryInfo? story = StoryRegistry.Find(reference.Path);
@@ -52,7 +72,7 @@ public static class StoryMarkdownRenderer
         context.SuppressPlays = true;
         try
         {
-            StoryResult result = story.BuildResult(context);
+            StoryResult result = story.Build(context);
             Widget body = result.Kind == StoryResultKind.Widget && result.Widget is not null
                 ? result.Widget
                 : Build(story, context, result, fill: false);

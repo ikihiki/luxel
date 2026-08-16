@@ -33,8 +33,7 @@ public static class AssetStories
     }
 
     /// <summary>Box.gltf → AssetDocument → AssetPrimitive → GPU buffers → 1 draw。ECSなしの静的最小経路。</summary>
-    [Story]
-    public static Widget GltfBox(StoryContext ctx)
+    public static StoryResult GltfBox(StoryContext ctx)
     {
         var builder = new ResourceSystemBuilder();
         ResourceSystemDefaultHandles core = OperatingSystem.IsBrowser()
@@ -132,8 +131,7 @@ public static class AssetStories
 
     /// <summary>BoxAnimated.glb — ノード TRS アニメーションを SceneAnimationPlayer が毎フレーム
     /// sample → TransformPropagate → 再 Extract して描く (スキニングなしのアニメーション経路)。</summary>
-    [Story]
-    public static Widget GltfAnimated(StoryContext ctx)
+    public static StoryResult GltfAnimated(StoryContext ctx)
     {
         var builder = new ResourceSystemBuilder();
         ResourceSystemDefaultHandles core = OperatingSystem.IsBrowser()

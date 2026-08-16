@@ -20,7 +20,7 @@ public static class PersistenceStories
 
     /// <summary>セーブ → 箱を動かす → ロードで元に戻る、を 3 行で見せる (① と ③ が一致)。</summary>
     [Story]
-    public static Widget SaveLoad(StoryContext ctx)
+    public static StoryResult SaveLoad(StoryContext ctx)
     {
         float[] start = { 40, 140, 240, 340 };
         using var world = new World();
@@ -50,7 +50,7 @@ public static class PersistenceStories
 
     /// <summary>設定は SettingsStore の Signal に直結 — 保存済みの値 (0.65 / on) が Slider/Switch に反映される。</summary>
     [Story]
-    public static Widget Settings(StoryContext ctx)
+    public static StoryResult Settings(StoryContext ctx)
     {
         var files = new InMemoryFileStore();
         files.Write("settings.json", "{ \"volume\": 0.65, \"fullscreen\": true }");   // 保存済み設定

@@ -18,7 +18,6 @@ using Rg = Luxel.Graphics.RenderGraph.RenderGraph;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Browser-safe BepuPhysics samples shared by native Gallery and browser WebAssembly.</summary>
-[StoryMeta("Examples/3D")]
 public static class PhysicsBrowserStories
 {
     private const uint ViewWidth = 256;
@@ -48,8 +47,7 @@ public static class PhysicsBrowserStories
     }
 
     /// <summary>A deterministic box tower simulated by BepuPhysics and rendered from ECS extraction.</summary>
-    [Story(CapabilityNote = BrowserNote)]
-    public static Widget PhysicsFalling(StoryContext ctx)
+    public static StoryResult PhysicsFalling(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device)
             return ctx.Snap(Frame(GpuView(ViewWidth, ViewHeight,
@@ -74,8 +72,7 @@ public static class PhysicsBrowserStories
     ];
 
     /// <summary>Interactive gravity, bounciness, and deterministic reset controls.</summary>
-    [Story(CapabilityNote = BrowserNote, Args = nameof(PhysicsPlaygroundArgs))]
-    public static Widget PhysicsPlayground(StoryContext ctx)
+    public static StoryResult PhysicsPlayground(StoryContext ctx)
     {
         Luxel.UI.Signal<float> gravity = ctx.Arg("gravity", 9.8f,
             new StoryArgOptions<float> { Description = "下向き重力の強さ (m/s²)", Min = 0, Max = 30, Step = 0.1 });
@@ -242,8 +239,7 @@ public static class PhysicsBrowserStories
     }
 
     /// <summary>Collider shapes and dynamic/static/CCD categories rendered as deterministic gizmos.</summary>
-    [Story(CapabilityNote = BrowserNote)]
-    public static Widget PhysicsGizmosDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
+    public static StoryResult PhysicsGizmosDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
         CanvasWidth, CanvasHeight, draw: scene =>
         {
             scene.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, CanvasWidth, CanvasHeight);
@@ -266,8 +262,7 @@ public static class PhysicsBrowserStories
         })));
 
     /// <summary>A falling sphere crosses a trigger and records Begin/End contact events.</summary>
-    [Story(CapabilityNote = BrowserNote)]
-    public static Widget PhysicsTriggerDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
+    public static StoryResult PhysicsTriggerDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
         CanvasWidth, CanvasHeight, draw: scene =>
         {
             scene.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, CanvasWidth, CanvasHeight);
@@ -292,8 +287,7 @@ public static class PhysicsBrowserStories
         })));
 
     /// <summary>Static triangle terrain, a primitive sphere, and a dynamic convex hull.</summary>
-    [Story(CapabilityNote = BrowserNote)]
-    public static Widget PhysicsMeshDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
+    public static StoryResult PhysicsMeshDemo(StoryContext ctx) => ctx.Snap(Frame(Canvas2D(
         CanvasWidth, CanvasHeight, draw: scene =>
         {
             scene.FillRect(Color2D.Rgba(20, 24, 30), 0, 0, CanvasWidth, CanvasHeight);

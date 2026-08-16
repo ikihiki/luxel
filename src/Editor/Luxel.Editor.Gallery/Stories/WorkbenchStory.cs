@@ -45,7 +45,7 @@ public static class WorkbenchStory
     }
 
     [Story]
-    public static Widget DocumentTabsBasic(StoryContext ctx)
+    public static StoryResult DocumentTabsBasic(StoryContext ctx)
     {
         var dirty = ctx.Signal("dirty", true);
         var demo = new TabsDemo(dirty);
@@ -79,7 +79,7 @@ public static class WorkbenchStory
             Muted(label)];
 
     [Story]
-    public static Widget DockHostBasic(StoryContext ctx)
+    public static StoryResult DockHostBasic(StoryContext ctx)
     {
         var dirty = ctx.Signal("dirty", true);
         var tree = new Signal<DockTree>(DockTree.Single("readme", "main", "graph"));
@@ -120,7 +120,7 @@ public static class WorkbenchStory
     }
 
     [Story]
-    public static Widget DockHostFloating(StoryContext ctx)
+    public static StoryResult DockHostFloating(StoryContext ctx)
     {
         // "graph" を最初から窓内フロートにしたレイアウト
         var tree = new Signal<DockTree>(
@@ -186,7 +186,7 @@ public static class WorkbenchStory
     }
 
     [Story]
-    public static Widget PropertyGridBasic(StoryContext ctx)
+    public static StoryResult PropertyGridBasic(StoryContext ctx)
     {
         var cfg = new ParticleConfig();
         string lastChange = "";
@@ -210,7 +210,7 @@ public static class WorkbenchStory
     // ---- AssetBrowser (IFileStorage × TreeView) ----
 
     [Story]
-    public static Widget AssetBrowserBasic(StoryContext ctx)
+    public static StoryResult AssetBrowserBasic(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();
         fs.Write("readme.md", "# hi");
@@ -240,7 +240,7 @@ public static class WorkbenchStory
     // ---- StatusBar ----
 
     [Story]
-    public static Widget StatusBarBasic(StoryContext ctx)
+    public static StoryResult StatusBarBasic(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());
         return VStack(10)[

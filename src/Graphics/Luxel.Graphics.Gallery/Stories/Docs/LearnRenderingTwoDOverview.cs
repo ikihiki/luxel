@@ -34,7 +34,7 @@ public static partial class DocsRenderingLearn
 
         `IRasterScene2D`はbackend resourceを所有するため、sessionをrasterizerより先にdisposeします。geometryが変わらない間はsessionを再利用できます。
 
-        {{StoryReference.To("Examples/2D/SceneRender")}}
+        {{StoryReference.To("Learn/Graphics/SceneRenderSample")}}
 
         ## APIの選び方
 
@@ -60,7 +60,7 @@ public static partial class DocsRenderingLearn
 
         ## 次に学ぶこと
 
-        {{StoryReference.To("Examples/2D/Shapes")}}
+        {{StoryReference.To("Learn/Graphics/ShapesSample")}}
 
         次は[Path、fill、stroke](story:Learn/Graphics/2D/Paths)でcontourの組み立て方を学びます。desktop/headlessの完全なprojectはHeadlessScene2Dをsource recipeとして参照できます。
         """;

@@ -24,7 +24,7 @@ public static class SceneEditorViewStory
     }
 
     [Story]
-    public static Widget Basic(StoryContext ctx)
+    public static StoryResult Basic(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: SampleScene(), viewWidth: 620f, viewHeight: 360f);
 
@@ -97,7 +97,7 @@ public static class SceneEditorViewStory
     }
 
     [Story]
-    public static Widget Tiles(StoryContext ctx)
+    public static StoryResult Tiles(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: TileScene(), viewWidth: 620f, viewHeight: 320f);
         Signal<string> status = ctx.Signal("status", "ツール: 選択 / タイル: 草");
@@ -174,7 +174,7 @@ public static class SceneEditorViewStory
     }
 
     [Story]
-    public static Widget ThreeD(StoryContext ctx)
+    public static StoryResult ThreeD(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: SampleScene3D(), viewWidth: 620f, viewHeight: 360f);
 
@@ -208,7 +208,7 @@ public static class SceneEditorViewStory
 
     // snap は幅 480 なので、golden に写したいもの (インスペクタ) を左に置く
     [Story]
-    public static Widget Inspector(StoryContext ctx)
+    public static StoryResult Inspector(StoryContext ctx)
     {
         SchemaRegistry reg = SceneSchemas.BuiltIns().Add(EnemySchema).Add(TintSchema);
 
@@ -259,7 +259,7 @@ public static class SceneEditorViewStory
     }
 
     [Story]
-    public static Widget Assets(StoryContext ctx)
+    public static StoryResult Assets(StoryContext ctx)
     {
         // プロジェクトフォルダ相当 (golden は実 FS watch を持ち込まない = MemoryFileStorage)
         var storage = new MemoryFileStorage();

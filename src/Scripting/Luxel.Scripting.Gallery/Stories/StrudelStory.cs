@@ -215,10 +215,8 @@ public static class StrudelStory
         "```strudel\nnote(\"c3 eb3 g3 <bb3 c4>\").s(\"saw\").slow(2)\n```\n\n" +
         "例: `.every(2, rev)` / `.jux(fast(2))` / `.degrade()` / `cps(0.6)` でテンポ。\n";
 
-    internal static StoryResult ReplResult() => StoryResult.FromMarkdown(ReplMarkdown);
-
-    [Story(Result = nameof(ReplResult))]
-    public static Widget Repl(StoryContext ctx)
+    [Story]
+    public static StoryResult Repl(StoryContext ctx)
     {
         // 各セルは ```strudel フェンス — 本文キーでキャッシュし同一 StrudelBlock を返す (再描画で状態が消えない)
         var blocks = new List<StrudelBlock>();   // play が Editor/Ctrl+Enter/診断を叩くための参照

@@ -21,7 +21,7 @@ public static class Vector2DStories
     /// <summary>地図風シーン (日本語ラベル) + ズーム knob。ベクターなので拡大しても
     /// エッジが崩れない (実アプリでは Camera2D — 再エンコードなしのスムーズズーム)。</summary>
     [Story]
-    public static Widget Map(StoryContext ctx)
+    public static StoryResult Map(StoryContext ctx)
     {
         Signal<float> zoom = ctx.Signal("zoom", 1f, "拡大率 (1 = 等倍、(300,150) 中心)");
         ctx.Play(static d => d.Snap());

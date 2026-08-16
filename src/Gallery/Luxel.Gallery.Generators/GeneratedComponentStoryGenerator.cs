@@ -518,8 +518,8 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             WidgetModel widget = components[index];
             string category = widget.FactoryName;
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Overview"))
-                .Append(", static _ => throw new global::System.InvalidOperationException(\"Overview is Markdown. Use BuildResult.\"), Source: ")
-                .Append(Lit("Generated overview for " + widget.TypeFq)).Append(", ResultBuild: static _ => Overview_").Append(index).Append("()")
+                .Append(", static _ => Overview_").Append(index).Append("(), Source: ")
+                .Append(Lit("Generated overview for " + widget.TypeFq))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index).AppendLine("]));");
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Basic"))
                 .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
@@ -617,7 +617,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
 
     private static void EmitGeneratedBasic(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index, string factoryDefault)
     {
-        sb.Append("        private static global::Luxel.UI.Widget Basic_").Append(index).AppendLine("(global::Luxel.Gallery.StoryContext ctx)");
+        sb.Append("        private static global::Luxel.Gallery.StoryResult Basic_").Append(index).AppendLine("(global::Luxel.Gallery.StoryContext ctx)");
         sb.AppendLine("        {");
         if (RequiresFallback(widget))
         {

@@ -36,6 +36,68 @@ public sealed class StoryCatalog
         .ToArray();
 }
 
+/// <summary>Galleryの閲覧導線に使う安定した表示順。</summary>
+public static class StoryPresentationOrder
+{
+    private static readonly IReadOnlyDictionary<string, int> TopLevelRanks = new Dictionary<string, int>(StringComparer.Ordinal)
+    {
+        ["Start"] = 0,
+        ["Tutorials"] = 1,
+        ["Learn"] = 2,
+        ["Controls"] = 3,
+        ["Examples"] = 4,
+        ["Reference"] = 5,
+        ["Internals"] = 6,
+    };
+
+    public static IReadOnlyList<StoryInfo> Apply(IEnumerable<StoryInfo> stories)
+    {
+        ArgumentNullException.ThrowIfNull(stories);
+        return stories.Select((story, index) => new
+            {
+                Story = story,
+                Index = index,
+                TopLevelRank = Rank(story.Path),
+                Depth = story.Path.Count(character => character == '/'),
+            })
+            .OrderBy(item => item.TopLevelRank)
+            .ThenBy(item => item.Depth)
+            .ThenBy(item => item.Index)
+            .Select(item => item.Story)
+            .ToArray();
+    }
+
+    private static int Rank(string path)
+    {
+        int slash = path.IndexOf('/');
+        string topLevel = slash < 0 ? path : path[..slash];
+        return TopLevelRanks.GetValueOrDefault(topLevel, int.MaxValue);
+    }
+}
+
+/// <summary>同じStoryMetaパス内で、現在ページの前後にある文書候補。</summary>
+public readonly record struct StoryPageNavigation(StoryInfo? Previous, StoryInfo? Next)
+{
+    public bool IsEmpty => Previous is null && Next is null;
+
+    public static StoryPageNavigation Resolve(StoryCatalog catalog, StoryInfo current)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        ArgumentNullException.ThrowIfNull(current);
+        int slash = current.Path.LastIndexOf('/');
+        if (slash < 0 || !current.IncludeInPageNavigation) return default;
+        string group = current.Path[..slash];
+        StoryInfo[] pages = catalog.All.Where(story => story.IncludeInPageNavigation
+            && story.Path.LastIndexOf('/') == slash
+            && story.Path.StartsWith(group + "/", StringComparison.Ordinal)).ToArray();
+        int index = Array.FindIndex(pages, story => story.Path == current.Path);
+        if (index < 0) return default;
+        return new StoryPageNavigation(
+            index > 0 ? pages[index - 1] : null,
+            index + 1 < pages.Length ? pages[index + 1] : null);
+    }
+}
+
 /// <summary>Story project の composition root が使用する明示登録 builder。</summary>
 public sealed class StoryCatalogBuilder
 {

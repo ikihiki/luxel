@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 public static class DiagramStories
 {
     [Story]
-    public static Widget Basic(StoryContext ctx) =>
+    public static StoryResult Basic(StoryContext ctx) =>
         ctx.Snap(Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             Luxel.Diagram.Factories.DiagramBlock("""
                 flowchart LR

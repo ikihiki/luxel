@@ -13,11 +13,9 @@ namespace Luxel.Gallery.Stories;
 /// Browser-safe GpuView stories. Files added to this project are automatically included in the
 /// WebAssembly catalog; no browser host or manifest registration is required.
 /// </summary>
-[StoryMeta("Examples/3D")]
 public static class GpuViewStories
 {
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget ClearColor(StoryContext ctx)
+    public static StoryResult ClearColor(StoryContext ctx)
         => ctx.Snap(Frame(GpuView(
             320,
             240,
@@ -33,8 +31,7 @@ public static class GpuViewStories
             },
             animated: false)));
 
-    [Story(CapabilityNote = "Runs through the shared Gallery WebAssembly story runner.")]
-    public static Widget Triangle(StoryContext ctx)
+    public static StoryResult Triangle(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
             return BuildOnlyGpuView(ctx, 320, 240);
@@ -118,8 +115,7 @@ public static class GpuViewStories
             animated: false)));
     }
 
-    [Story(CapabilityNote = "Renders an indexed quad from separate position, index, and color buffers.")]
-    public static Widget BuffersAndBindings(StoryContext ctx)
+    public static StoryResult BuffersAndBindings(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is not { } device || ctx.ScopedResourcesOrNull is not { } resources)
             return BuildOnlyGpuView(ctx, 320, 240);
@@ -201,8 +197,7 @@ public static class GpuViewStories
             dispose: buffers.Dispose)));
     }
 
-    [Story(CapabilityNote = "Compares point/linear filtering and clamp/repeat addressing with a generated texture.")]
-    public static Widget Textures(StoryContext ctx)
+    public static StoryResult Textures(StoryContext ctx)
     {
         if (ctx.DeviceOrNull is null || ctx.ScopedResourcesOrNull is not { } resources)
             return BuildOnlyGpuView(ctx, 680, 430);

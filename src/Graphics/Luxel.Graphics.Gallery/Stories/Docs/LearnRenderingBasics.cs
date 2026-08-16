@@ -181,7 +181,7 @@ public static partial class DocsRenderingLearn
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/ClearColor", "Beginner", "Standalone + Gallery", "Vulkan / Direct3D 12 / WebGPU", "Environment")}}
 
-        {{StoryRef(ctx, CanonicalClearColorRecipe.Story)}}
+        {{StoryRef("Learn/Graphics/ClearColorSample")}}
 
         上のサンプルはGalleryではnative offscreen renderingとして動作し、静的GalleryとPagesではbrowser-WASM WebGPU runtimeとして同じClearColor recipeを実行します。
 
@@ -280,7 +280,7 @@ public static partial class DocsRenderingLearn
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/FirstTriangle", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "ClearColor")}}
 
-        {{StoryRef(ctx, "Examples/3D/Triangle")}}
+        {{StoryRef("Learn/Graphics/TriangleSample")}}
 
         このページでは`GpuDevice`、`GpuBuffer`、`GpuShaderCode`、`GpuPipeline`、`GpuCommandBuffer`を使って三角形を描画します。完全なstandalone実装は`samples/LuxelTriangle/TriangleRenderer.cs`と`shaders/tutorial_triangle.slang`で確認できます。
 
@@ -415,7 +415,7 @@ public static partial class DocsRenderingLearn
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/Buffers", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12", "FirstTriangle")}}
 
-        {{StoryRef(ctx, "Examples/3D/BuffersAndBindings")}}
+        {{StoryRef("Learn/Graphics/BuffersAndBindingsSample")}}
 
         上のsampleは4頂点の四角形を、**頂点座標・インデックス・色の3つのbuffer**に分けて描画します。6個のindexを`Draw(6)`の`SV_VertexID`で順に読み、indexが指す頂点座標と色を別bufferから取得します。
 
@@ -577,7 +577,7 @@ public static partial class DocsRenderingLearn
 
         {{RenderingCourseCatalog.Meta("Learn/Graphics/TexturesBasics", "Beginner", "Standalone + Gallery", "Vulkan / DirectX 12 / WebGPU", "Buffers")}}
 
-        {{StoryRef(ctx, "Examples/3D/Textures")}}
+        {{StoryRef("Learn/Graphics/TexturesSample")}}
 
         Textureは2次元のpixel配列をGPUへ置き、shaderからUV座標で参照するresourceです。`GpuTexture`が画像本体、`GpuSampler`が補間方法と範囲外UVの扱いを持ちます。
 
@@ -935,7 +935,7 @@ public static partial class DocsRenderingLearn
         | Viewport / Scissor | `SetViewport` / `SetScissor` | NDC変換領域、pixel clip矩形 |
         | Dynamic reference | `SetStencilReference` | stencil compare / replaceで使う8-bit値 |
 
-        {{StoryRef(ctx, "Examples/3D/Separation")}}
+        {{StoryRef("Learn/Graphics/SeparationSample")}}
 
         ## Rasterizer State
 
@@ -946,7 +946,7 @@ public static partial class DocsRenderingLearn
         var strip = new GpuGraphicsPipelineDesc(layout, GpuPrimitiveTopology.TriangleStrip);
         ```
 
-        {{StoryRef(ctx, "Examples/3D/Topology")}}
+        {{StoryRef("Learn/Graphics/TopologySample")}}
 
         cullとfront faceは独立した`GpuRasterizerState`です。`FrontFace = CounterClockwise`なら反時計回りを表面とし、`CullMode = Back`なら裏面を除外します。projectionのY方向、negative scale、index順でwindingが反転することがあるため、何も表示されないときは`GpuRasterizerState.Default`へ戻して切り分けます。
 
@@ -956,7 +956,7 @@ public static partial class DocsRenderingLearn
             GpuFrontFace.CounterClockwise));
         ```
 
-        {{StoryRef(ctx, "Examples/3D/Rasterizer")}}
+        {{StoryRef("Learn/Graphics/RasterizerSample")}}
 
         ## Depth-Stencil State
 
@@ -981,7 +981,7 @@ public static partial class DocsRenderingLearn
         - test on / write on: opaque 3D。
         - test on / write off: transparent 3Dやdecal。
 
-        {{StoryRef(ctx, "Examples/3D/DepthStates")}}
+        {{StoryRef("Learn/Graphics/DepthStatesSample")}}
 
         stencilは8-bit maskとしてfragmentの所属領域を記録し、後続drawをその領域へ限定できます。次の例は最初のdrawでreferenceを`Replace`し、次のdrawで`Equal`比較します。read/write maskはstate、referenceはdraw間で変更できるdynamic valueです。
 
@@ -1014,7 +1014,7 @@ public static partial class DocsRenderingLearn
 
         stencilを使うpassは`GpuFormat.Depth24PlusStencil8`のattachmentをpipeline descriptionと`CreateDepthTarget`の両方へ指定します。`SetStencilReference`、`clearStencil`、read/write maskはいずれも0..255です。
 
-        {{StoryRef(ctx, "Examples/3D/Stencil")}}
+        {{StoryRef("Learn/Graphics/StencilSample")}}
 
         ## Blend State
 
@@ -1031,7 +1031,7 @@ public static partial class DocsRenderingLearn
 
         `AlphaBlend`へ渡すRGBはpremultiplied alphaではありません。透明物は通常opaque pass後に奥から手前へsortし、depth test on / depth write offで描きます。
 
-        {{StoryRef(ctx, "Examples/3D/BlendState")}}
+        {{StoryRef("Learn/Graphics/BlendStateSample")}}
 
         ## Viewport / Scissor
 
@@ -1047,7 +1047,7 @@ public static partial class DocsRenderingLearn
 
         split screen、letterbox、thumbnail、部分更新ではpipelineを作り直さずdynamic viewport/scissorを変更します。resize後は新しいtarget sizeを基準に矩形も更新します。
 
-        {{StoryRef(ctx, "Examples/3D/ViewportScissor")}}
+        {{StoryRef("Learn/Graphics/ViewportScissorSample")}}
 
         ## Pipelineとstateを分ける判断
 

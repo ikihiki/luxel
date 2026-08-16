@@ -32,7 +32,7 @@ public static class FixedTimestepStories
     private const int Warmup = Ratio, CaptureN = 16;
 
     [Story]
-    public static Widget DrawInterpolation(StoryContext ctx)
+    public static StoryResult DrawInterpolation(StoryContext ctx)
     {
         // 実物の蓄積器で決定的にシミュレーション (固定ステップ = StopDist/step、表示 = その 4 倍レート)。
         var ft = new FixedTimestep(fixedDt: Ratio, maxStepsPerFrame: 8);

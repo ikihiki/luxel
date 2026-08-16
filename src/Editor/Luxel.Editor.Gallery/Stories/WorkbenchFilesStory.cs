@@ -44,7 +44,7 @@ public static class WorkbenchFilesStory
     };
 
     [Story]
-    public static Widget Files(StoryContext ctx)
+    public static StoryResult Files(StoryContext ctx)
     {
         // ---- ストレージ (デモはメモリ — 決定的。実機は PhysicalFileStorage) ----
         var fs = new MemoryFileStorage();

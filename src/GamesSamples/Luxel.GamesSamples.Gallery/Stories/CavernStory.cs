@@ -22,7 +22,7 @@ namespace Luxel.Gallery.Stories;
 /// 撃破バースト、sim のイベントから発火・per-particle tint)。sim + fx を固定 dt で決定的に事前実行し追従カメラで描く。
 /// HUD (日本語)・実時間 exe・Audio・セーブは後段。手続きアトラス (外部アセット不要)。
 /// </summary>
-[StoryMeta("Game")]
+[StoryMeta("Examples/Apps/Game")]
 public static class CavernStories
 {
     private const int Steps = 78;
@@ -43,7 +43,7 @@ public static class CavernStories
         "else if (w.Pos.X + w.Size.X >= w.MaxX) { w.Pos.X = w.MaxX - w.Size.X; w.VelX = -MathF.Abs(w.VelX); } })";
 
     [Story]
-    public static Widget Cavern(StoryContext ctx, ScriptHostRegistry scripts)
+    public static StoryResult Cavern(StoryContext ctx, ScriptHostRegistry scripts)
     {
         // 敵 AI を .csx からコンパイル (ScriptSystem のドッグフーディング — 実ゲームの敵ロジックを csx で書く)
         ScriptResult r = scripts.GetOrAdd(AiProfile).Run(PatrolAiCsx, new object());

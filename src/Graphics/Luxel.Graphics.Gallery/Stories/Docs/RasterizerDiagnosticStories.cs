@@ -7,7 +7,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>Production ABI/source-backed visual maps for the 2D compute rasterizer stages.</summary>
 [StoryMeta("Examples/2D/Rasterizer")]
-public static class RasterizerDiagnosticStories
+public static partial class RasterizerDiagnosticStories
 {
     private static StoryResult Diagnostic(StoryContext ctx, string title, string stage, string body)
         => $"""
@@ -23,7 +23,7 @@ public static class RasterizerDiagnosticStories
     [Story]
     public static StoryResult InputPaths(StoryContext ctx) => Diagnostic(ctx, "Input paths", "Scene2D → flattened segments",
         "The live path example below exercises line, quadratic, cubic, open, and closed contours. `FlattenTolerance` controls the CPU-side de Casteljau subdivision before upload.\n\n"
-        + StoryRef(ctx, "Examples/2D/VectorPaths"));
+        + StoryRef("Examples/2D/Rasterizer/VectorPathsSample"));
 
     [Story]
     public static StoryResult EncodedScene(StoryContext ctx) => Diagnostic(ctx, "Encoded scene", "Segment / Path / Transform / Style / Clip / Order SoA",

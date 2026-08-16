@@ -12,7 +12,7 @@ namespace Luxel.Gallery.Stories;
 public static class TransitionStories
 {
     [Story]
-    public static Widget TransitionStates(StoryContext ctx) => ctx.Snap(Frame(
+    public static StoryResult TransitionStates(StoryContext ctx) => ctx.Snap(Frame(
         Button(_ => ctx.Log("click"), "Hover / Press",
                 background: Tw.Blue500, foreground: Tw.White, rounded: 10, width: 200, height: 64)
             .When(WidgetState.Hover, background: Tw.Red500, scaleX: 1.12f, scaleY: 0.94f, rotate: 0.03f)

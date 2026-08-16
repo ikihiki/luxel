@@ -68,17 +68,17 @@ public static class Ecs3DStories
     /// <summary>world-space UI — Scene2D を bindless バッファへラスタライズし、3D 空間内の
     /// quad がピクセルシェーダでサンプリングする。Compute→PixelShader のバリアは RG が自動挿入。</summary>
     [Story]
-    public static Widget WorldSpaceUi() => Frame(GpuSceneBase.View(256, 256, new WorldSpaceUiScene()));
+    public static StoryResult WorldSpaceUi() => Frame(GpuSceneBase.View(256, 256, new WorldSpaceUiScene()));
 
     /// <summary>shadow map — ライト視点で R32Float RT に NDC z を書き、メイン視点パスが
     /// bindless バッファ経由で読み比較して影を落とす (床 + 浮遊キューブ 5 個)。</summary>
     [Story]
-    public static Widget ShadowMap(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new ShadowMapScene(), animated: false)));
+    public static StoryResult ShadowMap(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(256, 256, new ShadowMapScene(), animated: false)));
 
     /// <summary>3D forward + post-process bloom を 1 つの RenderGraph で —
     /// Render3D (graphics) → BlurH → BlurV → BloomCombine (compute)。intensity は knob。</summary>
     [Story]
-    public static Widget Bloom3D(StoryContext ctx)
+    public static StoryResult Bloom3D(StoryContext ctx)
     {
         Signal<float> intensity = ctx.Signal("intensity", 0.6f, "bloom 合成の強さ (0 = 無効)");
         return Frame(GpuSceneBase.View(256, 256, new Bloom3DScene(intensity)));

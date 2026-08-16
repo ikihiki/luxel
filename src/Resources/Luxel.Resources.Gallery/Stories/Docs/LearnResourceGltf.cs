@@ -6,7 +6,7 @@ namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>glTFのインポート、依存、診断、ランタイム、寿命を学ぶコース。</summary>
 [StoryMeta("Learn/Resources/Gltf")]
-public static class LearnResourceGltf
+public static partial class LearnResourceGltf
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -30,7 +30,7 @@ public static class LearnResourceGltf
         ```
 
         このコースでは、登録と読み込み、外部依存の解決、診断、ランタイム展開、変形、再読み込み時の寿命を分けて説明します。`SceneAssets`や描画処理を追加する前に、まずCPUドキュメントの読み込みから始めてください。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/Overview"][0]));
+        """, StoryReference.To("Learn/Resources/Gltf/BoxDocumentLoadSample"));
 
     [Story]
     public static StoryResult RegistrationAndLoading(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -59,7 +59,7 @@ public static class LearnResourceGltf
         `.gltf`と`.glb`はStepが宣言する拡張子で選択されます。読み込みに成功したハンドルが保持するのはCPUオブジェクトだけです。1つのプリミティブをGPUへ転送するか、完全なランタイムシーンを構築するかを決める前に、`Scenes`、`Nodes`、`Meshes`を調べてください。
 
         Resourceを使わない直接的なツール処理では、`GltfParser`、デコーダー、バリデーター、コンバーターを組み合わせた低水準経路も利用できます。URI依存、キャッシュ、再読み込み、所有権が必要な場合は`GltfResourceStep`を優先してください。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/RegistrationAndLoading"][0]));
+        """, StoryReference.To("Learn/Resources/Gltf/BoxDocumentLoadSample"));
 
     [Story]
     public static StoryResult ExternalBuffersImagesAndUris(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -84,7 +84,7 @@ public static class LearnResourceGltf
         ```
 
         参照される各スキームのSourceは読み込み前に登録してください。HTTPの相対参照では、基準ドキュメントURIのホスト情報が維持されます。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/ExternalBuffersImagesAndUris"][0]));
+        """, StoryReference.To("Learn/Resources/Gltf/ExternalBufferTraceSample"));
 
     [Story]
     public static StoryResult ValidationAndDiagnostics(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -103,7 +103,7 @@ public static class LearnResourceGltf
         インポーターの失敗はResourceの失敗として扱います。初回読み込みの失敗ではハンドルが`Failed`になり、再読み込みの失敗では直前の正常な`AssetDocument`を保持したまま`LastReloadError`を記録します。呼び出し側は、まだ有効なシーンを破棄せずに診断を表示できます。
 
         CIでは代表的な`.gltf`と`.glb`をヘッドレスで読み込み、ドキュメント内の要素数と不正アクセサーのエラーを検証します。描画テストも必要ですが、不正なバイナリ配置を最初に検出する場所にはしないでください。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/ValidationAndDiagnostics"][0]));
+        """, StoryReference.To("Learn/Resources/Gltf/MalformedAccessorDiagnosticsSample"));
 
     [Story]
     public static StoryResult SceneRuntime(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -129,7 +129,7 @@ public static class LearnResourceGltf
         ```
 
         `SceneAssets`は、ランタイム処理が使うGPU状態と対応表を所有します。描画データの抽出と描画送信が終わるまで生存させてください。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/SceneRuntime"][0]));
+        """, StoryReference.To("Learn/Resources/Gltf/GltfBoxSample"));
 
     [Story]
     public static StoryResult AnimationSkinningAndMorph(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -156,7 +156,7 @@ public static class LearnResourceGltf
         移動と拡大縮小は線形補間またはステップ補間を使い、回転はクォータニオン補間またはステップ補間を使います。ウェイトチャンネルはモーフウェイトを更新します。現在のサンプラーはglTFの3次スプライン接線を完全には評価しません。
 
         ジョイントの順序は逆バインド行列の順序と一致し、頂点の`Joints0`はその一覧を参照します。モーフバッファはターゲット単位、次に頂点単位で差分を保持し、シェーダーが重み付き差分を加算します。スキンデータには56バイトのスキニング頂点シェーダーを、モーフバッファにはモーフ用の形式を選びます。1つの汎用シェーダーがすべての機能を組み合わせる前提ではありません。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/AnimationSkinningAndMorph"][0]));
+        """, StoryReference.To("Learn/Resources/Gltf/GltfAnimatedSample"));
 
     [Story]
     public static StoryResult ReloadAndLifetime(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -175,5 +175,5 @@ public static class LearnResourceGltf
         値の差し替えは`ResourceSystem.Pump()`で公開されます。インポートに失敗した場合は直前の正常なシーンを使い続け、`LastReloadError`を公開し、完全な新しいドキュメントとランタイム値が成功してから交換します。所有されている旧値は遅延破棄され、GPUを使う値は破棄前に登録済みのアイドル待機処理が必要です。
 
         安全な終了順序は、描画データの抽出と描画使用を止め、ランタイムのハンドルとスコープを破棄し、遅延破棄を反映し、GPUアセットのインストールとランタイム所有者を破棄し、最後にデバイスを破棄する順です。CPUドキュメントの保持だけでは`SceneAssets`の寿命は延びず、`SceneAssets`の保持だけでもデバイスの明示的な所有者にはなりません。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Gltf/ReloadAndLifetime"][0]));
+        """, StoryReference.To("Learn/Resources/Gltf/ExternalDependencyReloadSample"));
 }

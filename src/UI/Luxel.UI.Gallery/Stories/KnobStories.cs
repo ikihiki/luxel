@@ -11,7 +11,7 @@ namespace Luxel.Gallery.Stories;
 public static class KnobStories
 {
     [Story]
-    public static Widget Kinds(StoryContext ctx)
+    public static StoryResult Kinds(StoryContext ctx)
     {
         Signal<bool> visible = ctx.Signal("visible", true, "チップの表示 (false で淡色化)");
         Signal<int> count = ctx.Signal("count", 3, "カウント表示の値");

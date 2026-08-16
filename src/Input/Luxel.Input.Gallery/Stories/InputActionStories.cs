@@ -14,11 +14,9 @@ namespace Luxel.Gallery.Stories;
 internal partial class InputBindingsJsonContext : JsonSerializerContext { }
 
 /// <summary>入力アクション、コンテキスト、バインディングを決定的に学ぶStory。</summary>
-[StoryMeta("Examples/Input")]
 public static class InputActionStories
 {
-    [Story]
-    public static Widget SourcesAndBus()
+    public static StoryResult SourcesAndBus()
     {
         // docs:begin input-sources-bus-setup
         var keyboard = new FakeInputSource();
@@ -78,8 +76,7 @@ public static class InputActionStories
                 color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 610)]);
     }
 
-    [Story]
-    public static Widget Actions()
+    public static StoryResult Actions()
     {
         // docs:begin input-actions-setup
         var source = new FakeInputSource();
@@ -124,8 +121,7 @@ public static class InputActionStories
                 color: Bind.From(() => UiTheme.T.TextMuted), wrap: TextWrap.Word, width: 590)]);
     }
 
-    [Story]
-    public static Widget ContextStack()
+    public static StoryResult ContextStack()
     {
         // docs:begin input-context-setup
         var source = new FakeInputSource();
@@ -179,8 +175,7 @@ public static class InputActionStories
                 Text($"{result}", 14, wrap: TextWrap.Word, width: 500)])]);
     }
 
-    [Story]
-    public static Widget Bindings()
+    public static StoryResult Bindings()
     {
         // docs:begin input-bindings-setup
         var source = new FakeInputSource();

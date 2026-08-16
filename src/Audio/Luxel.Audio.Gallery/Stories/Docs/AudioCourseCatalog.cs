@@ -8,13 +8,13 @@ internal static class AudioCourseCatalog
     internal static readonly string[] Routes =
     [
         "Learn/Audio/Overview",
-        "Learn/Audio/EnvironmentAndBackends",
-        "Learn/Audio/FormatsClipsAndLoading",
-        "Learn/Audio/VoicesAndMixer",
-        "Learn/Audio/ClipsSourcesAndBuses",
-        "Learn/Audio/SpatialAudio",
+        "Learn/Audio/Environment",
+        "Learn/Audio/Formats",
+        "Learn/Audio/Voices",
+        "Learn/Audio/Sources",
+        "Learn/Audio/Spatial",
         "Learn/Audio/Streaming",
-        "Learn/Audio/SpatialStreamingAndTesting",
+        "Learn/Audio/Testing",
     ];
 
     internal static (string? Previous, string? Next) Navigation(string path)

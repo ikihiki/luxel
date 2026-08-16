@@ -30,7 +30,7 @@ public static class NodeGraphViewStory
     }
 
     [Story]
-    public static Widget Basic(StoryContext ctx)
+    public static StoryResult Basic(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: SampleGraph(), viewWidth: 620f, viewHeight: 360f);
 
@@ -106,7 +106,7 @@ public static class NodeGraphViewStory
     }
 
     [Story]
-    public static Widget Wiring(StoryContext ctx)
+    public static StoryResult Wiring(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: WireGraph(), viewWidth: 620f, viewHeight: 380f);
 
@@ -162,7 +162,7 @@ public static class NodeGraphViewStory
     }
 
     [Story]
-    public static Widget Widgets(StoryContext ctx)
+    public static StoryResult Widgets(StoryContext ctx)
     {
         Signal<float> vol = ctx.Signal("vol", 0.6f);
         const string sliderKey = "gain-slider";
@@ -225,7 +225,7 @@ public static class NodeGraphViewStory
     }
 
     [Story]
-    public static Widget AutoLayoutStory(StoryContext ctx)
+    public static StoryResult AutoLayoutStory(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: ExprGraph(), viewWidth: 620f, viewHeight: 380f);
         ed.SnapToGrid = true;
@@ -266,7 +266,7 @@ public static class NodeGraphViewStory
     }
 
     [Story]
-    public static Widget RenderGraph(StoryContext ctx)
+    public static StoryResult RenderGraph(StoryContext ctx)
     {
         // RenderGraphNodes で診断 → ノードグラフ (整列済み) に変換し、読み取り専用ビューで可視化
         NodeGraphView ed = NodeGraphView(source: RenderGraphNodes.Build(SampleRenderGraph()), viewWidth: 620f, viewHeight: 380f);

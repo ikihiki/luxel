@@ -17,7 +17,7 @@ internal static class GalleryStoryTree
     public static IReadOnlyList<GalleryStoryTreeNode> Build(IEnumerable<StoryInfo> stories)
     {
         var roots = new List<GalleryStoryTreeNode>();
-        foreach (StoryInfo story in stories)
+        foreach (StoryInfo story in StoryPresentationOrder.Apply(stories))
         {
             List<GalleryStoryTreeNode> level = roots;
             string[] segments = story.Path.Split('/', StringSplitOptions.RemoveEmptyEntries);
@@ -33,13 +33,6 @@ internal static class GalleryStoryTree
                 level = node.Children;
             }
         }
-        Sort(roots);
         return roots;
-    }
-
-    private static void Sort(List<GalleryStoryTreeNode> nodes)
-    {
-        nodes.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Name, right.Name));
-        foreach (GalleryStoryTreeNode node in nodes) Sort(node.Children);
     }
 }

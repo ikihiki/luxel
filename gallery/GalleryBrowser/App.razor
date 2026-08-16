@@ -70,7 +70,26 @@ else
             }
             @if (_documentHtml is not null)
             {
-                <article class="markdown-document">@((MarkupString)_documentHtml)</article>
+                <article class="markdown-document">
+                    @((MarkupString)_documentHtml)
+                    @if (!_pageNavigation.IsEmpty)
+                    {
+                        <nav class="markdown-page-navigation" aria-label="ページナビゲーション">
+                            @if (_pageNavigation.Previous is { } previous)
+                            {
+                                <a class="previous" href="@StoryHref(previous.Path)">
+                                    <small>前へ</small><strong>← @previous.Name</strong>
+                                </a>
+                            }
+                            @if (_pageNavigation.Next is { } next)
+                            {
+                                <a class="next" href="@StoryHref(next.Path)">
+                                    <small>次へ</small><strong>@next.Name →</strong>
+                                </a>
+                            }
+                        </nav>
+                    }
+                </article>
             }
             else
             {
@@ -193,6 +212,7 @@ else
     private string _argsJson = "{}";
     private string _search = "";
     private string? _documentHtml;
+    private StoryPageNavigation _pageNavigation;
     private string _runtimeUrl = "";
     private string _runtimeInstance = "";
     private string _activeTab = "Args";
@@ -200,6 +220,7 @@ else
     private string _runtimeSummary = "Storyランタイムを待機しています。";
     private int _revision;
     private StoryInfo _story = null!;
+    private IReadOnlyList<StoryInfo> _displayStories = Array.Empty<StoryInfo>();
     private IReadOnlyList<StoryArgDefinition> _argDefinitions = Array.Empty<StoryArgDefinition>();
     private Dictionary<string, JsonElement> _argValues = new(StringComparer.Ordinal);
     private readonly List<OutputEntry> _output = [];
@@ -216,6 +237,7 @@ else
 
     protected override void OnInitialized()
     {
+        _displayStories = StoryPresentationOrder.Apply(Catalog.All);
         LoadLocation(Navigation.Uri);
         if (!_embedded) Navigation.LocationChanged += OnLocationChanged;
     }
@@ -262,10 +284,11 @@ else
         _embedded = query.GetValueOrDefault("embed") is "1" or "true";
         _compact = !_embedded && query.GetValueOrDefault("compact") is "1" or "true";
         string? requested = query.GetValueOrDefault("story");
-        _story = requested is null ? Catalog.All[0] : Catalog.Find(requested)
+        _story = requested is null ? _displayStories[0] : Catalog.Find(requested)
             ?? throw new InvalidOperationException($"Unknown browser story '{requested}'.");
         _argsJson = query.GetValueOrDefault("args") ?? "{}";
         _documentHtml = _embedded ? null : TryRenderDocument(_story, _argsJson);
+        _pageNavigation = _documentHtml is null ? default : StoryPageNavigation.Resolve(Catalog, _story);
         _argDefinitions = (_story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>())
             .OrderBy(definition => definition.Order).ThenBy(definition => definition.Name, StringComparer.Ordinal).ToArray();
         StoryArgs canonicalArgs = StoryArgs.Parse(_argsJson).WithDefaults(_argDefinitions);
@@ -368,13 +391,12 @@ else
 
     private string? TryRenderDocument(StoryInfo story, string argsJson)
     {
-        if (story.ResultBuild is null) return null;
         try
         {
             StoryArgs args = StoryArgs.Parse(argsJson).WithDefaults(story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>());
             using var context = new StoryContext(args: args);
             context.SetServices(Services);
-            StoryResult result = story.BuildResult(context);
+            StoryResult result = story.Build(context);
             return result.Kind == StoryResultKind.Markdown
                 ? GalleryMarkdownHtml.Render(story, result)
                 : null;
@@ -389,7 +411,7 @@ else
     private IReadOnlyList<GalleryStoryTreeNode> FilteredTree()
     {
         string needle = _search.Trim();
-        IEnumerable<StoryInfo> stories = Catalog.All;
+        IEnumerable<StoryInfo> stories = _displayStories;
         if (needle.Length > 0)
             stories = stories.Where(story => SearchText(story).Contains(needle, StringComparison.OrdinalIgnoreCase));
         return GalleryStoryTree.Build(stories);

@@ -49,7 +49,7 @@ public static class WorkbenchShellStory
          new GraphEdge(11, new PortId(2, 1), new PortId(3, 0))]);
 
     [Story]
-    public static Widget Shell(StoryContext ctx)
+    public static StoryResult Shell(StoryContext ctx)
     {
         // ---- ドキュメント 4 種 (エディタ＝構成: 同じ TextDocument でも viewFactory が違うだけ) ----
         var code = new TextDocument("code", "Main.cs", CodeView,

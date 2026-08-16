@@ -6,7 +6,7 @@ namespace Luxel.Resources.Gallery.Stories;
 
 /// <summary>CPU asset modelとGPU manager integrationを学ぶコース。</summary>
 [StoryMeta("Learn/Resources/Assets")]
-public static class LearnResourceAssets
+public static partial class LearnResourceAssets
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -25,7 +25,7 @@ public static class LearnResourceAssets
         ```text
         bytes → importer → AssetDocument → inspection / runtime / GPU-managed values
         ```
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/Overview"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/DocumentInspectorSample"));
 
     [Story]
     public static StoryResult DocumentAndSceneGraph(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -48,7 +48,7 @@ public static class LearnResourceAssets
             foreach (AssetNode child in node.Children) Visit(child, world);
         }
         ```
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/DocumentAndSceneGraph"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/DocumentInspectorSample"));
 
     [Story]
     public static StoryResult MeshesAndPrimitives(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -63,7 +63,7 @@ public static class LearnResourceAssets
         ```luxel-story
         0
         ```
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/MeshesAndPrimitives"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/MeshPrimitiveInspectorSample"));
 
     [Story]
     public static StoryResult MaterialsTexturesAndSamplers(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -78,7 +78,7 @@ public static class LearnResourceAssets
         ```luxel-story
         0
         ```
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/MaterialsTexturesAndSamplers"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/MaterialTextureInspectorSample"));
 
     [Story]
     public static StoryResult AnimationSkinCameraAndLight(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -93,7 +93,7 @@ public static class LearnResourceAssets
         ```luxel-story
         0
         ```
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/AnimationSkinCameraAndLight"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/AnimatedSceneGraphSample"));
 
     [Story]
     public static StoryResult LoadingAndGpu(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -119,7 +119,7 @@ public static class LearnResourceAssets
         ```
 
         GPU package surfaceはdevice generationとGraphics lifecycleへ結び付きます。CPU handleとGPU handleは独立したleaseです。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/LoadingAndGpu"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/GpuManagerInstallationSample"));
 
     [Story]
     public static StoryResult CustomGpuResourceTypes(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -144,7 +144,7 @@ public static class LearnResourceAssets
         ```
 
         logical identityは`ResourceHandle<ParticleBuffer>`が維持し、物理allocationとdevice generationはmanager recordに保存します。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/CustomGpuResourceTypes"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/CustomGpuParticleBuffersSample"));
 
     [Story]
     public static StoryResult GpuMemoryAndIndexes(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -161,7 +161,7 @@ public static class LearnResourceAssets
         ```
 
         compactionはstable logical handleを保ち、allocationとdescriptorを移動してmanagement recordを更新します。snapshotはbudget pressure、pending retirement、index使用率、relocation件数を診断画面へ公開します。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/GpuMemoryAndIndexes"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/GpuIndexRecyclingSample"));
 
     [Story]
     public static StoryResult DeviceLossAndRecovery(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -178,7 +178,7 @@ public static class LearnResourceAssets
         ```
 
         owned deviceはcoordinatorがshutdownし、borrowed deviceはhost ownerが管理します。CPU documentとlast-good診断は維持され、GPU generationがreadyになった時点でpublicationされます。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/DeviceLossAndRecovery"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/DeviceLostRecoverySample"));
 
     [Story]
     public static StoryResult ShaderAbi(StoryContext ctx) => StoryResult.FromMarkdown($$"""
@@ -195,5 +195,5 @@ public static class LearnResourceAssets
         ```
 
         relocation可能なbufferではshaderから参照するdescriptor indexをmanagerが更新し、fence-safe publication後にallocationを交換します。ABI testはCPU encoding、shader decoding、stride、alignment、policy metadataを同時に検証します。
-        """, StoryReference.To(ResourceLearnExamples.Routes["Learn/Resources/Assets/ShaderAbi"][0]));
+        """, StoryReference.To("Learn/Resources/Assets/ShaderBufferInspectorSample"));
 }

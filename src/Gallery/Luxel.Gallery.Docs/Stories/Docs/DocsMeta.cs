@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 /// ページは $$""" (hole = 波かっこ 2 連)。Authoring だけは hole 記法 (2 連) を文章として
 /// 見せるため $$$ (hole = 3 連)。本文に """ を含むページは引用符 4 連。</summary>
 [StoryMeta("Internals")]
-public static class DocsMeta
+public static partial class DocsMeta
 {
     private const string SampleImage = "src/Gallery/Luxel.Gallery/assets/sample-sparkline.png";
 
@@ -57,7 +57,7 @@ public static class DocsMeta
 
                     コード例の波かっこはリテラルです: new Args { Count = n }
 
-                    {{StoryRef("Controls/ButtonVariants", knobs: true)}}
+                    {{StoryRef("Controls/Button/CounterSample", knobs: true)}}
                     """;
             }
             ```
@@ -76,7 +76,7 @@ public static class DocsMeta
 
             `StoryRef(path, knobs: true)` でストーリーの下に **Knobs テーブル** (autodoc の Controls 相当) が付きます。`using static Luxel.Gallery.Story;` で導入し、Blazor とネイティブで同じ参照形式を使います:
 
-            {{{StoryRef("Examples/Orbit", knobs: true)}}}
+            {{{StoryRef("Internals/OrbitSample", knobs: true)}}}
 
             `StorySource(path)` はジェネレーターが公開する **完全な `[Story]` method宣言** (属性・signature・本体) をコードフェンスとして差し込みます。同じコードは通常storyでも下部の **Source** タブから確認でき、静的Galleryでは折りたたみSourceとして表示されます。private helperは含めず、取得したmethod宣言をそのまま表示します。コントロール個別ページでは `DocsApi.ControlApiReference("Button")` で API リファレンス表が出ます (実例は [Controls/Button/Overview](story:Controls/Button/Overview))。
 
@@ -127,7 +127,7 @@ public static class DocsMeta
     public static StoryResult Gallery(StoryContext ctx) => $$"""
         # Gallery — ストーリーの書き方
 
-        この Gallery は Storybook 相当のカタログ + ドキュメント + 回帰基盤です。「ストーリー」= Widget を返す static メソッド 1 つで、実窓カタログ・snap 回帰・ docs への埋め込みのすべてに同じ実装が使われます。
+        この Gallery は Storybook 相当のカタログ + ドキュメント + 回帰基盤です。「ストーリー」= StoryResult を返す static メソッド 1 つで、実窓カタログ・snap 回帰・ docs への埋め込みのすべてに同じ実装が使われます。Widget は StoryResult へ暗黙変換されます。
 
         ## [Story] 属性とレジストリ
 
@@ -136,17 +136,17 @@ public static class DocsMeta
         public static class ButtonStories
         {
             [Story]
-            public static Widget ButtonPrimary() => Frame(Button(_ => { }, "OK"));
+            public static StoryResult ButtonPrimary() => Frame(Button(_ => { }, "OK"));
 
             // signal が要るときは StoryContext から — ctx.Signal(...) は自動で knob になる
             [Story]
-            public static Widget CheckBasic(StoryContext ctx)
+            public static StoryResult CheckBasic(StoryContext ctx)
                 => Frame(Check(ctx.Signal("checked", false), "Subscribe"));
         }
         ```
 
-        - `[StoryMeta("章/コンポーネント")]` が本家 Storybook の `title`、関数名がストーリー名です。サイドバーは `title + "/" + 関数名` をそのまま木にし、自然順で並べます。プレビューは常に利用可能領域いっぱいです
-        - 署名は `static Widget M()` か `static Widget M(StoryContext ctx)`
+        - `[StoryMeta("章/コンポーネント")]` が本家 Storybook の `title`、関数名がストーリー名です。サイドバーは `title + "/" + 関数名` をそのまま木にし、同じクラスのStoryはメソッドの宣言順で並べます。プレビューは常に利用可能領域いっぱいです
+        - 署名は `static StoryResult M()` か `static StoryResult M(StoryContext ctx)`。Widget を表示する場合も戻り値の宣言は StoryResult に統一します
         - 収集は**ソースジェネレーター** (reflection なし) — `[Story]` を走査して module initializer で `StoryRegistry.Register` を焼き込み、**完全なmethod宣言の C# ソース**も `StoryInfo.Source` に保存します
 
         ## Sourceビュー
@@ -173,7 +173,7 @@ public static class DocsMeta
 
         ## 実窓専用ストーリー
 
-        音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は、`[StoryMeta("RealWindow/Audio")]` のクラスで `[Story(RealWindowOnly = true)]` を関数に付けます — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。
+        音声再生や実デバイス入力のように offscreen の決定的描画にならない機能は、`[StoryMeta("Examples/RealWindow/Audio")]` のクラスで `[Story(RealWindowOnly = true)]` を関数に付けます — snap 回帰は SKIP され (golden を作らない)、Gallery アプリでは通常どおり表示されます。
 
         ## パスと章
 
@@ -220,7 +220,7 @@ public static class DocsMeta
         ## bench — canvas 更新コストの回帰ゲート
 
         ```powershell
-        dotnet run --project gallery/GalleryNative -- vk bench "Examples/Orbit" 300
+        dotnet run --project gallery/GalleryNative -- vk bench "Internals/OrbitSample" 300
         dotnet run --project gallery/GalleryNative -- vk bench "Controls/TextEditorView/Basic" 300 --type
         dotnet run --project gallery/GalleryNative -- vk bench "Controls/ListViewHuge" 300 --wheel 1
         ```

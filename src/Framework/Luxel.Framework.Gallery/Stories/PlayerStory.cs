@@ -18,7 +18,7 @@ namespace Luxel.Gallery.Stories;
 /// プロジェクトフォルダ (project.luxel + scenes) を VFS から読み、SceneCompiler が world へ一方向に
 /// 構築して固定 dt で駆動する。見た目はエディタと同じプレースホルダ (TilePalette 共有) —
 /// SceneEditorView で編集した絵がそのまま動く。csx ビヘイビアは S2、exe は S3。</summary>
-[StoryMeta("Apps/Player")]
+[StoryMeta("Examples/Apps/Player")]
 public static class PlayerStory
 {
     private static readonly Lazy<VectorFont> Font = new(() => GalleryFonts.Load(GalleryFonts.Regular));
@@ -85,7 +85,7 @@ public static class PlayerStory
     }
 
     [Story]
-    public static Widget Basic(StoryContext ctx)
+    public static StoryResult Basic(StoryContext ctx)
     {
         PlayerGame game = PlayerLoader.LoadStart(FixtureProject());
         Player2DWorld world = game.World2D;
@@ -114,7 +114,7 @@ public static class PlayerStory
     }
 
     [Story]
-    public static Widget ThreeD(StoryContext ctx)
+    public static StoryResult ThreeD(StoryContext ctx)
     {
         PlayerGame game = PlayerLoader.LoadStart(FixtureProject3D());
         Player3DWorld world = game.World3D;
@@ -144,7 +144,7 @@ public static class PlayerStory
     // プレイインエディタ (ADR-0017): ▶ = 編集中 SceneDoc から都度コンパイル、⏹ = プレイ world を破棄。
     // gizmo/DevStats オーバーレイの統合は Studio シェル (GE-7 dogfood) で。
     [Story]
-    public static Widget PlayInEditor(StoryContext ctx)
+    public static StoryResult PlayInEditor(StoryContext ctx)
     {
         IVirtualFileSystem fs = FixtureProject();
         SceneDoc doc = PlayerLoader.LoadScene(fs, "res://scenes/main.scene.json");
@@ -216,7 +216,7 @@ public static class PlayerStory
     // スクリプト編集統合 (GE-5): csx を TextEditorView (診断波線) で編集 → 保存で
     // PlayerBehaviours.Reload (ホットリロード)。壊れた保存は旧挙動継続 + Problems 表示 (ADR-0018 の失敗契約の UI)。
     [Story]
-    public static Widget ScriptEditor(StoryContext ctx)
+    public static StoryResult ScriptEditor(StoryContext ctx)
     {
         IVirtualFileSystem fs = FixtureProject();
         PlayerGame game = PlayerLoader.LoadStart(fs);

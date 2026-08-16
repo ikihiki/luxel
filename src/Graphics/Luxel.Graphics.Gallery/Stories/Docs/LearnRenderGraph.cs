@@ -5,7 +5,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>Graphicsの2D章に続いて、RenderGraphを動くGalleryストーリーから段階的に学ぶ章。</summary>
 [StoryMeta("Learn/Graphics/RenderGraph")]
-public static class LearnRenderGraph
+public static partial class LearnRenderGraph
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
@@ -21,7 +21,7 @@ public static class LearnRenderGraph
 
         次のストーリーは、2D UIを入力として横方向・縦方向のblur passを実行し、左半分に元画像、右半分にblur結果を合成します。
 
-        {{StoryRef(ctx, "Examples/RenderGraph/Blur")}}
+        {{StoryRef("Learn/Graphics/RenderGraph/BlurSample")}}
 
         ```text
         External UI buffer
@@ -268,7 +268,7 @@ public static class LearnRenderGraph
 
         画面が空なら、diagnostic channelが有効か、graphが`Execute`されたか、listenerが`EngineDiagnostics.RenderGraph`を購読しているかを確認します。この表示は可視化であり、実行順変更やasync computeを行うschedulerではありません。
 
-        {{StoryRef(ctx, "Examples/RenderGraph/Blur")}}
+        {{StoryRef("Learn/Graphics/RenderGraph/BlurSample")}}
 
         次はIndexed Cubeや3D Cameraと組み合わせるか、[Bloom3D](story:Examples/Bloom3D)で複数passの完成例を確認してください。
         """;

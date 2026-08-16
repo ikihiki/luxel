@@ -116,7 +116,7 @@ public static class ScriptingStory
     }
 
     [Story]
-    public static Widget Playground(StoryContext ctx, ICodeLanguage lang, Luxel.Settings.IFileStore files, INativePlaygroundRunner runner)
+    public static StoryResult Playground(StoryContext ctx, ICodeLanguage lang, Luxel.Settings.IFileStore files, INativePlaygroundRunner runner)
     {
         var template = new PlaygroundTemplate(
             PlaygroundTemplates.Button.Id,
@@ -170,8 +170,7 @@ public static class ScriptingStory
                 workspace]];
     }
 
-    [Story]
-    public static Widget LiveCsx(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage lang)
+    public static StoryResult LiveCsx(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage lang)
     {
         var block = new CsxBlock(
             "// 最後の式の Widget が下に実体化される。Log(...) は Log タブへ\n" +
@@ -281,8 +280,7 @@ public static class ScriptingStory
         "return Kit.HStack(6)[Kit.Badge(\"Ready\", Intent.Success), " +
         "Kit.Button(_ => Log(\"cell!\"), \"押す\")];";
 
-    [Story]
-    public static Widget Notebook(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage lang)
+    public static StoryResult Notebook(StoryContext ctx, BrowserRoslynGalleryRuntime runtime, ICodeLanguage lang)
     {
         var sumCell = new NotebookCell(SumCellCode, 560f, ctx, runtime, lang);
         var widgetCell = new NotebookCell(WidgetCellCode, 560f, ctx, runtime, lang);

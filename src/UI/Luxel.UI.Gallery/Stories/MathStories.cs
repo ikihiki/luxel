@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 public static class MathStories
 {
     [Story]
-    public static Widget Basic(StoryContext ctx) =>
+    public static StoryResult Basic(StoryContext ctx) =>
         ctx.Snap(Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))[
             VStack(20)[
                 Luxel.MathText.Factories.MathBlockView("""w = \frac{\alpha + \beta}{\sqrt{x^2 + y^2}}"""),

@@ -38,6 +38,36 @@ public class StoryOrderTests
         Assert.Equal(["Order/Z", "Order/A", "Order/M"], catalog.All.Select(story => story.Path));
     }
 
+    [Fact]
+    public void Presentation_order_uses_learning_route_and_places_shallow_paths_first()
+    {
+        StoryInfo[] stories =
+        [
+            S("Examples/Deep/Demo"),
+            S("Internals/Architecture"),
+            S("Tutorials/3DApp/Overview"),
+            S("Controls/Button"),
+            S("Start/Welcome"),
+            S("Tutorials/Overview"),
+            S("Reference/Luxel.UI"),
+            S("Learn/Graphics/Overview"),
+            S("Examples/Overview"),
+        ];
+
+        Assert.Equal(
+        [
+            "Start/Welcome",
+            "Tutorials/Overview",
+            "Tutorials/3DApp/Overview",
+            "Learn/Graphics/Overview",
+            "Controls/Button",
+            "Examples/Overview",
+            "Examples/Deep/Demo",
+            "Reference/Luxel.UI",
+            "Internals/Architecture",
+        ], StoryPresentationOrder.Apply(stories).Select(story => story.Path));
+    }
+
     private static int IndexOf(IReadOnlyList<StoryInfo> all, string path)
     {
         for (int i = 0; i < all.Count; i++) if (all[i].Path == path) return i;

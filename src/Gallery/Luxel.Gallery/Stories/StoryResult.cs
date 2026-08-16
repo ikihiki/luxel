@@ -244,11 +244,6 @@ public sealed class StoryResult
     public static StoryResult FromMarkdown(string markdown, params StoryReference[] references)
         => new(markdown, references ?? Array.Empty<StoryReference>());
 
-    /// <summary>既存の構造化文書からMarkdownとWidget埋め込みを移行する。</summary>
-    public static StoryResult FromDocument(string markdown, IEnumerable<IMarkdownEmbed> embeds)
-        => new(markdown, Array.Empty<StoryReference>(), embeds.Select(embed => new StoryMarkdownEmbed(
-            embed.Widget, embed.Kind, embed.Reference, embed.Inline, embed.IncludeInherited, embed.WidgetFactory)).ToArray());
-
     /// <summary>構造化参照と埋め込みを保持したまま Markdown 本文だけを置換する。</summary>
     public StoryResult WithMarkdown(string markdown)
         => Kind == StoryResultKind.Markdown

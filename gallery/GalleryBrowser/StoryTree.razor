@@ -27,10 +27,6 @@
                    aria-current="@(node.Story.Path == ActivePath ? "page" : null)"
                    @onclick="() => SelectStory(node.Story)" @onclick:preventDefault>
                     <span>@node.Name</span>
-                    @if (node.Story.ResultBuild is not null)
-                    {
-                        <small>文書</small>
-                    }
                 </a>
             }
         </li>

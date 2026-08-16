@@ -131,7 +131,7 @@ public static class ScriptHotReloadStory
     }
 
     [Story]
-    public static Widget NativeHotReload(StoryContext ctx, ScriptHostRegistry scripts)
+    public static StoryResult NativeHotReload(StoryContext ctx, ScriptHostRegistry scripts)
     {
         var block = new HotReloadBlock(460, scripts);
 

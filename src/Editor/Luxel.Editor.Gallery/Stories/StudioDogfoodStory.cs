@@ -17,13 +17,13 @@ namespace Luxel.Gallery.Stories;
 /// **エディタ操作だけ**でコイン集めミニゲームを作る (タイル描き → エンティティ追加 → 保存 →
 /// **保存したファイルから** ▶ 実行 → csx がコイン取得を判定)。出荷は同レイアウトを ship-verify.ps1 が
 /// 実機検証済み (GE-6)。フル DockHost シェル化は M12 以降。</summary>
-[StoryMeta("Apps/Studio")]
+[StoryMeta("Examples/Apps/Studio")]
 public static class StudioDogfoodStory
 {
     private static readonly Lazy<VectorFont> Font = new(() => GalleryFonts.Load(GalleryFonts.Regular));
 
     [Story]
-    public static Widget CoinGame(StoryContext ctx)
+    public static StoryResult CoinGame(StoryContext ctx)
     {
         // プロジェクトフォルダ (エディタ側 = 書ける IFileStorage)。開始点はほぼ空:
         // 空シーン (空のタイルレイヤ 1 枚) + csx 2 本だけ (コード編集は ScriptEditor story で実証済み)
@@ -112,7 +112,7 @@ public static class StudioDogfoodStory
     }
 
     [Story]
-    public static Widget Mixed3D(StoryContext ctx)
+    public static StoryResult Mixed3D(StoryContext ctx)
     {
         var storage = new MemoryFileStorage();
         SceneComponent T2(float x, float y) => SceneSchemas.NewComponent(SceneSchemas.Transform2D).With("pos", SceneValue.Of(new Vector2(x, y)));

@@ -34,7 +34,7 @@ public static class RenderGraphStories
     /// **デッドパスカリング** を実証。コンパイル結果 (物理バッファ数/実行パス数/alias) は
     /// Log パネルに出る。</summary>
     [Story]
-    public static Widget Aliasing(StoryContext ctx)
+    public static StoryResult Aliasing(StoryContext ctx)
         => Frame(GpuSceneBase.View(256, 256, new BlurScene(stages: 2, addDeadPass: true, log: ctx.Log), animated: false));
 
     /// <summary>分離ガウシアン × N 段の RenderGraph シーン。stages=2 で中間バッファの寿命が

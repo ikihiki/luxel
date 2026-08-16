@@ -56,11 +56,11 @@ public static class DocsHome
 
         ## モーション
 
-        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([Examples/Animation/Tween](story:Examples/Animation/Tween) など)。
+        `Luxel.Animation` が Curve × Tween の 2 段分解による中核 IR。ターゲットアダプタ (`.UI` = Signal、`.TwoD` = RetainedCanvas、`.ThreeD` = ECS) が書き込み先を分離します。実例はサイドバーの Animation 章へ ([TweenSample](story:Learn/Animation/TweenSample) など)。
 
         ## 3D / レンダーグラフ / リソース
 
-        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.Graphics.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([Examples/RenderGraph/Blur](story:Examples/RenderGraph/Blur))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Assets.Gltf` が (型, uri) キーのリソース DAG を提供します。
+        `Luxel.Ecs` (Friflo ラッパ) + `Luxel.Assets`/`Luxel.AssetRuntime` が 3D シーンと抽出、`Luxel.Graphics.RenderGraph` が Setup/Compile/Execute 三相の scene-agnostic なパス合成 ([BlurSample](story:Learn/Graphics/RenderGraph/BlurSample))。`Luxel.Resources` + `Luxel.Imaging` + `Luxel.Assets.Gltf` が (型, uri) キーのリソース DAG を提供します。
 
         ## ランタイムとツール
 

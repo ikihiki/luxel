@@ -17,7 +17,7 @@ namespace Luxel.Gallery.Stories;
 public static class TilemapStories
 {
     [Story]
-    public static Widget Tilemap(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(384, 192, new TilemapScene(), animated: false)));
+    public static StoryResult Tilemap(StoryContext ctx) => ctx.Snap(Frame(GpuSceneBase.View(384, 192, new TilemapScene(), animated: false)));
 
     private sealed class TilemapScene : GpuSceneBase
     {

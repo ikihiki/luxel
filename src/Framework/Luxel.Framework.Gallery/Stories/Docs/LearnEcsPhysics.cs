@@ -6,7 +6,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>ECS の上に PhysicsWorld と PhysicsStepSystem を接続する学習経路。</summary>
 [StoryMeta("Learn/ECS/Physics")]
-public static class LearnEcsPhysics
+public static partial class LearnEcsPhysics
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
@@ -50,7 +50,7 @@ public static class LearnEcsPhysics
 
         `PhysicsWorld` は `Simulation` と `BufferPool` を所有するため dispose が必要です。ECS entity の削除だけでは body は消えません。despawn では `RemoveBody` / `RemoveStatic` を対で呼ぶか、決定的な reset として World と PhysicsWorld をまとめて再構築します。
 
-        {{StoryRef(ctx, "Examples/3D/PhysicsFalling")}}
+        {{StoryRef("Learn/ECS/Physics/PhysicsFallingSample")}}
         """;
 
     [Story]
@@ -98,7 +98,7 @@ public static class LearnEcsPhysics
         - dynamic body に `Parent` を付けない。Physics pose は world 空間です。
         - CCD は必要な高速物体だけで有効にする。
 
-        {{StoryRef(ctx, "Examples/3D/PhysicsPlayground")}}
+        {{StoryRef("Learn/ECS/Physics/PhysicsPlaygroundSample")}}
         """;
 
     [Story]
@@ -196,7 +196,7 @@ public static class LearnEcsPhysics
         - Trigger component の有無を確認せず通常 collision と同じ処理をする。
         - entity を削除したのに対応 body/static を残す。
 
-        {{StoryRef(ctx, "Examples/3D/PhysicsTrigger")}}
+        {{StoryRef("Learn/ECS/Physics/PhysicsTriggerSample")}}
         """;
 
     [Story]
@@ -246,7 +246,7 @@ public static class LearnEcsPhysics
 
         index 数は3の倍数、index は vertices 範囲内、scale は有限値にします。mesh data と shape は `PhysicsWorld` の寿命に属するため、World の reset 時にまとめて再構築するのが安全です。
 
-        {{StoryRef(ctx, "Examples/3D/PhysicsMesh")}}
+        {{StoryRef("Learn/ECS/Physics/PhysicsMeshSample")}}
         """;
 
     [Story]
@@ -290,7 +290,7 @@ public static class LearnEcsPhysics
         4. fixed step が0回の frame と複数回の frame を記録する。
         5. contact event は frame 内、current contacts は opt-in という寿命を確認する。
 
-        {{StoryRef(ctx, "Examples/3D/PhysicsGizmos")}}
+        {{StoryRef("Learn/ECS/Physics/PhysicsGizmosSample")}}
 
         ECS と Physics、asset、GPU 抽出をまとめた実用構成は Range capstone で確認できます。
 

@@ -7,6 +7,7 @@ using static Luxel.Gallery.DocKit.DocsKit;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>API reference pages generated from the control/type registries.</summary>
+[StoryMeta("Controls/Button")]
 internal static class ControlDocsApi
 {
     private static readonly object RegistrationGate = new();
@@ -30,11 +31,9 @@ internal static class ControlDocsApi
             if (category is null || !categories.Add(category)) continue;
             builder.Add(api.Name == "Button"
                 ? new StoryInfo("Controls/Button/Overview",
-                    static _ => Spacer(), Source: "Generated control API overview.",
-                    ResultBuild: static _ => ButtonOverview())
+                    static _ => ButtonOverview(), Source: "Generated control API overview.")
                 : new StoryInfo($"Controls/{category}/Overview",
-                    static _ => Spacer(), Source: "Generated control API overview.",
-                    ResultBuild: ctx => ControlPage(ctx, api)), replaceGenerated: true);
+                    ctx => ControlPage(ctx, api), Source: "Generated control API overview."), replaceGenerated: true);
         }
 
         RegisterSpecialControlPage(builder, categories, "Layout", LayoutPage);
@@ -46,8 +45,8 @@ internal static class ControlDocsApi
         string category, Func<StoryContext, StoryResult> build)
     {
         if (!categories.Add(category)) return;
-        builder.Add(new StoryInfo($"Controls/{category}/Overview", static _ => Spacer(), Source: "Generated control API overview.",
-            ResultBuild: build), replaceGenerated: true);
+        builder.Add(new StoryInfo($"Controls/{category}/Overview", build, Source: "Generated control API overview."),
+            replaceGenerated: true);
     }
 
     private static void RegisterControlStories()
@@ -63,8 +62,7 @@ internal static class ControlDocsApi
                 string? category = ExistingControlCategory(api.Name);
                 if (category is null || !RegisteredControlCategories.Add(category)) continue;
                 StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview",
-                    static _ => Spacer(), Source: "Generated control API overview.",
-                    ResultBuild: ctx => ControlPage(ctx, api)));
+                    ctx => ControlPage(ctx, api), Source: "Generated control API overview."));
             }
 
             RegisterSpecialControlPage("Layout", LayoutPage);
@@ -76,8 +74,8 @@ internal static class ControlDocsApi
     private static void RegisterSpecialControlPage(string category, Func<StoryContext, StoryResult> build)
     {
         if (!RegisteredControlCategories.Add(category)) return;
-        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", static _ => Spacer(), Source: "Generated control API overview.",
-            ResultBuild: build));
+        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", build,
+            Source: "Generated control API overview."));
     }
 
     private static string? ExistingControlCategory(string apiName) => apiName switch
@@ -94,7 +92,7 @@ internal static class ControlDocsApi
     private static StoryResult NamespacePage(StoryContext ctx, string ns)
     {
         IReadOnlyList<TypeApi> types = TypeApiRegistry.InNamespace(ns);
-        var s = new DocString(512, types.Count);
+        var s = new StoryResult(512, types.Count);
         s.AppendLiteral($"# {ns}\n\n");
         s.AppendLiteral("この名前空間の公開型 API です。ソースジェネレーターが参照アセンブリの XML doc コメントから焼き込む (`[assembly: GenerateAssemblyApi]` → `TypeApiRegistry`) ため、コードと乖離しません。\n");
         foreach (TypeApi type in types)
@@ -103,7 +101,7 @@ internal static class ControlDocsApi
             s.AppendFormatted(TypeApiReference($"{ns}.{type.Name}"));
             s.AppendLiteral("\n");
         }
-        return StoryResult.FromDocument(s.Markdown, s.Embeds);
+        return s;
     }
 
     private static StoryResult ButtonOverview() => $$"""
@@ -113,7 +111,7 @@ internal static class ControlDocsApi
         the canonical interactive counter story; component-playground hosting remains native until the
         generated component catalog can be linked into the browser-safe dependency closure.
 
-        {{StoryReference.To("Controls/ButtonCounter", new { count = 0 })}}
+        {{StoryReference.To("Controls/Button/CounterSample", new { count = 0 })}}
 
         The interactive reference above is isolated in its own browser runtime iframe; the surrounding
         overview remains semantic HTML.
@@ -121,23 +119,28 @@ internal static class ControlDocsApi
 
     private static StoryResult ControlPage(StoryContext ctx, ControlApi api)
     {
-        var s = new DocString(256, 1);
+        var s = new StoryResult(256, 1);
         s.AppendLiteral($"# {api.Name}\n\n");
         s.AppendLiteral($"`{api.Namespace}` のコントロール API です。コンストラクタ引数・イベント・パラメータは `[UiComponent]` のソースと XML doc コメントから生成されます。\n\n");
         s.AppendFormatted(ControlApiReference(api.Name));
-        return StoryResult.FromDocument(s.Markdown, s.Embeds);
+        return s;
     }
+
+    public static IReadOnlyList<StoryArgDefinition> CounterSampleArgs() => InputControlStories.CounterArgs();
+
+    [Story(Args = nameof(CounterSampleArgs))]
+    public static StoryResult CounterSample(StoryContext ctx) => InputControlStories.ButtonCounter(ctx);
 
     private static StoryResult LayoutPage(StoryContext ctx)
     {
-        var s = new DocString(384, 4);
+        var s = new StoryResult(384, 4);
         s.AppendLiteral("# Layout\n\n`Controls/Layout` のデモで使う基本レイアウトコントロールです。個別カテゴリを持たないプリミティブをまとめています。\n");
         foreach (string name in new[] { "Box", "Stack", "Center", "Spacer" })
         {
             s.AppendLiteral($"\n## {name}\n\n");
             s.AppendFormatted(ControlApiReference(name));
         }
-        return StoryResult.FromDocument(s.Markdown, s.Embeds);
+        return s;
     }
 
     private static StoryResult KitPage(StoryContext ctx) => $$"""

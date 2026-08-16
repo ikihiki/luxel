@@ -6,7 +6,7 @@ namespace Luxel.Gallery.Stories;
 
 /// <summary>ECS の基礎を World から phase 実行まで段階的に説明する。</summary>
 [StoryMeta("Learn/ECS")]
-public static class LearnEcsBasics
+public static partial class LearnEcsBasics
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
@@ -42,7 +42,7 @@ public static class LearnEcsBasics
 
         `World` が所有するのは component data と system group です。GPU resource や window は component に直接埋め込まず、描画前に query して別の runtime 層へ抽出します。
 
-        {{StoryRef(ctx, "Examples/3D/EcsCubes")}}
+        {{StoryRef("Learn/ECS/EcsCubesOverviewSample")}}
 
         ## 完成形への入口
 
@@ -193,7 +193,7 @@ public static class LearnEcsBasics
 
         query 中の component 値の変更はできますが、component の追加・削除や entity 削除は archetype を変えます。Luxel の system と同様に「収集 → 適用」の2段階にすると安全です。
 
-        {{StoryRef(ctx, "Examples/3D/EcsCubes")}}
+        {{StoryRef("Learn/ECS/EcsCubesOverviewSample")}}
         """;
 
     [Story]
