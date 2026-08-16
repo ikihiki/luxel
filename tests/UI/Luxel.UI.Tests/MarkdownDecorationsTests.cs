@@ -378,6 +378,19 @@ public class MarkdownDecorationsTests
     }
 
     [Fact]
+    public void ReadOnly_HidesTocHtmlComments()
+    {
+        string markdown = "<!-- luxel-toc -->\n- [Section](#section)\n<!-- /luxel-toc -->";
+        DecorationSet set = MarkdownDecorations.Build(markdown, T, hideMarkers: true);
+
+        int closing = markdown.IndexOf("<!-- /luxel-toc -->", StringComparison.Ordinal);
+        Assert.Contains(set.OfKind<MarkDecoration>(), mark
+            => mark is { From: 0, Hidden: true } && mark.To == "<!-- luxel-toc -->".Length);
+        Assert.Contains(set.OfKind<MarkDecoration>(), mark
+            => mark.From == closing && mark.To == markdown.Length && mark.Hidden);
+    }
+
+    [Fact]
     public void LivePreview_RevealedLineShowsMarkerRaw_OthersHidden()
     {
         // reveal(pos)=true の行 (キャレット行) はマーカを淡色 raw、他行は非表示 — Typora 風編集モード

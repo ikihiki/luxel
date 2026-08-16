@@ -12,12 +12,14 @@ internal sealed unsafe class D3D12Buffer : IGpuBackendBuffer
     private bool _disposed;
 
     public D3D12Buffer(ID3D12Resource resource, ulong size, ulong gpuVirtualAddress,
-                       uint bindlessIndex, void* mappedPtr, Action releaseDescriptor)
+                       uint bindlessIndex, void* mappedPtr, GpuMemoryKind memoryKind,
+                       Action releaseDescriptor)
     {
         _resource = resource;
         Size = size;
         DeviceAddress = gpuVirtualAddress;
         BindlessIndex = bindlessIndex;
+        MemoryKind = memoryKind;
         _ptr = mappedPtr;
         _mapped = mappedPtr != null;
         _releaseDescriptor = releaseDescriptor;
@@ -29,6 +31,7 @@ internal sealed unsafe class D3D12Buffer : IGpuBackendBuffer
     public void* MappedPointer => _ptr;
 
     internal ID3D12Resource Resource => _resource;
+    internal GpuMemoryKind MemoryKind { get; }
 
     public void Dispose()
     {

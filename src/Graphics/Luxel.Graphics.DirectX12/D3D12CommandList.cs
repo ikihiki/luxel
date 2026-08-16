@@ -164,10 +164,10 @@ internal sealed class D3D12CommandList : IGpuBackendCommandBuffer
         var src = new TextureCopyLocation(tex.Resource, 0);
         _list.CopyTextureRegion(dst, 0, 0, 0, src, null);
 
-        // 実装上の罠 (RG-M5): D3D12 では implicit promotion で buf が COPY_DEST に昇格しているため、
-        // 後続の compute UAV/SRV 読みには明示的 transition が必要。COMMON に戻して decay させ、
-        // 後続の使用で再 promotion させる (この遷移自体がメモリ可視性の sync として機能)。
-        _list.ResourceBarrierTransition(buf.Resource, ResourceStates.CopyDest, ResourceStates.Common);
+        // Readback heaps must remain in COPY_DEST for their entire lifetime. Other
+        // buffers are returned to COMMON so later UAV/SRV use can be promoted.
+        if (buf.MemoryKind != GpuMemoryKind.HostCached)
+            _list.ResourceBarrierTransition(buf.Resource, ResourceStates.CopyDest, ResourceStates.Common);
     }
 
     public void CopyBufferToBuffer(IGpuBackendBuffer source, IGpuBackendBuffer destination, ulong bytes)

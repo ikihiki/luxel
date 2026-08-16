@@ -5,6 +5,20 @@ using static Luxel.Controls.Kit;
 
 namespace Luxel.Gallery.UI;
 
+/// <summary>KnobsTable の行レイアウトをカード型の Args 表示へ切り替える外観設定。</summary>
+public sealed record KnobsTableAppearance(
+    float RowHeight = 52,
+    float RowGap = 1,
+    float PaddingX = 12,
+    float PaddingY = 8,
+    float ControlWidth = 160,
+    float Radius = 7,
+    uint? BorderColor = null,
+    uint? RowBackground = null,
+    uint? NameColor = null,
+    uint? TypeColor = null,
+    uint? DescriptionColor = null);
+
 /// <summary>
 /// Knobs の autodoc 風テーブル (Storybook の ArgsTable 相当): 名前 | 型 | 説明 | 操作。
 /// 操作列は knob の型に応じたエディタ (bool=Check / color=ColorPicker / int,float=規制付き
@@ -23,16 +37,25 @@ public sealed partial class KnobsTable : CompositeControl
     [UiParam] private readonly Bindable<IReadOnlyList<StoryKnob>> _knobs = new([]);
     /// <summary>テーブル全幅 (px)。説明列が残り幅を受ける。</summary>
     [UiParam] private readonly Bindable<float> _width = 480f;
+    /// <summary>省略時は従来の4列テーブル。指定時はBlazor Gallery風のカード行。</summary>
+    [UiParam] private readonly Bindable<KnobsTableAppearance> _appearance = new();
 
     /// <summary>knob の文字列編集 (第一引数 = 発火元, knob, 新しい値の文字列表現)。</summary>
     [UiEvent] public UiEvent<KnobsTable, StoryKnob, string> OnEdit;
+
+    // knob更新でテーブルが再構築されても入力widgetの開閉・フォーカス・選択状態を維持する。
+    private readonly Dictionary<StoryKnob, Widget> _editors = new(ReferenceEqualityComparer.Instance);
 
     protected override Widget Build()
     {
         IReadOnlyList<StoryKnob> knobs = Knobs.Get();
         if (knobs.Count == 0)
-            return Text("knob なし", 11, color: Bind.From(() => UiTheme.T.TextMuted),
-                        margin: new Thickness(4, 0, 0, 0));
+            return Text(Appearance.Get() is null ? "knob なし" : "このStoryには編集可能な引数がありません。",
+                Appearance.Get() is null ? 11 : 13, color: Bind.From(() => UiTheme.T.TextMuted),
+                margin: new Thickness(4, Appearance.Get() is null ? 0 : 10, 0, 0));
+
+        KnobsTableAppearance? appearance = Appearance.Get();
+        if (appearance is not null) return BuildCards(knobs, appearance);
 
         float descW = MathF.Max(50, Width.Get() - NameW - TypeW - CtlW - Gap * 3);
         Widget Cell(string s, float w, bool muted = false) =>
@@ -59,8 +82,56 @@ public sealed partial class KnobsTable : CompositeControl
         return VStack(3)[rows.ToArray()];
     }
 
+    private Widget BuildCards(IReadOnlyList<StoryKnob> knobs, KnobsTableAppearance appearance)
+    {
+        Bindable<uint> Color(uint? value, Func<uint> fallback)
+            => value is uint color ? color : Bind.From(fallback);
+
+        float tableWidth = Width.Get();
+        float innerWidth = MathF.Max(80, tableWidth - 2);
+        float labelWidth = MathF.Max(80,
+            innerWidth - appearance.PaddingX * 2 - appearance.ControlWidth - 18);
+        var rows = new List<Widget>(knobs.Count);
+        foreach (StoryKnob knob in knobs)
+        {
+            string typeLabel = knob.Type.StartsWith("enum:") ? "enum" : knob.Type;
+            var labelParts = new List<Widget>
+            {
+                HStack(7)[
+                    Text(knob.Name, 12, color: Color(appearance.NameColor, () => UiTheme.T.Text)),
+                    Text(typeLabel, 10, color: Color(appearance.TypeColor, () => UiTheme.T.TextMuted))],
+            };
+            if (!string.IsNullOrWhiteSpace(knob.Description))
+                labelParts.Add(Text(knob.Description!, 11,
+                    color: Color(appearance.DescriptionColor, () => UiTheme.T.TextMuted),
+                    width: labelWidth, wrap: TextWrap.Word));
+
+            Widget row = Border(
+                background: Color(appearance.RowBackground, () => UiTheme.T.Surface),
+                padding: new Thickness(appearance.PaddingX, appearance.PaddingY),
+                width: innerWidth, height: appearance.RowHeight)[
+                    HStack(18)[
+                        VStack(3, width: labelWidth)[labelParts.ToArray()],
+                        Border(width: appearance.ControlWidth)[Editor(knob)]]];
+            rows.Add(row);
+        }
+
+        return Border(
+            background: Color(appearance.BorderColor, () => UiTheme.T.BorderColor),
+            padding: new Thickness(1), rounded: appearance.Radius, clip: true,
+            width: tableWidth)[VStack(appearance.RowGap)[rows.ToArray()]];
+    }
+
     /// <summary>操作列 — 型別エディタ。commit は OnEdit (effect 内から呼ばれるため受け手はキューへ)。</summary>
     private Widget Editor(StoryKnob k)
+    {
+        if (_editors.TryGetValue(k, out Widget? editor)) return editor;
+        editor = CreateEditor(k);
+        _editors.Add(k, editor);
+        return editor;
+    }
+
+    private Widget CreateEditor(StoryKnob k)
     {
         void Commit(string v) => OnEdit.Invoke(this, k, v);
 

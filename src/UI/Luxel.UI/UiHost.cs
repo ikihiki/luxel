@@ -577,21 +577,32 @@ public sealed class UiHost : IDisposable, ITextInputClient
     /// <summary>IME 確定文字列を送る。</summary>
     public void Commit(string text) { EmitInput("commit", text); Guard(Current()?.OnCommit is { } h ? () => h(text) : null, "Commit"); }
 
-    /// <summary>ホイール。点を含む最前面のスクロール対象へ量を渡す (transform 追従判定)。</summary>
+    /// <summary>ホイール。点を含む最も深いスクロール対象へ量を渡す (transform 追従判定)。
+    /// 同じ深さでは後から登録された対象を優先する。これによりMarkdown内のSourceなど、
+    /// スクロール領域が入れ子になった場合も内側が親に奪われない。</summary>
     public void Wheel(float x, float y, float delta)
     {
         Capture(InputKind.Wheel, x, y, delta);
         if (_build == null) return;
-        for (int i = _build.Scrollables.Count - 1; i >= 0; i--)
+        ScrollTarget? best = null;
+        int bestDepth = -1, bestIndex = -1;
+        float bestX = 0, bestY = 0;
+        for (int i = 0; i < _build.Scrollables.Count; i++)
         {
             ScrollTarget s = _build.Scrollables[i];
-            if (HitTest(s.Node, s.Rect, x, y, out float lx, out float ly))
-            {
-                if (s.OnScrollPos is not null) Guard(() => s.OnScrollPos!(lx, ly, delta), "Scroll");
-                else Guard(s.OnScroll is { } h ? () => h(delta) : null, "Scroll");
-                return;
-            }
+            if (!HitTest(s.Node, s.Rect, x, y, out float lx, out float ly)) continue;
+            int depth = NodeDepth(s.Node);
+            if (depth < bestDepth || (depth == bestDepth && i < bestIndex)) continue;
+            best = s;
+            bestDepth = depth;
+            bestIndex = i;
+            bestX = lx;
+            bestY = ly;
         }
+        if (best?.OnScrollPos is not null)
+            Guard(() => best.OnScrollPos(bestX, bestY, delta), "Scroll");
+        else if (best is not null)
+            Guard(best.OnScroll is { } h ? () => h(delta) : null, "Scroll");
     }
 
     /// <summary>ワールド座標をノードの「現在の」ローカル座標へ写す (ドラッグ捕獲中の変換用)。</summary>
