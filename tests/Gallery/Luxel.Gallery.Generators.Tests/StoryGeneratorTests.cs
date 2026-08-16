@@ -60,6 +60,29 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Stories_in_the_same_meta_follow_method_declaration_order()
+    {
+        GeneratorDriverRunResult result = Run("""
+            [Story]
+            public static StoryResult Overview() => new Widget();
+
+            [Story]
+            public static StoryResult CreateProject() => new Widget();
+
+            [Story]
+            public static StoryResult Finish() => new Widget();
+            """, "Tutorials/3DApp");
+
+        string generated = Assert.Single(result.GeneratedTrees).ToString();
+        int overview = generated.IndexOf("\"Tutorials/3DApp/Overview\"", StringComparison.Ordinal);
+        int createProject = generated.IndexOf("\"Tutorials/3DApp/CreateProject\"", StringComparison.Ordinal);
+        int finish = generated.IndexOf("\"Tutorials/3DApp/Finish\"", StringComparison.Ordinal);
+
+        Assert.True(overview >= 0 && overview < createProject);
+        Assert.True(createProject < finish);
+    }
+
+    [Fact]
     public void Runtime_descriptor_schema_is_emitted_without_building_the_story()
     {
         GeneratorDriverRunResult result = Run("""

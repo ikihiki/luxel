@@ -33,13 +33,6 @@ internal static class GalleryStoryTree
                 level = node.Children;
             }
         }
-        Sort(roots);
         return roots;
-    }
-
-    private static void Sort(List<GalleryStoryTreeNode> nodes)
-    {
-        nodes.Sort(static (left, right) => StringComparer.Ordinal.Compare(left.Name, right.Name));
-        foreach (GalleryStoryTreeNode node in nodes) Sort(node.Children);
     }
 }

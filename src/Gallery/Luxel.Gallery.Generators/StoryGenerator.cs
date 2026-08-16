@@ -30,25 +30,42 @@ public sealed class StoryGenerator : IIncrementalGenerator
     internal sealed class StoryModel : IEquatable<StoryModel>
     {
         public readonly string Path;
+        public readonly string Title;
         public readonly string? CapabilityNote;
         public readonly string MethodFq;    // global::Ns.Type.Method
         public readonly string Source;      // メソッドの C# ソース (storysource)
+        public readonly string SourceFile;
+        public readonly int SourcePosition;
         /// <summary>引数の並び。各要素は "ctx" (= StoryContext) か、DI 解決するグローバル修飾型名。</summary>
         public readonly string[] Params;
         public readonly bool Valid;
         public readonly bool HasMeta;
         public readonly bool RealWindowOnly;
         public readonly string? SchemaMethod;
-        public StoryModel(string path, string methodFq, string source, string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, string? capabilityNote, string? schemaMethod)
-        { Path = path; MethodFq = methodFq; Source = source; Params = paramz; Valid = valid; HasMeta = hasMeta; RealWindowOnly = realWindowOnly; CapabilityNote = capabilityNote; SchemaMethod = schemaMethod; }
-        public bool Equals(StoryModel? o) => o is not null && Path == o.Path && MethodFq == o.MethodFq && Source == o.Source
+        public StoryModel(string path, string title, string methodFq, string source, string sourceFile, int sourcePosition,
+            string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, string? capabilityNote, string? schemaMethod)
+        { Path = path; Title = title; MethodFq = methodFq; Source = source; SourceFile = sourceFile; SourcePosition = sourcePosition; Params = paramz; Valid = valid; HasMeta = hasMeta; RealWindowOnly = realWindowOnly; CapabilityNote = capabilityNote; SchemaMethod = schemaMethod; }
+        public bool Equals(StoryModel? o) => o is not null && Path == o.Path && Title == o.Title && MethodFq == o.MethodFq && Source == o.Source
+            && SourceFile == o.SourceFile && SourcePosition == o.SourcePosition
             && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly
             && HasMeta == o.HasMeta && CapabilityNote == o.CapabilityNote
             && SchemaMethod == o.SchemaMethod;
         private bool ParamsEqual(StoryModel o) { for (int i = 0; i < Params.Length; i++) if (Params[i] != o.Params[i]) return false; return true; }
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
         public override int GetHashCode()
-        { unchecked { return (((Path.GetHashCode() * 397 ^ MethodFq.GetHashCode()) * 397 ^ Source.GetHashCode()) * 397 ^ (CapabilityNote?.GetHashCode() ?? 0)) * 8 + (Params.Length << 2) + (HasMeta ? 2 : 0) + (RealWindowOnly ? 1 : 0); } }
+        {
+            unchecked
+            {
+                int hash = Path.GetHashCode();
+                hash = hash * 397 ^ Title.GetHashCode();
+                hash = hash * 397 ^ MethodFq.GetHashCode();
+                hash = hash * 397 ^ Source.GetHashCode();
+                hash = hash * 397 ^ SourceFile.GetHashCode();
+                hash = hash * 397 ^ SourcePosition;
+                hash = hash * 397 ^ (CapabilityNote?.GetHashCode() ?? 0);
+                return hash * 8 + (Params.Length << 2) + (HasMeta ? 2 : 0) + (RealWindowOnly ? 1 : 0);
+            }
+        }
     }
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -102,7 +119,8 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     var methodDeclaration = (MethodDeclarationSyntax)ctx.Node;
                     string source = methodDeclaration.ToString();
                     string? schemaFq = schemaMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + schemaMethod;
-                    return new StoryModel(path, fq, source, paramz, valid, hasMeta, realWindowOnly, capabilityNote, schemaFq);
+                    return new StoryModel(path, title ?? "", fq, source, methodDeclaration.SyntaxTree.FilePath,
+                        methodDeclaration.SpanStart, paramz, valid, hasMeta, realWindowOnly, capabilityNote, schemaFq);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -127,6 +145,19 @@ public sealed class StoryGenerator : IIncrementalGenerator
         };
     }
 
+    private static int CompareSourceFiles(string left, string right)
+    {
+        const string samplesSuffix = ".Samples.cs";
+        bool leftSamples = left.EndsWith(samplesSuffix, StringComparison.Ordinal);
+        bool rightSamples = right.EndsWith(samplesSuffix, StringComparison.Ordinal);
+        string leftGroup = leftSamples ? left.Substring(0, left.Length - samplesSuffix.Length) + ".cs" : left;
+        string rightGroup = rightSamples ? right.Substring(0, right.Length - samplesSuffix.Length) + ".cs" : right;
+        int group = string.CompareOrdinal(leftGroup, rightGroup);
+        if (group != 0) return group;
+        if (leftSamples != rightSamples) return leftSamples ? 1 : -1;
+        return string.CompareOrdinal(left, right);
+    }
+
     private static void Emit(SourceProductionContext spc, ImmutableArray<StoryModel?> models, string assemblyName)
     {
         var list = new List<StoryModel>();
@@ -143,7 +174,14 @@ public sealed class StoryGenerator : IIncrementalGenerator
         {
             int component = ComponentRank(a.Path).CompareTo(ComponentRank(b.Path));
             if (component != 0) return component;
-            return string.CompareOrdinal(a.Path, b.Path);
+            // StoryMetaの階層はまとまりを保ち、その中ではC#の宣言順をサイドバーへ反映する。
+            int title = string.CompareOrdinal(a.Title, b.Title);
+            if (title != 0) return title;
+            int file = CompareSourceFiles(a.SourceFile, b.SourceFile);
+            if (file != 0) return file;
+            int position = a.SourcePosition.CompareTo(b.SourcePosition);
+            if (position != 0) return position;
+            return string.CompareOrdinal(a.MethodFq, b.MethodFq);
         });
 
         var sb = new StringBuilder();

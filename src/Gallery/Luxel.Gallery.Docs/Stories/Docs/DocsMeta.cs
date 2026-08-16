@@ -145,7 +145,7 @@ public static partial class DocsMeta
         }
         ```
 
-        - `[StoryMeta("章/コンポーネント")]` が本家 Storybook の `title`、関数名がストーリー名です。サイドバーは `title + "/" + 関数名` をそのまま木にし、自然順で並べます。プレビューは常に利用可能領域いっぱいです
+        - `[StoryMeta("章/コンポーネント")]` が本家 Storybook の `title`、関数名がストーリー名です。サイドバーは `title + "/" + 関数名` をそのまま木にし、同じクラスのStoryはメソッドの宣言順で並べます。プレビューは常に利用可能領域いっぱいです
         - 署名は `static StoryResult M()` か `static StoryResult M(StoryContext ctx)`。Widget を表示する場合も戻り値の宣言は StoryResult に統一します
         - 収集は**ソースジェネレーター** (reflection なし) — `[Story]` を走査して module initializer で `StoryRegistry.Register` を焼き込み、**完全なmethod宣言の C# ソース**も `StoryInfo.Source` に保存します
 
