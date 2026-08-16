@@ -4,7 +4,7 @@ using static Luxel.Controls.Kit;
 
 namespace Luxel.Gallery.Stories;
 
-public static partial class TutorialStories
+public static partial class GalleryTutorialStories
 {
     [Story]
     public static StoryResult CounterSample(StoryContext ctx)

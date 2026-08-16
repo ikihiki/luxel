@@ -3,8 +3,8 @@ using static Luxel.Gallery.Story;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>成果物を順番に作りながらLuxel Galleryの基本を学ぶチュートリアル。</summary>
-[StoryMeta("Tutorials")]
-public static partial class TutorialStories
+[StoryMeta("Tutorials/Gallery")]
+public static partial class GalleryTutorialStories
 {
     [Story]
     public static StoryResult Overview(StoryContext ctx) => $$"""
@@ -28,11 +28,11 @@ public static partial class TutorialStories
 
         ## 学習順
 
-        1. [最初のStory](story:Tutorials/FirstStory)
-        2. [操作できるStory](story:Tutorials/InteractiveStory)
-        3. [Markdownページ](story:Tutorials/MarkdownPage)
-        4. [Galleryライブラリの追加](story:Tutorials/GalleryLibrary)
-        5. [検証と実行](story:Tutorials/Verify)
+        1. [最初のStory](story:Tutorials/Gallery/FirstStory)
+        2. [操作できるStory](story:Tutorials/Gallery/InteractiveStory)
+        3. [Markdownページ](story:Tutorials/Gallery/MarkdownPage)
+        4. [Galleryライブラリの追加](story:Tutorials/Gallery/GalleryLibrary)
+        5. [検証と実行](story:Tutorials/Gallery/Verify)
         """;
 
     [Story]
@@ -69,7 +69,7 @@ public static partial class TutorialStories
 
         ビルドするとソースジェネレーターがStoryを登録します。GalleryでStoryを開き、Sourceに属性、シグネチャ、本体が表示されることを確認してください。手動のリフレクション登録は不要です。
 
-        次は[操作できるStory](story:Tutorials/InteractiveStory)で状態とログを加えます。
+        次は[操作できるStory](story:Tutorials/Gallery/InteractiveStory)で状態とログを加えます。
         """;
 
     [Story]
@@ -80,7 +80,7 @@ public static partial class TutorialStories
 
         `StoryContext`はStoryごとの状態とGalleryの出力先を提供します。下のサンプルでは、ボタンを押すとカウントが変わり、Outputへ操作内容が追加されます。
 
-        {{StoryRef("Tutorials/CounterSample", knobs: true)}}
+        {{StoryRef("Tutorials/Gallery/CounterSample", knobs: true)}}
 
         ## 状態を公開する
 
@@ -94,7 +94,7 @@ public static partial class TutorialStories
 
         Storyメソッドには、利用者が理解するために必要な構築コードを残します。長いアルゴリズムや製品実装は製品ライブラリへ置けますが、別のStoryメソッドへ一行で委譲するとSourceが教材にならないため避けます。
 
-        次は[Markdownページ](story:Tutorials/MarkdownPage)へ進みます。
+        次は[Markdownページ](story:Tutorials/Gallery/MarkdownPage)へ進みます。
         """;
 
     [Story]
@@ -146,7 +146,7 @@ public static partial class TutorialStories
 
         Markdownのhole記法、表、数式、図、画像の詳細は[Authoring reference](story:Internals/Authoring)を参照してください。
 
-        次は[Galleryライブラリの追加](story:Tutorials/GalleryLibrary)へ進みます。
+        次は[Galleryライブラリの追加](story:Tutorials/Gallery/GalleryLibrary)へ進みます。
         """";
 
     [Story]
@@ -196,7 +196,7 @@ public static partial class TutorialStories
 
         Blazorホストでは`builder.Services.AddMyProductGallery()`を呼びます。Native集約ホストではカテゴリの`Register`を`GalleryStoryProject`へ追加します。参照を追加しただけではカタログへ表示されないため、両ホストの登録を確認してください。
 
-        次は[検証と実行](story:Tutorials/Verify)へ進みます。
+        次は[検証と実行](story:Tutorials/Gallery/Verify)へ進みます。
         """;
 
     [Story]

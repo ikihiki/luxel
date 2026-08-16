@@ -15,11 +15,11 @@ public static class StartStories
 
         Luxel Galleryは、説明、実行できるサンプル、APIリファレンスを一つにまとめた開発者向けカタログです。まずプレビューを操作し、下部のSourceで`[Story]`メソッドを確認してください。
 
-        初めてLuxelを触る場合は、[最初のStoryを作る](story:Tutorials/FirstStory)から始めます。既存ライブラリへサンプルを追加するところから、独立したGalleryライブラリをホストへ登録するところまで順番に進められます。
+        初めてLuxelを触る場合は、[Tutorials](story:Tutorials/Overview)から作りたいアプリを選びます。GalleryへStoryを追加する場合は[最初のStory](story:Tutorials/Gallery/FirstStory)から始めます。
 
         ## 学習ルート
 
-        - **Galleryの作り方を学ぶ** — [Tutorials](story:Tutorials/Overview)でStory、操作、Markdown、ライブラリ登録を順番に試す
+        - **アプリを一つ作る** — [Tutorials](story:Tutorials/Overview)から3D、2D、UI、Galleryのコースを選ぶ
         - **GPU描画を始める** — [Graphics](story:Learn/Graphics/Overview)でウィンドウ、デバイス、サーフェス、三角形まで進む
         - **2Dを描画する** — [2D](story:Learn/Graphics/First2DScene)でパス、色、画像、カメラ変換を使う
         - **入力や音声を加える** — [Input](story:Learn/Input/Overview)と[Audio](story:Learn/Audio/Overview)で実行時システムを組み立てる
@@ -35,7 +35,7 @@ public static class StartStories
         - **Reference** — APIのシグネチャ、既定値、型を調べる
         - **Internals** — アーキテクチャ、実装詳細、ADRを読む
 
-        次に[自分のルートを選ぶ](story:Start/ChooseYourPath)か、[最初のStoryを作る](story:Tutorials/FirstStory)を開いてください。
+        次に[自分のルートを選ぶ](story:Start/ChooseYourPath)か、[Tutorials](story:Tutorials/Overview)を開いてください。
         """;
 
     [Story]
@@ -46,8 +46,8 @@ public static class StartStories
 
         | 目的 | 開始ページ | 到達物 |
         |---|---|---|
-        | Galleryへサンプルを追加する | [最初のStory](story:Tutorials/FirstStory) | Sourceで読めるStory |
-        | Galleryライブラリを追加する | [Galleryライブラリ](story:Tutorials/GalleryLibrary) | ホストへ登録された独立カテゴリ |
+        | Galleryへサンプルを追加する | [最初のStory](story:Tutorials/Gallery/FirstStory) | Sourceで読めるStory |
+        | Galleryライブラリを追加する | [Galleryライブラリ](story:Tutorials/Gallery/GalleryLibrary) | ホストへ登録された独立カテゴリ |
         | 最初のGPUアプリ | [Graphics](story:Learn/Graphics/Overview) | 三角形を描画するアプリ |
         | 2Dキャンバス | [2D](story:Learn/Graphics/First2DScene) | 2Dコンテンツを構築して描画できる |
         | 複数パスGPU描画 | [RenderGraph](story:Learn/Graphics/RenderGraph/Overview) | 一時リソース、自動バリア、カリング、エイリアシング |
@@ -73,6 +73,6 @@ public static class StartStories
         Sourceには`[Story]`属性、メソッド宣言、本体が表示されます。Story固有のコードを読む入口として使い、依存するヘルパーや型はリポジトリ内の同じGalleryライブラリから辿ってください。
 
         > [!TIP]
-        > Gallery自体の追加方法は[Galleryの作り方](story:Tutorials/Overview)、Markdownの詳細な執筆規約は[Authoring reference](story:Internals/Authoring)にあります。
+        > Gallery自体の追加方法は[Galleryの作り方](story:Tutorials/Gallery/Overview)、Markdownの詳細な執筆規約は[Authoring reference](story:Internals/Authoring)にあります。
         """;
 }
