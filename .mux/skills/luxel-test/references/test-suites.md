@@ -18,12 +18,12 @@ Before running an environment-sensitive alias, read `environment-setup.md` and c
 | --- | --- |
 | `audio-browser` full publish | Baseline tools; Browser WebAssembly workload |
 | `audio-silk` | Ubuntu OpenAL and virtual PulseAudio |
-| `webgpu` / `native-e2e` | Hardware GPU selection, Vulkan fallback, and X11; or Windows-specific WebGPU |
+| `webgpu` / `native-e2e` | Hardware GPU selection and Vulkan fallback. Linux window presentation remains X11-only and is not provided by the pure-Wayland Dev Container desktop. |
 | `webgpu-browser` full CI | Baseline tools; Browser WebAssembly workload; Playwright and Chromium; Browser hardware WebGPU selection |
 | `gallery-browser-e2e` | Browser WebAssembly workload; Playwright and Chromium |
 | `playground-browser-e2e` | Browser WebAssembly workload; Playwright and Chromium |
-| `platform` Silk tests | Hardware GPU selection, Vulkan fallback, and X11; or Full Luxel desktop helper environment |
-| Native AOT validation | Full Luxel desktop helper environment |
+| `platform` Silk tests | Legacy X11 display supplied separately; the Dev Container desktop is Wayland-only |
+| Native AOT validation | Wayland desktop infrastructure smoke plus build/ELF validation; Linux Luxel window runtime remains X11-only |
 
 When a prerequisite is missing, show its detection, preparation, privilege/effect, and cleanup commands. Ask before running `sudo`, installing a .NET workload, or installing Playwright system dependencies.
 
@@ -119,7 +119,7 @@ tests/Graphics/Luxel.WebGPU.Present.Tests
 tests/Framework/Luxel.Framework.UI.Tests
 ```
 
-Detect available GPU adapters first. Prefer a usable hardware Vulkan adapter on Linux or hardware DX12 adapter on Windows. Provide an X11 display for presentation tests when needed. Use the lavapipe/fallback environment from `.github/workflows/test-webgpu.yml` only when no compatible hardware GPU is accessible, the user explicitly requests software rendering, or fallback behavior is the subject of the test. If prerequisites are absent, run only explicitly requested managed/source-contract tests and report the reduced scope.
+Detect available GPU adapters first. Prefer a usable hardware Vulkan adapter on Linux or hardware DX12 adapter on Windows. Linux presentation tests still require a separately provisioned legacy X11 display; the repository desktop is native Wayland-only. Use the lavapipe/fallback environment from `.github/workflows/test-webgpu.yml` only when no compatible hardware GPU is accessible, the user explicitly requests software rendering, or fallback behavior is the subject of the test. If prerequisites are absent, run only explicitly requested managed/source-contract tests and report the reduced scope.
 
 ### `webgpu-browser`
 
@@ -159,7 +159,7 @@ tests/Platform/Luxel.Platform.Web.Tests
 tests/Platform/Luxel.Platform.Silk.Tests
 ```
 
-The Silk project may require a native display/window environment.
+The Silk project currently requires an X11 display supplied separately; it cannot use the pure-Wayland repository desktop yet.
 
 ### `shader`
 

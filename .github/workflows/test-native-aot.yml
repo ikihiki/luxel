@@ -27,28 +27,32 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Install Linux desktop, Vulkan, and Native AOT prerequisites
+      - name: Install Wayland desktop, Vulkan, and Native AOT prerequisites
         run: |
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            xvfb openbox x11vnc novnc websockify x11-utils x11-xserver-utils xauth xdotool scrot \
-            dbus-x11 fonts-dejavu-core fonts-noto-cjk mesa-vulkan-drivers libvulkan1 vulkan-tools \
+            sway wayvnc novnc websockify wayland-utils grim wlr-randr \
+            fonts-dejavu-core fonts-noto-cjk mesa-vulkan-drivers libvulkan1 vulkan-tools \
             clang zlib1g-dev binutils file
 
       - name: Start test desktop
+        env:
+          LUXEL_DESKTOP_RENDERER: lavapipe
         run: eng/desktop/start.sh
 
-      - name: Publish and run project/package Native AOT fixtures
+      - name: Validate Wayland desktop and Native AOT artifacts
         shell: bash
         run: |
           # shellcheck disable=SC1090
           source "${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/environment"
           eng/desktop/healthcheck.sh
+          eng/desktop/run-vkcube.sh 120
+          eng/desktop/screenshot.sh /tmp/luxel-wayland-vkcube.png
           rm -rf /tmp/luxel-aot-project
           dotnet publish samples/FileBasedApps/HelloLuxel.Aot.Linux.cs \
             -c Release -r linux-x64 -o /tmp/luxel-aot-project -p:TrimmerSingleWarn=false
-          (cd /tmp && LUXEL_RUN_FRAMES=1 /tmp/luxel-aot-project/HelloLuxel.Aot.Linux)
-          samples/FileBasedApps/test-package-aot.sh
+          file /tmp/luxel-aot-project/HelloLuxel.Aot.Linux | grep -Eq 'ELF 64-bit.*(pie executable|shared object)'
+          LUXEL_SKIP_AOT_RUN=1 samples/FileBasedApps/test-package-aot.sh
 
       - name: Stop test desktop
         if: always()

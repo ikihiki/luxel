@@ -26,13 +26,25 @@ check() {
 
 failures=0
 if [[ "${AUDIO_ONLY}" == false ]]; then
-    check "X display" env DISPLAY="${DESKTOP_DISPLAY}" xdpyinfo || failures=$((failures + 1))
-    if [[ "${DESKTOP_SERVER}" == "xorg" ]]; then
-        check "X DRI3 extension" bash -c 'DISPLAY="$1" xdpyinfo | grep -q "^[[:space:]]*DRI3$"' _ "${DESKTOP_DISPLAY}" || failures=$((failures + 1))
-    fi
-    check "Window manager/root" env DISPLAY="${DESKTOP_DISPLAY}" xwininfo -root -tree || failures=$((failures + 1))
+    check "Sway process" pid_is_running sway sway || failures=$((failures + 1))
+    check "Wayland socket" test -S "${RUNTIME_DIR}/${WAYLAND_DISPLAY_NAME}" || failures=$((failures + 1))
+    check "Wayland output" bash -c '
+        output="$(env -u DISPLAY XDG_RUNTIME_DIR="$1" WAYLAND_DISPLAY="$2" wlr-randr)"
+        grep -q "^$3 " <<<"$output" && grep -q "$4x$5 px" <<<"$output"
+    ' _ "${RUNTIME_DIR}" "${WAYLAND_DISPLAY_NAME}" "${WAYLAND_OUTPUT}" "${DESKTOP_WIDTH}" "${DESKTOP_HEIGHT}" || failures=$((failures + 1))
+    check "Screencopy protocol" bash -c '
+        env -u DISPLAY XDG_RUNTIME_DIR="$1" WAYLAND_DISPLAY="$2" wayland-info 2>/dev/null |
+            grep -q "zwlr_screencopy_manager_v1"
+    ' _ "${RUNTIME_DIR}" "${WAYLAND_DISPLAY_NAME}" || failures=$((failures + 1))
+    check "Virtual input" bash -c '
+        info="$(env -u DISPLAY XDG_RUNTIME_DIR="$1" WAYLAND_DISPLAY="$2" wayland-info 2>/dev/null)"
+        grep -q "zwp_virtual_keyboard_manager_v1" <<<"$info" &&
+            grep -q "zwlr_virtual_pointer_manager_v1" <<<"$info"
+    ' _ "${RUNTIME_DIR}" "${WAYLAND_DISPLAY_NAME}" || failures=$((failures + 1))
+    check "wayvnc process" pid_is_running wayvnc wayvnc || failures=$((failures + 1))
     check "VNC Unix socket" test -S "${VNC_SOCKET}" || failures=$((failures + 1))
-    check "noVNC HTTP" curl --fail --silent --show-error "http://${NOVNC_HOST}:${NOVNC_PORT}/vnc.html" || failures=$((failures + 1))
+    check "noVNC process" pid_is_running novnc websockify || failures=$((failures + 1))
+    check "noVNC HTTP" curl --fail --silent --show-error "http://${NOVNC_HOST}:${NOVNC_PORT}/vnc_lite.html" || failures=$((failures + 1))
 fi
 
 audio_mode="$(cat "${AUDIO_MODE_FILE}" 2>/dev/null || echo off)"
@@ -50,7 +62,7 @@ fi
 if [[ "${AUDIO_ONLY}" == false ]]; then
     if command -v vulkaninfo >/dev/null 2>&1; then
         printf '%-24s' "Vulkan device"
-        if env DISPLAY="${DESKTOP_DISPLAY}" XDG_RUNTIME_DIR="${RUNTIME_DIR}" \
+        if env -u DISPLAY XDG_RUNTIME_DIR="${RUNTIME_DIR}" WAYLAND_DISPLAY="${WAYLAND_DISPLAY_NAME}" \
             vulkaninfo --summary >"${LOG_DIR}/vulkaninfo.log" 2>&1; then
             device="$(grep -m1 'deviceName' "${LOG_DIR}/vulkaninfo.log" | sed 's/^[[:space:]]*//' || true)"
             hardware_gpu="$(hardware_vulkan_device_index "${LOG_DIR}/vulkaninfo.log")"
@@ -84,5 +96,5 @@ if [[ ${failures} -ne 0 ]]; then
 fi
 
 if [[ "${AUDIO_ONLY}" == false ]]; then
-    printf 'noVNC: %s/vnc.html?autoconnect=1&resize=scale\n' "$(coder_preview_url)"
+    printf 'noVNC: %s/vnc_lite.html?path=websockify\n' "$(coder_preview_url)"
 fi

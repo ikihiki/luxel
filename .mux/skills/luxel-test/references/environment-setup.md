@@ -214,22 +214,30 @@ If several real adapters exist, use the backend's supported adapter-selection se
 
 ### Display detection
 
+The Dev Container desktop is pure Wayland. Detect it with:
+
 ```bash
-command -v Xvfb
-command -v xdpyinfo
+command -v sway wayvnc wlr-randr wayland-info
+if [ -n "${WAYLAND_DISPLAY:-}" ]; then wlr-randr >/dev/null; fi
+```
+
+Current Luxel Linux window and presentation integration tests remain X11-only. They cannot use the repository Wayland desktop because it starts Sway with Xwayland disabled. When those legacy suites are explicitly requested, detect or provision an isolated X11 display separately:
+
+```bash
+command -v Xvfb xdpyinfo
 if [ -n "${DISPLAY:-}" ]; then xdpyinfo -display "$DISPLAY" >/dev/null; fi
 ```
 
-Use an existing healthy display when available. Start Xvfb only when presentation/window tests need a display and no usable display exists; Xvfb does not imply software GPU rendering.
-
 ### Install Ubuntu runtime and display tools
 
-For Vulkan/WebGPU presentation tests:
+For the Wayland desktop and Vulkan baseline:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y libvulkan1 vulkan-tools xvfb openbox x11-utils
+sudo apt-get install -y libvulkan1 vulkan-tools mesa-vulkan-drivers sway wayvnc wayland-utils grim wlr-randr novnc websockify
 ```
+
+For legacy X11-only Luxel presentation tests, install Xvfb and X11 utilities separately rather than adding them to the Dev Container image.
 
 Install the correct vendor GPU driver through the machine's approved provisioning method. Do not replace or modify GPU drivers automatically. This is privileged and machine-wide; ask for approval first.
 
@@ -251,7 +259,7 @@ export WGPU_ADAPTER_NAME=llvmpipe
 
 Never switch from a detected hardware adapter to this fallback silently. Report the hardware initialization failure and ask or clearly announce the fallback according to the user's request.
 
-### Start an isolated X11 display
+### Start an isolated X11 display for legacy Luxel suites
 
 ```bash
 export DISPLAY=:99
@@ -277,11 +285,11 @@ Preserve `/tmp/luxel-xvfb.log` and `/tmp/luxel-openbox.log` when a test fails.
 
 ## Full Luxel desktop helper environment
 
-Native AOT and broader desktop tests use the repository helper scripts rather than manually starting Xvfb.
+Wayland desktop infrastructure and Vulkan baseline tests use the repository helper scripts. Native AOT validation builds and inspects Linux artifacts but does not execute the current X11-only Luxel window binary inside this desktop.
 
 ### Dev Container packages
 
-The complete desktop environment is provisioned by `.devcontainer/Dockerfile`, including Xorg with the Intel virtual-head driver, Xvfb software fallback, openbox/noVNC, Vulkan tooling, audio libraries, and Native AOT prerequisites. Rebuild the Dev Container when these dependencies change; do not install them from the runtime test workflow.
+The complete desktop environment is provisioned by `.devcontainer/Dockerfile`, including headless Sway with Xwayland disabled, wayvnc/noVNC, Vulkan tooling, audio libraries, and Native AOT prerequisites. Xorg, Xvfb, Openbox, and x11vnc are intentionally absent. Rebuild the Dev Container when these dependencies change; do not install them from the runtime test workflow.
 
 ### Start, verify, and stop
 
