@@ -6,10 +6,11 @@ namespace Luxel.Framework.UI;
 /// <summary>Window-system choices supported by the application host.</summary>
 public enum LuxelWindowBackend
 {
-    /// <summary>Select Win32 on Windows and Silk.NET X11 on Linux.</summary>
+    /// <summary>Select Win32 on Windows and native Wayland (when available) or X11 on Linux.</summary>
     Auto,
     Win32,
     SilkX11,
+    SilkWayland,
 }
 
 /// <summary>GPU backend choices supported by the application host.</summary>

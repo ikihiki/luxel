@@ -52,7 +52,7 @@ jobs:
           dotnet publish samples/FileBasedApps/HelloLuxel.Aot.Linux.cs \
             -c Release -r linux-x64 -o /tmp/luxel-aot-project -p:TrimmerSingleWarn=false
           file /tmp/luxel-aot-project/HelloLuxel.Aot.Linux | grep -Eq 'ELF 64-bit.*(pie executable|shared object)'
-          LUXEL_SKIP_AOT_RUN=1 samples/FileBasedApps/test-package-aot.sh
+          samples/FileBasedApps/test-package-aot.sh
 
       - name: Stop test desktop
         if: always()

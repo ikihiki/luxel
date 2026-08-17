@@ -41,7 +41,7 @@ LUXEL_DESKTOP_RENDERER=lavapipe eng/desktop/start.sh
 
 The container-owned desktop is native Wayland-only. `vkcube-wayland` is the presentation baseline and is fully supported by these helpers.
 
-Luxel's current `Luxel.Platform.Silk` Linux backend still targets X11, so Native Gallery and the existing Linux window/presentation integration suites do not run inside this pure-Wayland desktop yet. This infrastructure deliberately does not enable Xwayland to hide that limitation. Browser, headless, build, and offscreen GPU workflows are unaffected. Native Luxel Wayland windowing is tracked as a separate application feature.
+`Luxel.Platform.Silk` supports native Wayland through GLFW and automatically selects it when `WAYLAND_DISPLAY` is available. Vulkan and WebGPU window presentation, the Native Gallery, file-based apps, and Linux window/presentation integration suites can run directly in this desktop without Xwayland. Explicit X11 remains available for compatible environments through `SilkWindowPlatform.X11` or `LuxelWindowBackend.SilkX11`.
 
 ## Optional Linux audio
 

@@ -66,8 +66,10 @@ public static class LuxelApp
     internal static LuxelWindowBackend ResolveWindowBackend(LuxelWindowBackend backend)
         => backend != LuxelWindowBackend.Auto ? backend
             : OperatingSystem.IsWindows() ? LuxelWindowBackend.Win32
+            : OperatingSystem.IsLinux() && !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"))
+                ? LuxelWindowBackend.SilkWayland
             : OperatingSystem.IsLinux() ? LuxelWindowBackend.SilkX11
-            : throw new PlatformNotSupportedException("Luxel.Framework.UI currently supports Windows and Linux/X11.");
+            : throw new PlatformNotSupportedException("Luxel.Framework.UI currently supports Windows and Linux (Wayland or X11).");
 
     internal static LuxelGraphicsBackend ResolveGraphicsBackend(LuxelGraphicsBackend backend)
         => backend != LuxelGraphicsBackend.Auto ? backend
@@ -95,13 +97,16 @@ public static class LuxelApp
         LuxelGraphicsBackend graphics = ResolveGraphicsBackend(options.GraphicsBackend);
         if (window == LuxelWindowBackend.Win32 && !OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("The Win32 window backend is only available on Windows.");
-        if (window == LuxelWindowBackend.SilkX11 && !OperatingSystem.IsLinux())
-            throw new PlatformNotSupportedException("The Silk.NET X11 window backend is only available on Linux.");
+        if (IsSilkWindowBackend(window) && !OperatingSystem.IsLinux())
+            throw new PlatformNotSupportedException("Silk.NET window backends are only available on Linux.");
         if (graphics == LuxelGraphicsBackend.Direct3D12 && !OperatingSystem.IsWindows())
             throw new PlatformNotSupportedException("Direct3D 12 is only available on Windows.");
-        if (window == LuxelWindowBackend.SilkX11 && graphics is not (LuxelGraphicsBackend.Vulkan or LuxelGraphicsBackend.WebGpu))
-            throw new PlatformNotSupportedException("The Silk.NET X11 window backend requires Vulkan or WebGPU.");
+        if (IsSilkWindowBackend(window) && graphics is not (LuxelGraphicsBackend.Vulkan or LuxelGraphicsBackend.WebGpu))
+            throw new PlatformNotSupportedException("Silk.NET window backends require Vulkan or WebGPU.");
     }
+
+    internal static bool IsSilkWindowBackend(LuxelWindowBackend backend)
+        => backend is LuxelWindowBackend.SilkX11 or LuxelWindowBackend.SilkWayland;
 
     internal static void ValidateAssets(string baseDirectory, bool requireBundledFont)
     {
@@ -168,13 +173,13 @@ internal sealed class EnvironmentLuxelApp
         {
             var desc = new WindowDesc(_options.Title, _options.Width, _options.Height);
             IGpuBackend backend;
-            if (windowBackend == LuxelWindowBackend.SilkX11)
+            if (LuxelApp.IsSilkWindowBackend(windowBackend))
                 bootstrapWindow = windows.CreateWindow(desc);
 
             backend = graphicsBackend switch
             {
                 LuxelGraphicsBackend.WebGpu => Luxel.Graphics.WebGPU.WebGpuBackend.Create(),
-                LuxelGraphicsBackend.Vulkan when windowBackend == LuxelWindowBackend.SilkX11 => VulkanBackend.Create(new VulkanBackendOptions
+                LuxelGraphicsBackend.Vulkan when LuxelApp.IsSilkWindowBackend(windowBackend) => VulkanBackend.Create(new VulkanBackendOptions
                 {
                     EnableValidation = _options.EnableValidation,
                     Presentation = VulkanPresentationMode.Window,
@@ -245,14 +250,15 @@ internal sealed class EnvironmentLuxelApp
     private static IWindowBackend CreateWindowBackend(LuxelWindowBackend backend) => backend switch
     {
         LuxelWindowBackend.Win32 => Win32WindowBackend.Create(),
-        LuxelWindowBackend.SilkX11 => SilkWindowBackend.Create(),
+        LuxelWindowBackend.SilkX11 => SilkWindowBackend.Create(SilkWindowPlatform.X11),
+        LuxelWindowBackend.SilkWayland => SilkWindowBackend.Create(SilkWindowPlatform.Wayland),
         _ => throw new UnreachableException(),
     };
 
     private static IClipboardBackend CreateClipboardBackend(LuxelWindowBackend backend) => backend switch
     {
         LuxelWindowBackend.Win32 => Win32WindowBackend.CreateClipboardBackend(),
-        LuxelWindowBackend.SilkX11 => SilkWindowBackend.CreateClipboardBackend(),
+        LuxelWindowBackend.SilkX11 or LuxelWindowBackend.SilkWayland => SilkWindowBackend.CreateClipboardBackend(),
         _ => throw new UnreachableException(),
     };
 }

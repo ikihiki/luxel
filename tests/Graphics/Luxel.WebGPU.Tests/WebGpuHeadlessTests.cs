@@ -18,6 +18,8 @@ public sealed class WebGpuHeadlessTests
         Assert.Contains("WebGPU", device.Name, StringComparison.OrdinalIgnoreCase);
         WebGpuBackend backend = Assert.IsType<WebGpuBackend>(device.Backend);
         Assert.Throws<ArgumentException>(() => backend.CreateXlibSurface(0, 1, 64, 64));
+        Assert.Throws<ArgumentException>(() => backend.CreateWaylandSurface(0, 1, 64, 64));
+        Assert.Throws<ArgumentException>(() => backend.CreateWaylandSurface(1, 0, 64, 64));
     }
 
     [Fact]

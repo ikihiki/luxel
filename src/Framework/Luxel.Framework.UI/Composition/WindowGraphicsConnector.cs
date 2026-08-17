@@ -45,11 +45,21 @@ internal static unsafe class WindowGraphicsConnector
                 VulkanBackend vulkan => vulkan.CreateWin32Surface(
                     window.RequireBackendWindow<Win32Window>().Handle, width, height),
                 WebGpuBackend webGpu when window.BackendWindow is SilkWindow silk =>
-                    webGpu.CreateXlibSurface(silk.X11Display, silk.X11Window, width, height),
+                    CreateSilkWebGpuSurface(webGpu, silk, width, height),
                 WebGpuBackend webGpu => CreateWin32WebGpuSurface(webGpu, window, width, height),
                 _ => throw new PlatformNotSupportedException(
                     $"No built-in presentation connection exists for {window.BackendWindow.GetType().FullName} and {backend.GetType().FullName}.")
             };
+        };
+
+    private static GpuSurface CreateSilkWebGpuSurface(WebGpuBackend backend, SilkWindow window, uint width, uint height)
+        => window.Platform switch
+        {
+            SilkWindowPlatform.Wayland => backend.CreateWaylandSurface(
+                window.WaylandDisplay, window.WaylandSurface, width, height),
+            SilkWindowPlatform.X11 => backend.CreateXlibSurface(
+                window.X11Display, window.X11Window, width, height),
+            _ => throw new PlatformNotSupportedException($"Unsupported Silk window platform: {window.Platform}."),
         };
 
     private static GpuSurface CreateWin32WebGpuSurface(WebGpuBackend backend, Window window, uint width, uint height)

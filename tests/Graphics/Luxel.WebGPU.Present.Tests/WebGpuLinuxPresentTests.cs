@@ -4,21 +4,28 @@ using Luxel.Platform.Silk;
 
 namespace Luxel.WebGPU.Present.Tests;
 
-public sealed class WebGpuX11PresentTests
+public sealed class WebGpuLinuxPresentTests
 {
     [Fact]
-    public void Present_and_resize_X11_surface()
+    public void Present_and_resize_native_Linux_surface()
     {
         Assert.True(OperatingSystem.IsLinux());
-        Assert.False(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")));
+        bool hasWayland = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
+        bool hasX11 = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"));
+        Assert.True(hasWayland || hasX11);
         using var windows = new WindowSystem(SilkWindowBackend.Create());
         Window window = windows.CreateWindow(new WindowDesc("Luxel WebGPU present", 160, 120));
         SilkWindow nativeWindow = window.RequireBackendWindow<SilkWindow>();
-        Assert.NotEqual(0, nativeWindow.X11Display);
-        Assert.NotEqual(0UL, nativeWindow.X11Window);
         WebGpuBackend backend = WebGpuBackend.Create();
         using var device = new GpuDevice(backend);
-        using GpuSurface surface = backend.CreateXlibSurface(nativeWindow.X11Display, nativeWindow.X11Window, 160, 120);
+        using GpuSurface surface = nativeWindow.Platform switch
+        {
+            SilkWindowPlatform.Wayland => backend.CreateWaylandSurface(
+                nativeWindow.WaylandDisplay, nativeWindow.WaylandSurface, 160, 120),
+            SilkWindowPlatform.X11 => backend.CreateXlibSurface(
+                nativeWindow.X11Display, nativeWindow.X11Window, 160, 120),
+            _ => throw new PlatformNotSupportedException(),
+        };
         using (GpuBuffer first = Pixels(device, 192, 160, 120, 0xFF2040E0u))
             surface.Present(first, 192, 160, 120);
         window.SetBounds(clientWidth: 224, clientHeight: 144);
