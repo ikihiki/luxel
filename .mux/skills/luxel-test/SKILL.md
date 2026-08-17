@@ -74,7 +74,7 @@ Use `references/environment-setup.md` for adapter detection, hardware-mode envir
 - Tests requiring `wasm-tools`, Chromium, Vulkan/lavapipe, OpenAL/PulseAudio, X11, Windows, or another unavailable dependency must not be reported as test failures. Report the exact missing prerequisite, the command that exposed it, and the preparation method from `references/environment-setup.md`.
 - Do not install system packages, .NET workloads, or Playwright browsers without user approval. `npm ci` is allowed when the user asked for the corresponding browser suite and the lockfile exists.
 - Preserve failure artifacts and mention their paths. Relevant defaults include `test-results/`, `playwright-report/`, temporary WAV captures, and desktop/audio logs.
-- Always stop virtual audio, Xvfb, desktop helpers, servers, and background processes started by the run, including after failures.
+- Always stop virtual audio, Wayland desktop helpers, servers, and background processes started by the run, including after failures. Legacy X11-only suites may still start their own Xvfb and must clean it up separately.
 
 ## Verification and report
 

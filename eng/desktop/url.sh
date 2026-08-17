@@ -5,4 +5,4 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=common.sh
 source "${SCRIPT_DIR}/common.sh"
 
-printf '%s/vnc.html?autoconnect=1&resize=scale\n' "$(coder_preview_url)"
+printf '%s/vnc_lite.html?path=websockify\n' "$(coder_preview_url)"

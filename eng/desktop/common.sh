@@ -6,11 +6,16 @@ set -o pipefail
 
 HOST_XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-}"
 HOST_PULSE_SERVER="${PULSE_SERVER:-}"
-DESKTOP_DISPLAY="${LUXEL_DESKTOP_DISPLAY:-:99}"
-DESKTOP_NUMBER="${DESKTOP_DISPLAY#:}"
-DESKTOP_GEOMETRY="${LUXEL_DESKTOP_GEOMETRY:-1280x900x24}"
+DESKTOP_GEOMETRY="${LUXEL_DESKTOP_GEOMETRY:-1280x900}"
+DESKTOP_GEOMETRY="${DESKTOP_GEOMETRY%x24}"
+DESKTOP_WIDTH="${DESKTOP_GEOMETRY%x*}"
+DESKTOP_HEIGHT="${DESKTOP_GEOMETRY#*x}"
+DESKTOP_REFRESH="${LUXEL_DESKTOP_REFRESH:-60}"
+WAYLAND_OUTPUT="${LUXEL_WAYLAND_OUTPUT:-HEADLESS-1}"
+WAYLAND_DISPLAY_NAME="${LUXEL_WAYLAND_DISPLAY:-wayland-1}"
 STATE_DIR="${LUXEL_DESKTOP_STATE_DIR:-${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}}"
 VNC_SOCKET="${LUXEL_VNC_SOCKET:-${STATE_DIR}/vnc.sock}"
+WAYVNC_CONTROL_SOCKET="${STATE_DIR}/wayvnc-control.sock"
 NOVNC_HOST="${LUXEL_NOVNC_HOST:-127.0.0.1}"
 NOVNC_PORT="${LUXEL_NOVNC_PORT:-6080}"
 PID_DIR="${STATE_DIR}/pids"
@@ -20,15 +25,30 @@ RUNTIME_DIR="${STATE_DIR}/runtime"
 ENV_FILE="${STATE_DIR}/environment"
 LOCK_FILE="${STATE_DIR}/desktop.lock"
 AUDIO_LOCK_FILE="${STATE_DIR}/audio.lock"
-DESKTOP_RENDERER="${LUXEL_DESKTOP_RENDERER:-lavapipe}"
-DESKTOP_SERVER="${LUXEL_DESKTOP_SERVER:-auto}"
-if [[ "${DESKTOP_SERVER}" == "auto" ]]; then
-    if [[ "${DESKTOP_RENDERER}" == "hardware" ]]; then
-        DESKTOP_SERVER="xorg"
-    else
-        DESKTOP_SERVER="xvfb"
-    fi
+SWAY_CONFIG="${STATE_DIR}/sway.conf"
+DESKTOP_RENDERER_REQUESTED="${LUXEL_DESKTOP_RENDERER:-auto}"
+DRM_RENDER_NODE="${LUXEL_DRM_RENDER_NODE:-/dev/dri/renderD128}"
+case "${DESKTOP_RENDERER_REQUESTED}" in
+    auto)
+        if [[ -c "${DRM_RENDER_NODE}" ]]; then
+            DESKTOP_RENDERER=hardware
+        else
+            DESKTOP_RENDERER=lavapipe
+        fi
+        ;;
+    hardware|lavapipe)
+        DESKTOP_RENDERER="${DESKTOP_RENDERER_REQUESTED}"
+        ;;
+    *)
+        printf '[luxel-desktop] error: invalid LUXEL_DESKTOP_RENDERER %q (expected auto, hardware, or lavapipe)\n' "${DESKTOP_RENDERER_REQUESTED}" >&2
+        exit 1
+        ;;
+esac
+REQUIRE_HARDWARE_VULKAN="${LUXEL_REQUIRE_HARDWARE_VULKAN:-0}"
+if [[ "${DESKTOP_RENDERER}" == "lavapipe" ]]; then
+    REQUIRE_HARDWARE_VULKAN=0
 fi
+export LUXEL_REQUIRE_HARDWARE_VULKAN="${REQUIRE_HARDWARE_VULKAN}"
 LAVAPIPE_ICD="${LUXEL_LAVAPIPE_ICD:-/usr/share/vulkan/icd.d/lvp_icd.json}"
 AUDIO_MODE="${LUXEL_DESKTOP_AUDIO:-off}"
 AUDIO_MODE_FILE="${STATE_DIR}/audio.mode"
@@ -41,10 +61,10 @@ AUDIO_RATE=48000
 AUDIO_CHANNELS=2
 CAPTURE_DIR="${STATE_DIR}/captures"
 
-case "${DESKTOP_SERVER}" in
-    xvfb|xorg) ;;
-    *) printf '[luxel-desktop] error: invalid LUXEL_DESKTOP_SERVER %q (expected auto, xvfb, or xorg)\n' "${DESKTOP_SERVER}" >&2; exit 1 ;;
-esac
+if [[ ! "${DESKTOP_WIDTH}" =~ ^[1-9][0-9]*$ || ! "${DESKTOP_HEIGHT}" =~ ^[1-9][0-9]*$ ]]; then
+    printf '[luxel-desktop] error: invalid LUXEL_DESKTOP_GEOMETRY %q (expected WIDTHxHEIGHT)\n' "${DESKTOP_GEOMETRY}" >&2
+    exit 1
+fi
 
 case "${AUDIO_MODE}" in
     off|null|system) ;;
@@ -71,8 +91,9 @@ case "${AUDIO_MODE}" in
         ;;
 esac
 
-export DISPLAY="${DESKTOP_DISPLAY}"
+unset DISPLAY
 export XDG_RUNTIME_DIR="${RUNTIME_DIR}"
+export WAYLAND_DISPLAY="${WAYLAND_DISPLAY_NAME}"
 if [[ "${DESKTOP_RENDERER}" == "lavapipe" && -f "${LAVAPIPE_ICD}" ]]; then
     export VK_ICD_FILENAMES="${VK_ICD_FILENAMES:-${LAVAPIPE_ICD}}"
 fi
@@ -204,13 +225,15 @@ coder_preview_url() {
 
 write_environment_file() {
     cat > "${ENV_FILE}" <<EOF
-export DISPLAY='${DESKTOP_DISPLAY}'
+unset DISPLAY
 export XDG_RUNTIME_DIR='${RUNTIME_DIR}'
+export WAYLAND_DISPLAY='${WAYLAND_DISPLAY_NAME}'
 export LUXEL_DESKTOP_STATE_DIR='${STATE_DIR}'
 export LUXEL_VNC_SOCKET='${VNC_SOCKET}'
 export LUXEL_NOVNC_PORT='${NOVNC_PORT}'
 export LUXEL_DESKTOP_RENDERER='${DESKTOP_RENDERER}'
-export LUXEL_DESKTOP_SERVER='${DESKTOP_SERVER}'
+export LUXEL_REQUIRE_HARDWARE_VULKAN='${REQUIRE_HARDWARE_VULKAN}'
+export LUXEL_WAYLAND_OUTPUT='${WAYLAND_OUTPUT}'
 export LUXEL_DESKTOP_AUDIO='${AUDIO_MODE}'
 export LUXEL_AUDIO_SINK='${AUDIO_SINK}'
 export LUXEL_AUDIO_RATE='${AUDIO_RATE}'

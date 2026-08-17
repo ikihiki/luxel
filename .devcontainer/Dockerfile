@@ -18,7 +18,6 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
         clang \
         cmake \
         curl \
-        dbus-x11 \
         file \
         fonts-dejavu-core \
         fonts-noto-cjk \
@@ -26,21 +25,40 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
         gnupg2 \
         jq \
         less \
+        grim \
+        libasound2t64 \
+        libatk-bridge2.0-0t64 \
+        libatk1.0-0t64 \
+        libatspi2.0-0t64 \
+        libcairo2 \
+        libcups2t64 \
+        libdbus-1-3 \
+        libdecor-0-0 \
         libgl1 \
-        libglx0 \
+        libdrm2 \
+        libgbm1 \
+        libglib2.0-0t64 \
+        libnspr4 \
+        libnss3 \
         libopenal-dev \
         libopenal1 \
+        libpango-1.0-0 \
         libvulkan1 \
+        libwayland-client0 \
+        libwayland-cursor0 \
+        libwayland-egl1 \
         libx11-6 \
-        libxcursor1 \
+        libxcb1 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxext6 \
+        libxfixes3 \
         libxi6 \
-        libxinerama1 \
+        libxkbcommon0 \
         libxrandr2 \
-        mesa-utils \
         mesa-vulkan-drivers \
         ninja-build \
         novnc \
-        openbox \
         openssh-client \
         pkg-config \
         procps \
@@ -48,20 +66,14 @@ RUN rm -f /etc/apt/sources.list.d/yarn.list \
         pulseaudio-utils \
         python3 \
         python3-pip \
-        scrot \
         sudo \
+        sway \
         unzip \
         vulkan-tools \
+        wayland-utils \
+        wayvnc \
         websockify \
-        x11-utils \
-        x11-xserver-utils \
-        x11vnc \
-        xauth \
-        xdotool \
-        xserver-xorg-core \
-        xserver-xorg-video-dummy \
-        xserver-xorg-video-intel \
-        xvfb \
+        wlr-randr \
         zip \
         zlib1g-dev \
     && if id -u ubuntu >/dev/null 2>&1; then \
@@ -81,10 +93,11 @@ RUN dotnet workload install wasm-tools
 # invalidated only when the development image changes its Playwright version.
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 COPY .devcontainer/Playwright.csproj /tmp/luxel-playwright/Playwright.csproj
+# Browser runtime libraries are declared above. Avoid Playwright's --with-deps helper because it
+# installs Xvfb, which would reintroduce an X server into the native-Wayland development image.
 RUN dotnet tool install PowerShell --tool-path /usr/local/bin --version 7.6.4 \
     && dotnet build /tmp/luxel-playwright/Playwright.csproj --configuration Release \
-    && pwsh /tmp/luxel-playwright/bin/Release/net10.0/playwright.ps1 \
-        install --with-deps chromium \
+    && pwsh /tmp/luxel-playwright/bin/Release/net10.0/playwright.ps1 install chromium \
     && chown -R "${USERNAME}:${USERNAME}" "${PLAYWRIGHT_BROWSERS_PATH}" \
     && rm -rf /tmp/luxel-playwright /root/.nuget/packages /var/lib/apt/lists/*
 
@@ -93,8 +106,7 @@ RUN sed -i 's/\r$//' /opt/luxel/desktop/*.sh \
     && chmod -R a+rX /opt/luxel/desktop \
     && find /opt/luxel/desktop -maxdepth 1 -name '*.sh' -exec chmod a+x {} +
 
-ENV LUXEL_DESKTOP_RENDERER=hardware \
-    LUXEL_DESKTOP_SERVER=xorg \
+ENV LUXEL_DESKTOP_RENDERER=auto \
     LUXEL_REQUIRE_HARDWARE_VULKAN=1 \
     LUXEL_VULKAN_VENDOR_ID=0x8086 \
     LUXEL_DESKTOP_AUDIO=off \

@@ -36,8 +36,8 @@ PSO 爆発のない薄い API を構築する。
 
 ## Linux リモートデスクトップ開発
 
-Coder/Mux の Linux workspace では、Dev Container に組み込まれた Xorg/Xvfb + openbox + noVNC の開発用 desktop を利用できる。
-ハードウェアモードでは DRI3 対応 Xorg と Intel virtual head を使い、Luxel の Silk.NET/X11 backend と Vulkan WSI を実GPUで開発・検証できる。環境自体の baseline は `vkcube` でも確認できる。
+Coder/Mux の Linux workspace では、Dev Container に組み込まれた headless Sway + wayvnc + noVNC のnative Wayland desktopを利用できる。
+SwayはXwaylandを無効にしてhardware Vulkan GPUを使用し、環境のbaselineは`vkcube-wayland`で確認する。
 
 ```bash
 eng/desktop/start.sh
@@ -45,8 +45,8 @@ eng/desktop/run-vkcube.sh
 eng/desktop/url.sh
 ```
 
-出力された URL は Coder の認証付き preview。VNC は TCP port を開かず private Unix socket を使い、
-追加 password は使用しない。運用、healthcheck、screenshot、停止方法は `eng/desktop/README.md` を参照。
+出力されたURLはCoderの認証付きpreview。VNCはTCP portを開かずprivate Unix socketを使い、追加passwordは使用しない。
+現在のLuxel.Platform.Silk Linux backendはX11専用のため、Native Galleryはこのpure-Wayland desktopでは未対応。運用、healthcheck、screenshot、停止方法と制約は`eng/desktop/README.md`を参照。
 
 ## ビルドと実行
 

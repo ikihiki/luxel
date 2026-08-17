@@ -12,14 +12,13 @@ fi
 
 # Applications launched by developers are intentionally not killed here. The
 # repository-owned Vulkan smoke is tracked and stopped before desktop services.
-stop_process vkcube vkcube
+stop_process vkcube vkcube-wayland
 "${SCRIPT_DIR}/audio-stop.sh"
 stop_process novnc websockify
-stop_process x11vnc x11vnc
-rm -f "${VNC_SOCKET}"
-stop_process openbox openbox
-stop_process xorg Xorg
-stop_process xvfb Xvfb
+stop_process wayvnc wayvnc
+rm -f "${VNC_SOCKET}" "${WAYVNC_CONTROL_SOCKET}"
+stop_process sway sway
 
-rm -f "${ENV_FILE}" "${STATE_DIR}/xorg.conf"
-log "desktop is stopped"
+rm -f "${ENV_FILE}" "${SWAY_CONFIG}" "${RUNTIME_DIR}/${WAYLAND_DISPLAY_NAME}" \
+    "${RUNTIME_DIR}/${WAYLAND_DISPLAY_NAME}.lock"
+log "Wayland desktop is stopped"
