@@ -11,8 +11,9 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
     private readonly IWindow _window;
     private readonly Glfw _glfw;
     private WindowHandle* _handle;
-    private readonly nint _x11Display;
-    private readonly nint _x11Handle;
+    private readonly SilkWindowPlatform _platform;
+    private readonly nint _nativeDisplay;
+    private readonly nint _nativeSurface;
 
     // GLFW stores unmanaged function pointers. Keep every delegate rooted until the native window is destroyed.
     private readonly GlfwCallbacks.CursorPosCallback _cursorPosCallback;
@@ -26,14 +27,16 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
     private bool _closedNotified;
     private CursorKind? _currentCursor;
 
-    internal SilkWindow(SilkWindowBackend backend, IWindow window, Glfw glfw, WindowHandle* handle, nint x11Display, nint x11Handle)
+    internal SilkWindow(SilkWindowBackend backend, IWindow window, Glfw glfw, WindowHandle* handle,
+        SilkWindowPlatform platform, nint nativeDisplay, nint nativeSurface)
     {
         _backend = backend;
         _window = window;
         _glfw = glfw;
         _handle = handle;
-        _x11Display = x11Display;
-        _x11Handle = x11Handle;
+        _platform = platform;
+        _nativeDisplay = nativeDisplay;
+        _nativeSurface = nativeSurface;
         _window.FramebufferResize += OnFramebufferResize;
         _window.Move += OnMove;
         _window.FocusChanged += OnFocusChanged;
@@ -51,6 +54,7 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
         _glfw.SetKeyCallback(_handle, _keyCallback);
         _glfw.SetCharCallback(_handle, _charCallback);
         Glfw.ThrowExceptions();
+        SilkWindowBackend.RegisterClipboardWindow(_handle);
     }
 
     public nint Handle
@@ -58,18 +62,26 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
         get
         {
             _backend.VerifyThread();
-            return _x11Handle;
+            return _nativeSurface;
         }
     }
 
     /// <summary>The Silk.NET window implementation. It remains owned by this window.</summary>
     public IWindow NativeWindow => _window;
 
+    public SilkWindowPlatform Platform => _platform;
+
     /// <summary>The X11 display selected by the built-in Silk backend.</summary>
-    public nint X11Display { get { VerifyUsable(); return _x11Display; } }
+    public nint X11Display { get { VerifyPlatform(SilkWindowPlatform.X11); return _nativeDisplay; } }
 
     /// <summary>The X11 window selected by the built-in Silk backend.</summary>
-    public ulong X11Window { get { VerifyUsable(); return unchecked((ulong)_x11Handle); } }
+    public ulong X11Window { get { VerifyPlatform(SilkWindowPlatform.X11); return unchecked((ulong)_nativeSurface); } }
+
+    /// <summary>The Wayland display selected by the built-in Silk backend.</summary>
+    public nint WaylandDisplay { get { VerifyPlatform(SilkWindowPlatform.Wayland); return _nativeDisplay; } }
+
+    /// <summary>The Wayland surface selected by the built-in Silk backend.</summary>
+    public nint WaylandSurface { get { VerifyPlatform(SilkWindowPlatform.Wayland); return _nativeSurface; } }
 
     public int Width
     {
@@ -95,12 +107,12 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
 
     public int X
     {
-        get { _backend.VerifyThread(); return _closed ? 0 : _window.Position.X; }
+        get { _backend.VerifyThread(); return _closed || _platform == SilkWindowPlatform.Wayland ? 0 : _window.Position.X; }
     }
 
     public int Y
     {
-        get { _backend.VerifyThread(); return _closed ? 0 : _window.Position.Y; }
+        get { _backend.VerifyThread(); return _closed || _platform == SilkWindowPlatform.Wayland ? 0 : _window.Position.Y; }
     }
 
     public bool IsClosed
@@ -147,7 +159,8 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
         if (clientWidth is <= 0) throw new ArgumentOutOfRangeException(nameof(clientWidth));
         if (clientHeight is <= 0) throw new ArgumentOutOfRangeException(nameof(clientHeight));
 
-        if (x.HasValue || y.HasValue)
+        // Wayland deliberately leaves global placement to the compositor.
+        if (_platform == SilkWindowPlatform.X11 && (x.HasValue || y.HasValue))
         {
             Vector2D<int> position = _window.Position;
             _window.Position = new Vector2D<int>(x ?? position.X, y ?? position.Y);
@@ -177,7 +190,8 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
     public void Focus()
     {
         VerifyUsable();
-        _window.Focus();
+        // Wayland clients cannot request global focus; activation is compositor-controlled.
+        if (_platform == SilkWindowPlatform.X11) _window.Focus();
     }
 
     public void Close()
@@ -210,7 +224,7 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
 
     private void OnMove(Vector2D<int> position)
     {
-        if (!_closed) Moved?.Invoke(position.X, position.Y);
+        if (!_closed && _platform == SilkWindowPlatform.X11) Moved?.Invoke(position.X, position.Y);
     }
 
     private void OnFocusChanged(bool focused)
@@ -287,6 +301,13 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
         Closed?.Invoke();
     }
 
+    private void VerifyPlatform(SilkWindowPlatform expected)
+    {
+        VerifyUsable();
+        if (_platform != expected)
+            throw new PlatformNotSupportedException($"This Silk window uses {_platform}, not {expected}.");
+    }
+
     private void VerifyUsable()
     {
         _backend.VerifyThread();
@@ -298,6 +319,7 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
         _backend.VerifyThread();
         if (_nativeDisposed) return;
         _nativeDisposed = true;
+        SilkWindowBackend.UnregisterClipboardWindow(_handle);
         _window.Dispose();
         _handle = null;
     }

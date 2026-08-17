@@ -50,7 +50,7 @@ public interface IWindowBackendWindow : IDisposable
     /// <summary>モニタの DPI スケール (96dpi=1.0)。論理 px × Scale = 物理 px。既定 1 (非対応バックエンド)。</summary>
     float Scale => 1f;
 
-    /// <summary>ウィンドウ (外枠) のスクリーン座標。</summary>
+    /// <summary>ウィンドウ (外枠) のスクリーン座標。Wayland 等、グローバル座標を公開しない環境では 0。</summary>
     int X { get; }
     int Y { get; }
 
@@ -64,7 +64,7 @@ public interface IWindowBackendWindow : IDisposable
     bool IsFocused { get; }
 
     void SetTitle(string title);
-    /// <summary>外枠の位置とクライアントサイズを変更する (null は現状維持)。</summary>
+    /// <summary>外枠の位置とクライアントサイズを変更する (null は現状維持)。Wayland では位置指定を無視する。</summary>
     void SetBounds(int? x, int? y, int? clientWidth, int? clientHeight);
     void Show();
     void Hide();

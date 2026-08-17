@@ -6,82 +6,141 @@ using Silk.NET.Windowing.Glfw;
 
 namespace Luxel.Platform.Silk;
 
-/// <summary>Process-level GLFW clipboard backend, independent from any Luxel window.</summary>
-public sealed unsafe class SilkClipboardBackend : IClipboardBackend
+/// <summary>Native Linux window platform selected for the Silk.NET/GLFW backend.</summary>
+public enum SilkWindowPlatform
 {
-    private readonly Glfw _glfw;
-
-    public SilkClipboardBackend()
-    {
-        GlfwWindowing.Use();
-        _glfw = GlfwProvider.GLFW.Value;
-    }
-
-    public string Name => "Silk.NET GLFW";
-    public string? GetText() => _glfw.GetClipboardString(null);
-    public void SetText(string text) => _glfw.SetClipboardString(null, text ?? string.Empty);
-    public void Dispose() { }
+    /// <summary>Prefer Wayland when WAYLAND_DISPLAY is available, otherwise use X11.</summary>
+    Auto,
+    X11,
+    Wayland,
 }
 
-/// <summary>Linux/X11 window backend implemented with Silk.NET Windowing and GLFW.</summary>
+/// <summary>Process-level GLFW clipboard backend using the most recently created live Silk window.</summary>
+public sealed unsafe class SilkClipboardBackend : IClipboardBackend
+{
+    private string? _ownedText;
+
+    public string Name => "Silk.NET GLFW";
+    public string? GetText()
+    {
+        WindowHandle* window = SilkWindowBackend.GetClipboardWindow();
+        return GlfwProvider.GLFW.Value.GetClipboardString(window) ?? _ownedText;
+    }
+
+    public void SetText(string text)
+    {
+        _ownedText = text ?? string.Empty;
+        WindowHandle* window = SilkWindowBackend.GetClipboardWindow();
+        GlfwProvider.GLFW.Value.SetClipboardString(window, _ownedText);
+    }
+
+    public void Dispose() => _ownedText = null;
+}
+
+/// <summary>Linux window backend implemented with Silk.NET Windowing and GLFW.</summary>
 public sealed unsafe class SilkWindowBackend : IWindowBackend
 {
+    private const int GlfwPlatformHint = 0x00050003;
+    private const int GlfwPlatformX11 = 0x00060004;
+    private const int GlfwPlatformWayland = 0x00060003;
+
+    private static readonly object InitializationGate = new();
+    private static SilkWindowPlatform? InitializedPlatform;
+    private static readonly object ClipboardWindowsGate = new();
+    private static readonly List<nint> ClipboardWindows = new();
+
     private readonly int _ownerThreadId;
     private readonly List<SilkWindow> _windows = new();
     private readonly Dictionary<CursorKind, nint> _cursors = new();
     private bool _disposed;
 
-    private SilkWindowBackend()
+    private SilkWindowBackend(SilkWindowPlatform platform)
     {
         _ownerThreadId = Environment.CurrentManagedThreadId;
+        Platform = platform;
 
         // Silk 2.23's managed enum predates GLFW 3.4's platform-selection constants, while
-        // Ultz.Native.GLFW 3.4 implements them. Select X11 before the singleton is initialized.
-        if (!GlfwProvider.GLFW.IsValueCreated)
+        // Ultz.Native.GLFW 3.4 implements them. Select the requested platform before initialization.
+        lock (InitializationGate)
         {
-            const int glfwPlatformHint = 0x00050003;
-            const int glfwPlatformX11 = 0x00060004;
-            GlfwProvider.UninitializedGLFW.Value.InitHint((InitHint)glfwPlatformHint, glfwPlatformX11);
-        }
+            if (InitializedPlatform is { } initialized && initialized != platform)
+            {
+                throw new PlatformNotSupportedException(
+                    $"GLFW is already initialized for {initialized}; the same process cannot also select {platform}.");
+            }
+            if (!GlfwProvider.GLFW.IsValueCreated)
+            {
+                int hint = platform == SilkWindowPlatform.Wayland ? GlfwPlatformWayland : GlfwPlatformX11;
+                GlfwProvider.UninitializedGLFW.Value.InitHint((InitHint)GlfwPlatformHint, hint);
+            }
+            else if (InitializedPlatform is null)
+            {
+                throw new PlatformNotSupportedException(
+                    "GLFW was initialized before Luxel selected its Linux window platform. " +
+                    "Create SilkWindowBackend before using other GLFW services.");
+            }
 
-        GlfwWindowing.Use();
+            GlfwWindowing.Use();
+            InitializedPlatform = platform;
+        }
     }
 
-    /// <summary>Creates a GLFW/X11 backend on the current thread.</summary>
-    /// <exception cref="PlatformNotSupportedException">The process is not Linux or has no X11 display.</exception>
-    public static SilkWindowBackend Create()
+    /// <summary>Creates a GLFW backend on the current thread, preferring Wayland when available.</summary>
+    public static SilkWindowBackend Create() => Create(SilkWindowPlatform.Auto);
+
+    /// <summary>Creates a GLFW backend for the requested native Linux window platform.</summary>
+    /// <exception cref="PlatformNotSupportedException">The process is not Linux or the requested display is unavailable.</exception>
+    public static SilkWindowBackend Create(SilkWindowPlatform platform)
     {
         if (!OperatingSystem.IsLinux())
         {
             throw new PlatformNotSupportedException(
-                "Luxel.Platform.Silk currently supports Linux/X11 only. Use the Win32 backend on Windows.");
+                "Luxel.Platform.Silk is available only on Linux. Use the Win32 backend on Windows.");
         }
 
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")))
-        {
-            throw new PlatformNotSupportedException(
-                "Luxel.Platform.Silk requires an X11 display. Set DISPLAY to a reachable X server " +
-                "(for example DISPLAY=:99 after eng/desktop/start.sh, or run under xvfb-run). " +
-                "Native Wayland is not supported by this backend yet.");
-        }
+        platform = ResolvePlatform(platform,
+            Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"),
+            Environment.GetEnvironmentVariable("DISPLAY"));
 
         try
         {
-            return new SilkWindowBackend();
+            return new SilkWindowBackend(platform);
         }
         catch (Exception ex)
         {
+            string displayVariable = platform == SilkWindowPlatform.Wayland ? "WAYLAND_DISPLAY" : "DISPLAY";
             throw new PlatformNotSupportedException(
-                "Failed to load the Silk.NET GLFW runtime required by Luxel.Platform.Silk. " +
-                "Verify that the application output contains libglfw.so.3.3 and that its Linux/X11 dependencies are available.",
-                ex);
+                $"Failed to initialize the Silk.NET GLFW {platform} backend. Verify that {displayVariable} names a reachable display " +
+                "and that the application output contains the bundled GLFW native library and its runtime dependencies.", ex);
         }
+    }
+
+    internal static SilkWindowPlatform ResolvePlatform(SilkWindowPlatform requested, string? waylandDisplay, string? x11Display)
+    {
+        if (requested == SilkWindowPlatform.Auto)
+        {
+            if (!string.IsNullOrWhiteSpace(waylandDisplay)) return SilkWindowPlatform.Wayland;
+            if (!string.IsNullOrWhiteSpace(x11Display)) return SilkWindowPlatform.X11;
+            throw new PlatformNotSupportedException(
+                "Luxel.Platform.Silk requires a Wayland or X11 display. Set WAYLAND_DISPLAY for native Wayland, " +
+                "or DISPLAY for X11/Xwayland.");
+        }
+
+        string? display = requested == SilkWindowPlatform.Wayland ? waylandDisplay : x11Display;
+        if (string.IsNullOrWhiteSpace(display))
+        {
+            string variable = requested == SilkWindowPlatform.Wayland ? "WAYLAND_DISPLAY" : "DISPLAY";
+            throw new PlatformNotSupportedException(
+                $"The Silk.NET {requested} backend requires {variable} to name a reachable display.");
+        }
+        return requested;
     }
 
     /// <summary>Creates the process-level GLFW clipboard backend.</summary>
     public static IClipboardBackend CreateClipboardBackend() => new SilkClipboardBackend();
 
-    public string Name => "Silk.NET GLFW/X11";
+    public SilkWindowPlatform Platform { get; }
+    public string Name => $"Silk.NET GLFW/{Platform}";
 
     public IWindowBackendWindow CreateWindow(in WindowDesc desc)
     {
@@ -99,7 +158,7 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
             options.IsVisible = desc.Visible;
             options.IsEventDriven = false;
             options.ShouldSwapAutomatically = false;
-            if (desc.X.HasValue || desc.Y.HasValue)
+            if (Platform == SilkWindowPlatform.X11 && (desc.X.HasValue || desc.Y.HasValue))
             {
                 Vector2D<int> defaultPosition = options.Position;
                 options.Position = new Vector2D<int>(desc.X ?? defaultPosition.X, desc.Y ?? defaultPosition.Y);
@@ -110,23 +169,33 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
             if (!GlfwWindowing.IsViewGlfw(created))
             {
                 throw new PlatformNotSupportedException(
-                    "Silk.NET did not select its GLFW window platform. The Luxel Silk backend requires GLFW on Linux/X11.");
+                    "Silk.NET did not select its GLFW window platform. The Luxel Silk backend requires GLFW on Linux.");
             }
 
             created.Initialize();
             var platformWindow = created.Native
                 ?? throw new PlatformNotSupportedException("Silk.NET created a window without native platform handles.");
-            if (platformWindow.X11 is not { } x11)
+            nint display;
+            nint surface;
+            if (Platform == SilkWindowPlatform.Wayland && platformWindow.Wayland is { } wayland)
             {
-                string selected = platformWindow.Wayland is not null ? "Wayland" : platformWindow.Kind.ToString();
-                throw new PlatformNotSupportedException(
-                    $"GLFW created a {selected} window, but Luxel.Platform.Silk currently requires X11. " +
-                    "Run with a valid DISPLAY/X11 server (for example DISPLAY=:99); native Wayland support is not implemented yet.");
+                display = wayland.Display;
+                surface = wayland.Surface;
+                if (display == 0 || surface == 0)
+                    throw new PlatformNotSupportedException("Silk.NET created a Wayland window without wl_display/wl_surface handles.");
             }
-            nint x11Handle = checked((nint)x11.Window);
-            nint x11Display = (nint)x11.Display;
-            if (x11Display == 0)
-                throw new PlatformNotSupportedException("Silk.NET created an X11 window without an Xlib Display pointer.");
+            else if (Platform == SilkWindowPlatform.X11 && platformWindow.X11 is { } x11)
+            {
+                display = x11.Display;
+                surface = checked((nint)x11.Window);
+                if (display == 0 || surface == 0)
+                    throw new PlatformNotSupportedException("Silk.NET created an X11 window without Display/Window handles.");
+            }
+            else
+            {
+                throw new PlatformNotSupportedException(
+                    $"GLFW created a {platformWindow.Kind} window while Luxel requested {Platform}.");
+            }
 
             Glfw glfw = GlfwWindowing.GetExistingApi(created)
                 ?? throw new PlatformNotSupportedException("Silk.NET created a window without an accessible GLFW API.");
@@ -136,7 +205,7 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
                 throw new PlatformNotSupportedException("Silk.NET created a GLFW window without a native GLFW handle.");
             }
 
-            var window = new SilkWindow(this, created, glfw, handle, x11Display, x11Handle);
+            var window = new SilkWindow(this, created, glfw, handle, Platform, display, surface);
             _windows.Add(window);
             native = null;
             return window;
@@ -149,9 +218,10 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
         catch (Exception ex)
         {
             native?.Dispose();
+            string displayVariable = Platform == SilkWindowPlatform.Wayland ? "WAYLAND_DISPLAY" : "DISPLAY";
             throw new PlatformNotSupportedException(
-                "Failed to create a GLFW/X11 window. Verify that DISPLAY names a reachable X server and that the " +
-                "Silk.NET GLFW native library and X11 runtime libraries are installed.", ex);
+                $"Failed to create a GLFW/{Platform} window. Verify that {displayVariable} names a reachable display and that the " +
+                "Silk.NET GLFW native library and platform runtime libraries are installed.", ex);
         }
     }
 
@@ -177,6 +247,28 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
         return _windows.Count > 0;
     }
 
+    internal static void RegisterClipboardWindow(WindowHandle* window)
+    {
+        if (window is null) return;
+        lock (ClipboardWindowsGate) ClipboardWindows.Add((nint)window);
+    }
+
+    internal static void UnregisterClipboardWindow(WindowHandle* window)
+    {
+        if (window is null) return;
+        lock (ClipboardWindowsGate) ClipboardWindows.Remove((nint)window);
+    }
+
+    internal static WindowHandle* GetClipboardWindow()
+    {
+        lock (ClipboardWindowsGate)
+        {
+            if (ClipboardWindows.Count == 0)
+                throw new InvalidOperationException("The Silk.NET clipboard requires a live GLFW window.");
+            return (WindowHandle*)ClipboardWindows[^1];
+        }
+    }
+
     internal Cursor* GetCursor(CursorKind kind, Glfw glfw)
     {
         VerifyThread();
@@ -193,8 +285,11 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
         Cursor* cursor = glfw.CreateStandardCursor(shape);
         if (cursor is null)
         {
-            Glfw.ThrowExceptions();
-            throw new InvalidOperationException($"GLFW failed to create the standard {kind} cursor.");
+            // Some minimal Wayland environments do not install an Xcursor theme, so GLFW can fail
+            // to create individual standard cursors. Clear its pending error and pass null to
+            // glfwSetCursor, which restores the platform default instead of crashing the app.
+            try { Glfw.ThrowExceptions(); }
+            catch { }
         }
         _cursors.Add(kind, (nint)cursor);
         return cursor;
@@ -231,7 +326,8 @@ public sealed unsafe class SilkWindowBackend : IWindowBackend
 
         if (glfw is not null)
         {
-            foreach (nint cursor in _cursors.Values) glfw.DestroyCursor((Cursor*)cursor);
+            foreach (nint cursor in _cursors.Values)
+                if (cursor != 0) glfw.DestroyCursor((Cursor*)cursor);
         }
         _cursors.Clear();
     }

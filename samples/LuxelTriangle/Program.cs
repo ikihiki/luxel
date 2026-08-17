@@ -133,7 +133,10 @@ static GpuSurface CreateSurface(GpuDevice device, Window window)
     SilkWindow native = window.RequireBackendWindow<SilkWindow>();
     return device.Backend switch
     {
-        Luxel.Graphics.WebGPU.WebGpuBackend webGpu => webGpu.CreateXlibSurface(native.X11Display, native.X11Window, width, height),
+        Luxel.Graphics.WebGPU.WebGpuBackend webGpu when native.Platform == SilkWindowPlatform.Wayland =>
+            webGpu.CreateWaylandSurface(native.WaylandDisplay, native.WaylandSurface, width, height),
+        Luxel.Graphics.WebGPU.WebGpuBackend webGpu =>
+            webGpu.CreateXlibSurface(native.X11Display, native.X11Window, width, height),
         VulkanBackend vulkan => vulkan.CreateSurface(width, height),
         _ => throw new PlatformNotSupportedException($"Unsupported backend: {device.Backend.GetType().FullName}"),
     };

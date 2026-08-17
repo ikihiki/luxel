@@ -398,6 +398,13 @@ public sealed unsafe class WebGpuBackend : IGpuBackend
         return new GpuSurface(this, WebGpuSurface.CreateWin32(this, hinstance, hwnd, width, height));
     }
 
+    /// <summary>Creates a native WebGPU surface for a Wayland wl_surface.</summary>
+    public GpuSurface CreateWaylandSurface(nint display, nint surface, uint width, uint height)
+    {
+        ThrowIfDisposed();
+        return new GpuSurface(this, WebGpuSurface.CreateWayland(this, display, surface, width, height));
+    }
+
     /// <summary>Creates a native WebGPU surface for an Xlib window.</summary>
     public GpuSurface CreateXlibSurface(nint display, ulong window, uint width, uint height)
     {

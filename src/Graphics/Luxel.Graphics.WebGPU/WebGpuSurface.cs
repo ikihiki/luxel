@@ -144,6 +144,22 @@ internal sealed unsafe class WebGpuSurface : IGpuBackendSurface
         return new WebGpuSurface(backend, surface, width, height);
     }
 
+    internal static WebGpuSurface CreateWayland(WebGpuBackend backend, nint display, nint surface, uint width, uint height)
+    {
+        if (display == 0) throw new ArgumentException("A non-zero wl_display is required.", nameof(display));
+        if (surface == 0) throw new ArgumentException("A non-zero wl_surface is required.", nameof(surface));
+        var wayland = new SurfaceDescriptorFromWaylandSurface
+        {
+            Chain = new ChainedStruct { SType = SType.SurfaceDescriptorFromWaylandSurface },
+            Display = (void*)display,
+            Surface = (void*)surface,
+        };
+        var descriptor = new SurfaceDescriptor { NextInChain = &wayland.Chain };
+        Surface* nativeSurface = backend.Api.InstanceCreateSurface(backend.Instance, in descriptor);
+        if (nativeSurface == null) throw new InvalidOperationException("wgpuInstanceCreateSurface returned null for Wayland.");
+        return new WebGpuSurface(backend, nativeSurface, width, height);
+    }
+
     internal static WebGpuSurface CreateWin32(WebGpuBackend backend, nint hinstance, nint hwnd, uint width, uint height)
     {
         if (hwnd == 0) throw new ArgumentException("A non-zero Win32 HWND is required.", nameof(hwnd));

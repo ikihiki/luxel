@@ -53,8 +53,10 @@ public sealed class FileBasedAppTests
 
     private static void RequireLinuxDisplay()
     {
-        Assert.True(OperatingSystem.IsLinux(), "This smoke test requires Linux/X11.");
-        Assert.False(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")),
-            "This smoke test requires an X11 display (for example DISPLAY=:99 from eng/desktop/start.sh or xvfb-run). ");
+        Assert.True(OperatingSystem.IsLinux(), "This smoke test requires Linux.");
+        bool hasWayland = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
+        bool hasX11 = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"));
+        Assert.True(hasWayland || hasX11,
+            "This smoke test requires WAYLAND_DISPLAY or DISPLAY to name a reachable Linux display.");
     }
 }

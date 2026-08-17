@@ -55,7 +55,10 @@ for asset in shaders/raster2d_bounds.spv shaders/raster2d_bin.spv shaders/raster
 done
 
 if [[ "${LUXEL_SKIP_AOT_RUN:-0}" != 1 ]]; then
-  : "${DISPLAY:?DISPLAY must point to the Linux test desktop}"
+  if [[ -z "${WAYLAND_DISPLAY:-}" && -z "${DISPLAY:-}" ]]; then
+    echo "WAYLAND_DISPLAY or DISPLAY must point to the Linux test desktop" >&2
+    exit 1
+  fi
   (cd /tmp && LUXEL_RUN_FRAMES=1 "$exe")
 fi
 

@@ -6,30 +6,93 @@ namespace Luxel.Platform.Silk.Tests;
 public sealed class SilkWindowBackendTests
 {
     [Fact]
-    public void MissingDisplayHasActionableError()
+    public void PlatformSelectionPrefersWaylandAndReportsMissingDisplays()
     {
-        string? display = Environment.GetEnvironmentVariable("DISPLAY");
-        try
+        Assert.Equal(SilkWindowPlatform.Wayland,
+            SilkWindowBackend.ResolvePlatform(SilkWindowPlatform.Auto, "wayland-1", ":0"));
+        Assert.Equal(SilkWindowPlatform.X11,
+            SilkWindowBackend.ResolvePlatform(SilkWindowPlatform.Auto, null, ":0"));
+        Assert.Equal(SilkWindowPlatform.Wayland,
+            SilkWindowBackend.ResolvePlatform(SilkWindowPlatform.Wayland, "wayland-1", null));
+
+        PlatformNotSupportedException error = Assert.Throws<PlatformNotSupportedException>(() =>
+            SilkWindowBackend.ResolvePlatform(SilkWindowPlatform.Auto, null, null));
+        Assert.Contains("WAYLAND_DISPLAY", error.Message, StringComparison.Ordinal);
+        Assert.Contains("DISPLAY", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void WaylandLifecycleUsesNativeHandlesAndCompositorPlacement()
+    {
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"))) return;
+
+        using SilkWindowBackend backend = SilkWindowBackend.Create(SilkWindowPlatform.Wayland);
+        using var windows = new WindowSystem(backend);
+        Window window = windows.CreateWindow(new WindowDesc("Luxel Silk Wayland", 320, 220)
         {
-            Environment.SetEnvironmentVariable("DISPLAY", null);
-            PlatformNotSupportedException error = Assert.Throws<PlatformNotSupportedException>(SilkWindowBackend.Create);
-            Assert.Contains("DISPLAY", error.Message, StringComparison.Ordinal);
-            Assert.Contains("X11", error.Message, StringComparison.Ordinal);
-        }
-        finally
+            X = 80,
+            Y = 90,
+        });
+        SilkWindow native = window.RequireBackendWindow<SilkWindow>();
+
+        Assert.Equal("Silk.NET GLFW/Wayland", windows.Name);
+        Assert.Equal(SilkWindowPlatform.Wayland, native.Platform);
+        Assert.NotEqual(0, native.WaylandDisplay);
+        Assert.NotEqual(0, native.WaylandSurface);
+        Assert.Equal(native.WaylandSurface, window.Handle);
+        Assert.Throws<PlatformNotSupportedException>(() => _ = native.X11Display);
+        Assert.Equal(0, window.X);
+        Assert.Equal(0, window.Y);
+
+        var resized = new List<(int Width, int Height)>();
+        var moved = new List<(int X, int Y)>();
+        window.Resized += (width, height) => resized.Add((width, height));
+        window.Moved += (x, y) => moved.Add((x, y));
+        window.SetBounds(120, 130, 360, 240);
+        PumpUntil(windows, () => window.Width == 360 && window.Height == 240 && resized.Count > 0);
+        Assert.Equal((360, 240), resized[^1]);
+        Assert.Empty(moved);
+        Assert.Equal(0, window.X);
+        Assert.Equal(0, window.Y);
+
+        window.Hide();
+        PumpUntil(windows, () => !window.IsVisible);
+        window.Show();
+        PumpUntil(windows, () => window.IsVisible);
+        window.Focus(); // Wayland activation is compositor-controlled and must remain a safe no-op.
+
+        CursorKind requestedCursor = CursorKind.Arrow;
+        window.CursorQuery = () => requestedCursor;
+        foreach (CursorKind cursor in Enum.GetValues<CursorKind>())
         {
-            Environment.SetEnvironmentVariable("DISPLAY", display);
+            requestedCursor = cursor;
+            Assert.True(windows.Pump());
         }
+
+        using (var clipboard = new Clipboard(SilkWindowBackend.CreateClipboardBackend()))
+        {
+            string value = $"luxel-wayland-{Guid.NewGuid():N}";
+            clipboard.SetText(value);
+            windows.Pump();
+            Assert.Equal(value, clipboard.GetText());
+        }
+
+        int closed = 0;
+        window.Closed += () => closed++;
+        window.Close();
+        window.Close();
+        Assert.Equal(1, closed);
+        Assert.False(windows.Pump());
     }
 
     [Fact]
     [Trait("Category", "Integration")]
     public void X11LifecycleMultiWindowAndNormalizedInput()
     {
-        Assert.False(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")),
-            "This test requires DISPLAY=:99 from eng/desktop/start.sh or an xvfb-run display.");
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"))) return;
 
-        using SilkWindowBackend backend = SilkWindowBackend.Create();
+        using SilkWindowBackend backend = SilkWindowBackend.Create(SilkWindowPlatform.X11);
         using var windows = new WindowSystem(backend);
         string suffix = Guid.NewGuid().ToString("N");
         Window first = windows.CreateWindow(new WindowDesc($"Luxel Silk A {suffix}", 320, 220)

@@ -18,8 +18,11 @@ public sealed class LuxelAppTests
         Assert.True(options.Height > 0);
         Assert.Equal(LuxelWindowBackend.Auto, options.WindowBackend);
         Assert.Equal(LuxelGraphicsBackend.Auto, options.GraphicsBackend);
-        Assert.Equal(OperatingSystem.IsWindows() ? LuxelWindowBackend.Win32 : LuxelWindowBackend.SilkX11,
-            LuxelApp.ResolveWindowBackend(options.WindowBackend));
+        LuxelWindowBackend expectedWindow = OperatingSystem.IsWindows() ? LuxelWindowBackend.Win32
+            : !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"))
+                ? LuxelWindowBackend.SilkWayland
+                : LuxelWindowBackend.SilkX11;
+        Assert.Equal(expectedWindow, LuxelApp.ResolveWindowBackend(options.WindowBackend));
         Assert.Equal(OperatingSystem.IsWindows() ? LuxelGraphicsBackend.Direct3D12 : LuxelGraphicsBackend.Vulkan,
             LuxelApp.ResolveGraphicsBackend(options.GraphicsBackend));
         Assert.Equal(LuxelGraphicsBackend.WebGpu, Enum.Parse<LuxelGraphicsBackend>("WebGpu"));
@@ -135,7 +138,7 @@ public sealed class LuxelAppTests
 
     [Fact]
     [Trait("Category", "Integration")]
-    public void LinuxX11_RendersOneActualUiFrame()
+    public void LinuxNative_RendersOneActualUiFrame()
     {
         RequireLinuxDisplay();
         LuxelApp.Run(
@@ -152,7 +155,7 @@ public sealed class LuxelAppTests
 
     [Fact]
     [Trait("Category", "Integration")]
-    public void LinuxX11_StaticUiPresentsOnlyTheInvalidatedFrame()
+    public void LinuxNative_StaticUiPresentsOnlyTheInvalidatedFrame()
     {
         RequireLinuxDisplay();
         var presented = new List<bool>();
@@ -160,6 +163,7 @@ public sealed class LuxelAppTests
         builder.Options.Title = "Luxel.Framework.UI invalidation smoke";
         builder.Options.Width = 200;
         builder.Options.Height = 120;
+        builder.Options.GraphicsBackend = LuxelGraphicsBackend.WebGpu;
         builder.Options.RunFrames = 3;
         builder.Options.EnableValidation = true;
         builder.OnFrame((runtime, _) => presented.Add(runtime.MainWindow.RenderedThisFrame));
@@ -167,12 +171,13 @@ public sealed class LuxelAppTests
             .MapScreen("/", () => Center()[Card(Text("static"))])
             .Run();
 
-        Assert.Equal([true, false, false], presented);
+        bool wayland = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
+        Assert.Equal(wayland ? [true, true, false] : [true, false, false], presented);
     }
 
     [Fact]
     [Trait("Category", "Integration")]
-    public void LinuxX11_WebGpuRendersOneActualUiFrame()
+    public void LinuxNative_WebGpuRendersOneActualUiFrame()
     {
         RequireLinuxDisplay();
         LuxelApp.Run(
@@ -190,8 +195,10 @@ public sealed class LuxelAppTests
 
     private static void RequireLinuxDisplay()
     {
-        Assert.True(OperatingSystem.IsLinux(), "This smoke test requires Linux/X11.");
-        Assert.False(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")),
-            "This smoke test requires an X11 display (for example DISPLAY=:99 from eng/desktop/start.sh or xvfb-run). ");
+        Assert.True(OperatingSystem.IsLinux(), "This smoke test requires Linux.");
+        bool hasWayland = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
+        bool hasX11 = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"));
+        Assert.True(hasWayland || hasX11,
+            "This smoke test requires WAYLAND_DISPLAY or DISPLAY to name a reachable Linux display.");
     }
 }

@@ -181,7 +181,7 @@ $LUXEL_DESKTOP_STATE_DIR/logs/
 
 Optional output capture additionally uses `eng/desktop/capture-audio-start.sh`, `capture-audio-stop.sh`, and `eng/desktop/analyze-wav.py`. Do not enable `LUXEL_AUDIO_OUTPUT_CAPTURE=1` unless output capture was explicitly requested.
 
-## Hardware GPU selection, Vulkan fallback, and X11
+## Hardware GPU selection, Vulkan fallback, Wayland, and X11
 
 Needed by native `webgpu`, Vulkan/WebGPU presentation tests, browser WebGPU E2E, some platform tests, and native Gallery E2E.
 
@@ -221,7 +221,7 @@ command -v sway wayvnc wlr-randr wayland-info
 if [ -n "${WAYLAND_DISPLAY:-}" ]; then wlr-randr >/dev/null; fi
 ```
 
-Current Luxel Linux window and presentation integration tests remain X11-only. They cannot use the repository Wayland desktop because it starts Sway with Xwayland disabled. When those legacy suites are explicitly requested, detect or provision an isolated X11 display separately:
+Luxel Linux window and presentation integration tests support the repository's native Wayland desktop. Source the generated environment and leave `DISPLAY` unset for the normal Wayland run. When explicit X11 regression coverage is requested, detect or provision an isolated X11 display separately:
 
 ```bash
 command -v Xvfb xdpyinfo
@@ -237,7 +237,7 @@ sudo apt-get update
 sudo apt-get install -y libvulkan1 vulkan-tools mesa-vulkan-drivers sway wayvnc wayland-utils grim wlr-randr novnc websockify
 ```
 
-For legacy X11-only Luxel presentation tests, install Xvfb and X11 utilities separately rather than adding them to the Dev Container image.
+For explicit X11 regression tests, install Xvfb and X11 utilities separately rather than adding them to the Dev Container image.
 
 Install the correct vendor GPU driver through the machine's approved provisioning method. Do not replace or modify GPU drivers automatically. This is privileged and machine-wide; ask for approval first.
 
@@ -259,7 +259,7 @@ export WGPU_ADAPTER_NAME=llvmpipe
 
 Never switch from a detected hardware adapter to this fallback silently. Report the hardware initialization failure and ask or clearly announce the fallback according to the user's request.
 
-### Start an isolated X11 display for legacy Luxel suites
+### Start an isolated X11 display for explicit X11 regression suites
 
 ```bash
 export DISPLAY=:99
@@ -285,7 +285,7 @@ Preserve `/tmp/luxel-xvfb.log` and `/tmp/luxel-openbox.log` when a test fails.
 
 ## Full Luxel desktop helper environment
 
-Wayland desktop infrastructure and Vulkan baseline tests use the repository helper scripts. Native AOT validation builds and inspects Linux artifacts but does not execute the current X11-only Luxel window binary inside this desktop.
+Wayland desktop infrastructure, Vulkan/WebGPU presentation tests, framework UI smoke tests, and Native AOT validation use the repository helper scripts. Native AOT validation executes a bounded Luxel window run directly in this desktop.
 
 ### Dev Container packages
 

@@ -8,7 +8,7 @@ using Silk.NET.Core.Native;
 
 namespace Luxel.Vulkan.Present.Tests;
 
-public sealed class VulkanX11PresentTests
+public sealed class VulkanLinuxPresentTests
 {
     [Fact]
     public void MappedRgbaBuffer_PresentsOneFrame()
@@ -90,9 +90,11 @@ public sealed class VulkanX11PresentTests
 
     private static void RequireLinuxDisplay()
     {
-        Assert.True(OperatingSystem.IsLinux(), "These integration tests require Linux/X11.");
-        Assert.False(string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY")),
-            "These integration tests require DISPLAY=:99 (for example from eng/desktop/start.sh).");
+        Assert.True(OperatingSystem.IsLinux(), "These integration tests require Linux.");
+        bool hasWayland = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"));
+        bool hasX11 = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"));
+        Assert.True(hasWayland || hasX11,
+            "These integration tests require WAYLAND_DISPLAY or DISPLAY to name a reachable display.");
     }
 
     private static void PumpUntil(WindowSystem windows, Func<bool> condition, int timeoutMilliseconds = 3000)

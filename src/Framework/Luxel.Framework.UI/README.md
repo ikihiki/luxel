@@ -1,6 +1,6 @@
 # Luxel.Framework.UI
 
-A .NET 10 facade for creating Luxel UI applications. It owns UI-oriented window orchestration (`WindowManager`, `WindowHost`, `IWindowContent`, and `UiContent`) while platform backends remain in `Luxel.Platform.*`. Builder defaults detect the environment: Windows uses Win32 + Direct3D 12, while Linux uses Silk.NET X11 + Vulkan. `WindowBackend` and `GraphicsBackend` can still override either choice explicitly.
+A .NET 10 facade for creating Luxel UI applications. It owns UI-oriented window orchestration (`WindowManager`, `WindowHost`, `IWindowContent`, and `UiContent`) while platform backends remain in `Luxel.Platform.*`. Builder defaults detect the environment: Windows uses Win32 + Direct3D 12, while Linux uses native Wayland when `WAYLAND_DISPLAY` is available and otherwise X11, with Vulkan graphics by default. `WindowBackend` and `GraphicsBackend` can still override either choice explicitly.
 
 ```csharp
 #:package Luxel.Framework.UI@0.1.0
