@@ -20,7 +20,7 @@
     }
   },
   "containerEnv": {
-    "LUXEL_DESKTOP_RENDERER": "hardware",
+    "LUXEL_DESKTOP_RENDERER": "auto",
     "LUXEL_REQUIRE_HARDWARE_VULKAN": "1",
     "LUXEL_VULKAN_VENDOR_ID": "0x8086",
     "LUXEL_DESKTOP_AUDIO": "off"

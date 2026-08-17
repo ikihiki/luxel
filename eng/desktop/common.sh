@@ -26,8 +26,24 @@ ENV_FILE="${STATE_DIR}/environment"
 LOCK_FILE="${STATE_DIR}/desktop.lock"
 AUDIO_LOCK_FILE="${STATE_DIR}/audio.lock"
 SWAY_CONFIG="${STATE_DIR}/sway.conf"
-DESKTOP_RENDERER="${LUXEL_DESKTOP_RENDERER:-hardware}"
+DESKTOP_RENDERER_REQUESTED="${LUXEL_DESKTOP_RENDERER:-auto}"
 DRM_RENDER_NODE="${LUXEL_DRM_RENDER_NODE:-/dev/dri/renderD128}"
+case "${DESKTOP_RENDERER_REQUESTED}" in
+    auto)
+        if [[ -c "${DRM_RENDER_NODE}" ]]; then
+            DESKTOP_RENDERER=hardware
+        else
+            DESKTOP_RENDERER=lavapipe
+        fi
+        ;;
+    hardware|lavapipe)
+        DESKTOP_RENDERER="${DESKTOP_RENDERER_REQUESTED}"
+        ;;
+    *)
+        printf '[luxel-desktop] error: invalid LUXEL_DESKTOP_RENDERER %q (expected auto, hardware, or lavapipe)\n' "${DESKTOP_RENDERER_REQUESTED}" >&2
+        exit 1
+        ;;
+esac
 REQUIRE_HARDWARE_VULKAN="${LUXEL_REQUIRE_HARDWARE_VULKAN:-0}"
 if [[ "${DESKTOP_RENDERER}" == "lavapipe" ]]; then
     REQUIRE_HARDWARE_VULKAN=0
@@ -45,10 +61,6 @@ AUDIO_RATE=48000
 AUDIO_CHANNELS=2
 CAPTURE_DIR="${STATE_DIR}/captures"
 
-case "${DESKTOP_RENDERER}" in
-    hardware|lavapipe) ;;
-    *) printf '[luxel-desktop] error: invalid LUXEL_DESKTOP_RENDERER %q (expected hardware or lavapipe)\n' "${DESKTOP_RENDERER}" >&2; exit 1 ;;
-esac
 if [[ ! "${DESKTOP_WIDTH}" =~ ^[1-9][0-9]*$ || ! "${DESKTOP_HEIGHT}" =~ ^[1-9][0-9]*$ ]]; then
     printf '[luxel-desktop] error: invalid LUXEL_DESKTOP_GEOMETRY %q (expected WIDTHxHEIGHT)\n' "${DESKTOP_GEOMETRY}" >&2
     exit 1

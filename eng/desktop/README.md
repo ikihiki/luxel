@@ -29,9 +29,9 @@ Load the GUI environment in another shell:
 source "${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/environment"
 ```
 
-The Dev Container defaults to hardware Vulkan rendering through `/dev/dri/renderD128`. Set `LUXEL_REQUIRE_HARDWARE_VULKAN=1` to make `healthcheck.sh` require a non-CPU Vulkan device. `LUXEL_VULKAN_VENDOR_ID` can restrict selection to a vendor such as Intel (`0x8086`).
+The Dev Container defaults to `LUXEL_DESKTOP_RENDERER=auto`: it uses hardware Vulkan through `/dev/dri/renderD128` when that render node is available, and automatically selects pixman plus lavapipe on GPU-less builders such as GitHub Actions. Set `LUXEL_DESKTOP_RENDERER=hardware` to require the render node explicitly. `LUXEL_REQUIRE_HARDWARE_VULKAN=1` makes `healthcheck.sh` require a non-CPU Vulkan device whenever hardware mode is selected. `LUXEL_VULKAN_VENDOR_ID` can restrict selection to a vendor such as Intel (`0x8086`).
 
-For a deterministic compositor-only software fallback, use pixman and lavapipe:
+For an explicit deterministic software fallback, use pixman and lavapipe:
 
 ```bash
 LUXEL_DESKTOP_RENDERER=lavapipe eng/desktop/start.sh
@@ -88,7 +88,7 @@ Runtime files live under `${XDG_RUNTIME_DIR:-/tmp}/luxel-desktop-${UID}/` and in
 | `LUXEL_WAYLAND_OUTPUT` | `HEADLESS-1` | Sway output captured by wayvnc |
 | `LUXEL_VNC_SOCKET` | state directory `/vnc.sock` | private wayvnc/websockify Unix socket |
 | `LUXEL_NOVNC_PORT` | `6080` | loopback noVNC HTTP/WebSocket port |
-| `LUXEL_DESKTOP_RENDERER` | Dev Container: `hardware` | `hardware` or `lavapipe` |
+| `LUXEL_DESKTOP_RENDERER` | Dev Container: `auto` | `auto`, `hardware`, or `lavapipe`; auto prefers the DRM render node and otherwise uses software |
 | `LUXEL_DRM_RENDER_NODE` | `/dev/dri/renderD128` | DRM render node used by hardware Sway |
 | `LUXEL_REQUIRE_HARDWARE_VULKAN` | `0` | require and select a hardware Vulkan device |
 | `LUXEL_VULKAN_VENDOR_ID` | empty | optional required hexadecimal vendor ID |

@@ -106,7 +106,7 @@ RUN sed -i 's/\r$//' /opt/luxel/desktop/*.sh \
     && chmod -R a+rX /opt/luxel/desktop \
     && find /opt/luxel/desktop -maxdepth 1 -name '*.sh' -exec chmod a+x {} +
 
-ENV LUXEL_DESKTOP_RENDERER=hardware \
+ENV LUXEL_DESKTOP_RENDERER=auto \
     LUXEL_REQUIRE_HARDWARE_VULKAN=1 \
     LUXEL_VULKAN_VENDOR_ID=0x8086 \
     LUXEL_DESKTOP_AUDIO=off \
