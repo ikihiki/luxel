@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using Luxel.Animation;
 using Luxel.Animation.UI;
 using Luxel.AssetRuntime;
@@ -872,8 +872,8 @@ public class RetainedCanvasAnimationTargetTests
         var t = Luxel.Mathematics.Affine2D.Translate(0, 0);
         // translationX を 50 にした場合の効果
         var expected = new Luxel.Mathematics.Affine2D { A = 1, B = 0, C = 0, D = 1, E = 50, F = 0 };
-        Assert.Equal(expected.E, 50f);
-        Assert.Equal(t.A, 1f);
+        Assert.Equal(50f, expected.E);
+        Assert.Equal(1f, t.A);
     }
 
     [Fact]

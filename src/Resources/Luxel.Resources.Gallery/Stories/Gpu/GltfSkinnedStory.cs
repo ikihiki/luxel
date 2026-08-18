@@ -112,7 +112,7 @@ public static class GltfSkinnedStories
                 {
                     if (_prim is not null) return;   // 最初のスキンメッシュのみ
                     AssetPrimitive p = mr.Mesh.Primitives[0];
-                    if (assets.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) && gpu.HasSkinning)
+                    if (assets.Primitives.TryGetValue(p, out ScenePrimitiveGpu? gpu) && gpu is { HasSkinning: true })
                     {
                         _prim = gpu;
                         jointMats = jm.Matrices;

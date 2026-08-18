@@ -192,7 +192,7 @@ public class EditorCommandTests
     {
         var s = S("foo bar foo", 1);   // "foo" 内
         Transaction t = EditCommands.SelectNextOccurrence(s);
-        Assert.Equal(1, t.State.Selection.Ranges.Count);
+        Assert.Single(t.State.Selection.Ranges);
         Assert.Equal(0, t.State.Selection.Main.From);
         Assert.Equal(3, t.State.Selection.Main.To);   // "foo" を選択
     }
@@ -235,7 +235,7 @@ public class EditorCommandTests
         var s = EditorState.Create("a b c",
             EditorSelection.Of([SelectionRange.Cursor(0), SelectionRange.Cursor(2), SelectionRange.Cursor(4)], 1));
         Transaction t = EditCommands.ClearSecondaryCursors(s);
-        Assert.Equal(1, t.State.Selection.Ranges.Count);
+        Assert.Single(t.State.Selection.Ranges);
         Assert.Equal(2, t.State.Selection.Main.Head);   // 主のみ残る
     }
 }

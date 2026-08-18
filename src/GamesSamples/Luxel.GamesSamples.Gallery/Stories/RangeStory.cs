@@ -383,7 +383,7 @@ public static class RangeStories
                 (ref AssetMeshRef mr, ref AssetSkinRef _, ref JointMatrices jm, Friflo.Engine.ECS.Entity _) =>
                 {
                     AssetPrimitive p = mr.Mesh.Primitives[0];
-                    if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) && gpu.HasSkinning)
+                    if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu? gpu) && gpu is { HasSkinning: true })
                     { _foxPrim = gpu; mats = jm.Matrices; }   // 毎回 joint 行列を取り出す (アニメ更新のため)
                 });
             jointMats = mats;

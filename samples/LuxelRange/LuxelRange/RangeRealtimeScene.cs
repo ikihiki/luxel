@@ -45,7 +45,6 @@ public sealed class RangeRealtimeScene : IGameScene
     private RangeAudio? _audio;
     private OrbitCamera _cam = new(new Vector3(0, 0.8f, -6f), yaw: 0f, pitch: 0.40f, distance: 18f,
         fovYRadians: MathF.PI / 3.4f, aspect: (float)Width / Height);
-    private float _fireTimer = 0.4f;
 
     private GpuBuffer? _fb, _vb, _terrainVb, _terrainIb, _terrainInst;
     private int _terrainIdxCount;
@@ -315,7 +314,7 @@ public sealed class RangeRealtimeScene : IGameScene
             (ref AssetMeshRef mr, ref AssetSkinRef _, ref JointMatrices jm, Friflo.Engine.ECS.Entity _) =>
             {
                 AssetPrimitive p = mr.Mesh.Primitives[0];
-                if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) && gpu.HasSkinning) { _foxPrim = gpu; mats = jm.Matrices; }
+                if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu? gpu) && gpu is { HasSkinning: true }) { _foxPrim = gpu; mats = jm.Matrices; }
             });
         jointMats = mats;
     }

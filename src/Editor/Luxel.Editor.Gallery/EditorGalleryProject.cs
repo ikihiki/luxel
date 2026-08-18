@@ -20,6 +20,7 @@ public static class EditorGalleryProject
         using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Editor_UI.Register(categoryBuilder);
+        global::Luxel.Editor.Gallery.EditorControlDocs.Register(categoryBuilder, ProductionComponents);
         global::Luxel.Editor.Gallery.Stories.Docs.EditorControlDocsApi.Register(categoryBuilder);
 
         var authoredBuilder = new StoryCatalogBuilder();

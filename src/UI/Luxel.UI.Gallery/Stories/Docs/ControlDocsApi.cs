@@ -22,18 +22,9 @@ internal static class ControlDocsApi
     {
         ArgumentNullException.ThrowIfNull(builder);
         RuntimeHelpers.RunModuleConstructor(typeof(Luxel.Controls.Kit).Module.ModuleHandle);
-        var paths = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (GeneratedComponentStoryDescriptor descriptor in global::Luxel.UI.Gallery.UiGalleryProject.ProductionComponents)
-        {
-            if (!descriptor.IsUserFacing || descriptor.AssemblyOwner != "Luxel.Controls") continue;
-            ControlApi? api = ControlApiRegistry.Find(descriptor.ComponentType.Replace("global::", "", StringComparison.Ordinal));
-            if (api is null || !paths.Add(descriptor.DocsPath)) continue;
-            builder.Add(descriptor.ControlName == "Button"
-                ? new StoryInfo(descriptor.DocsPath, static _ => ButtonDocs(), Source: "Generated component docs.")
-                : new StoryInfo(descriptor.DocsPath, ctx => ControlPage(ctx, api), Source: "Generated component docs."),
-                replaceGenerated: true);
-        }
+        var paths = new HashSet<string>(
+            global::Luxel.UI.Gallery.UiGalleryProject.ProductionComponents.Select(static descriptor => descriptor.DocsPath),
+            StringComparer.Ordinal);
 
         RegisterSpecialControlPage(builder, paths, "Controls/Layout/Layout/Docs", LayoutPage);
         RegisterSpecialControlPage(builder, paths, "Controls/Layout/Kit/Docs", KitPage);
