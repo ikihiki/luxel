@@ -18,8 +18,7 @@ public sealed partial class ImageView : Widget, IDisposable
     [UiParam] private readonly Bindable<float> _height = new();
 
     private GpuDevice? _device;
-    private GpuBuffer? _buf;
-    private int _srcW, _srcH;
+    private readonly RgbaImagePresenter _image = new();
     private byte[]? _pending;   // 実体化前に SetPixels された分
     private int _pendingW, _pendingH;
 
@@ -30,7 +29,7 @@ public sealed partial class ImageView : Widget, IDisposable
     private float W => MathF.Max(1, Width.Get());
     private float H => MathF.Max(1, Height.Get());
 
-    public override string? DebugDetail => _srcW > 0 ? $"{_srcW}x{_srcH}" : "(no image)";
+    public override string? DebugDetail => _image.Width > 0 ? $"{_image.Width}x{_image.Height}" : "(no image)";
 
     /// <summary>画像を差し替える (実体化前後どちらでも可)。ソース寸法は自由 — 表示は widget サイズへ拡縮。</summary>
     public void SetPixels(int width, int height, ReadOnlySpan<byte> rgba)
@@ -42,14 +41,7 @@ public sealed partial class ImageView : Widget, IDisposable
             _pendingW = width; _pendingH = height;
             return;
         }
-        bool resized = _buf is null || width != _srcW || height != _srcH;
-        if (resized)
-        {
-            _buf?.Dispose();
-            _buf = _device.Malloc((ulong)(width * height * 4), GpuMemoryKind.HostMapped);
-            _srcW = width; _srcH = height;
-        }
-        rgba[..(width * height * 4)].CopyTo(_buf!.Span<byte>(width * height * 4));
+        bool resized = _image.Update(_device, width, height, rgba);
         if (resized)
         {
             _node!.Content = MakeContent();    // ソース index/寸法が変わった → content 部分更新
@@ -60,10 +52,7 @@ public sealed partial class ImageView : Widget, IDisposable
         }
     }
 
-    private Scene2D MakeContent()
-        => _buf is null
-            ? new Scene2D()
-            : new Scene2D().ImageRect(_buf.BindlessIndex, (uint)_srcW, (uint)_srcW, (uint)_srcH, 0, 0, Size.Width, Size.Height);
+    private Scene2D MakeContent() => _image.CreateScene(Size.Width, Size.Height);
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
         => Size = c.Constrain(new Size(W, H));
@@ -85,7 +74,6 @@ public sealed partial class ImageView : Widget, IDisposable
 
     public void Dispose()
     {
-        _buf?.Dispose();
-        _buf = null;
+        _image.Dispose();
     }
 }

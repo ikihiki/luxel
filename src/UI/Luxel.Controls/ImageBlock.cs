@@ -27,7 +27,7 @@ public sealed partial class ImageBlock : Widget, IDisposable
     private ResourceHandle<CpuImage>? _handle;
     private Signal<ResourceState>? _state;
     private IDisposable? _stateSubscription;
-    private GpuBuffer? _buf;
+    private readonly RgbaImagePresenter _image = new();
     private float _displayWidth, _imageHeight, _captionHeight, _resizeStartWidth;
     private UiNode? _outline, _caption, _resizeHandle;
     private FocusTarget? _focus;
@@ -84,11 +84,8 @@ public sealed partial class ImageBlock : Widget, IDisposable
         if (State.HasValue && Handle.Value is CpuImage img && img.Width > 0)
         {
             GpuDevice device = ctx.RequireGpuRasterizer().Device;
-            _buf?.Dispose();
-            _buf = device.Malloc((ulong)(img.Width * img.Height * 4), GpuMemoryKind.HostMapped);
-            img.Pixels.AsSpan(0, img.Width * img.Height * 4).CopyTo(_buf.Span<byte>(img.Width * img.Height * 4));
-            node.Content = new Scene2D().ImageRect(
-                _buf.BindlessIndex, (uint)img.Width, (uint)img.Width, (uint)img.Height, 0, 0, Size.Width, _imageHeight);
+            _image.Update(device, img.Width, img.Height, img.Pixels);
+            node.Content = _image.CreateScene(Size.Width, _imageHeight);
 
             _outline = ctx.Canvas.AddChild(node); _outline.Z = 2;
             var outline = new Scene2D();
@@ -152,7 +149,6 @@ public sealed partial class ImageBlock : Widget, IDisposable
         _state = null;
         _handle?.Dispose();   // RefCount-- (Resource システムがキャッシュ/解放を管理)
         _handle = null;
-        _buf?.Dispose();
-        _buf = null;
+        _image.Dispose();
     }
 }
