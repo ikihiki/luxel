@@ -18,6 +18,7 @@ public static class ParticlesGalleryProject
         using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Register(categoryBuilder);
+        ParticleViewDocs.Register(categoryBuilder, ProductionComponents);
 
         var authoredBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Particles_Gallery.Register(authoredBuilder);

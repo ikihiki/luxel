@@ -21,8 +21,8 @@ public static class UiGalleryProject
         using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         RegisterProductionComponents(categoryBuilder);
-        // Enrich generated component Docs in the same catalog before authored exact-path
-        // replacements are applied. This keeps a single canonical Docs entry per component.
+        UiControlDocs.Register(categoryBuilder, ProductionComponents);
+        // Keep library-level guides and compatibility categories after exact component-identity Docs.
         global::Luxel.Gallery.Stories.ControlDocsApi.RegisterControlStories(categoryBuilder);
         Merge(Luxel.Gallery.Generated.StoryRegistration_Luxel_UI_Gallery.Register);
         Merge(Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_UI_Gallery.Register);

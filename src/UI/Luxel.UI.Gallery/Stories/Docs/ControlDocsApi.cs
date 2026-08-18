@@ -29,10 +29,12 @@ internal static class ControlDocsApi
             if (api.Namespace != "Luxel.Controls") continue;
             string? category = ExistingControlCategory(api.Name);
             if (category is null || !categories.Add(category)) continue;
+            string path = $"Controls/{category}/Docs";
+            if (builder.ContainsPath(path)) continue;
             builder.Add(api.Name == "Button"
-                ? new StoryInfo("Controls/Button/Docs",
+                ? new StoryInfo(path,
                     static _ => ButtonDocs(), Source: "Generated component docs.")
-                : new StoryInfo($"Controls/{category}/Docs",
+                : new StoryInfo(path,
                     ctx => ControlPage(ctx, api), Source: "Generated component docs."), replaceGenerated: true);
         }
 
