@@ -4,6 +4,7 @@ using Luxel.Controls;
 using Luxel.UI;
 using Luxel.Workbench;
 using static Luxel.Controls.Kit;
+using static Luxel.Controls.EditorKit;
 
 namespace Luxel.Gallery.Stories;
 

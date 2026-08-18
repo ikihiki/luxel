@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\Scripting\Luxel.Scripting\Luxel.Scripting.csproj" />
     <ProjectReference Include="..\..\Resources\Luxel.Resources\Luxel.Resources.csproj" />
     <ProjectReference Include="..\..\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\Luxel.Editor.UI\Luxel.Editor.UI.csproj" />
     <ProjectReference Include="..\..\UI\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\..\DevTools\Luxel.Diagnostics\Luxel.Diagnostics.csproj" />
     <ProjectReference Include="..\..\UI\Luxel.Document\Luxel.Document.csproj" />

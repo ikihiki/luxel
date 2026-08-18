@@ -50,6 +50,7 @@
     <ProjectReference Include="..\..\..\src\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
     <ProjectReference Include="..\..\..\src\UI\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\..\src\UI\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
+    <ProjectReference Include="..\..\..\src\Editor\Luxel.Editor.UI\Luxel.Editor.UI.csproj" />
     <ProjectReference Include="..\..\..\src\UI\Luxel.Controls\Luxel.Controls.csproj" />
     <ProjectReference Include="..\..\..\src\DevTools\Luxel.DevTools\Luxel.DevTools.csproj" />
     <ProjectReference Include="..\..\..\src\Resources\Luxel.Resources\Luxel.Resources.csproj" />

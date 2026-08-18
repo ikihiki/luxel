@@ -15,7 +15,13 @@ public static class EditorGalleryProject
         ArgumentNullException.ThrowIfNull(builder);
         using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
-        Luxel.Gallery.Generated.StoryRegistration_Luxel_Editor_Gallery.Register(categoryBuilder);
+        Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Editor_UI.Register(categoryBuilder);
+
+        var authoredBuilder = new StoryCatalogBuilder();
+        Luxel.Gallery.Generated.StoryRegistration_Luxel_Editor_Gallery.Register(authoredBuilder);
+        foreach (StoryInfo story in authoredBuilder.Build().All)
+            categoryBuilder.Add(story, replaceGenerated: true);
+
         foreach (StoryInfo story in categoryBuilder.Build().All)
             builder.Add(story, replaceGenerated: true);
     }
