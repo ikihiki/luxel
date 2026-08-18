@@ -121,7 +121,7 @@ public sealed class TileMap
         return (x0, y0, x1, y1);
     }
 
-    /// <summary>チャンク (cx,cy) の非空タイルを <see cref="Scene2D.DrawSprite"/> で <paramref name="scene"/> へ焼く
+    /// <summary>チャンク (cx,cy) の非空タイルを <c>Scene2D.DrawSprite</c> で <paramref name="scene"/> へ焼く
     /// (ワールド座標。タイル (tx,ty) は左上 (tx·tileW, ty·tileH))。空/スプライト未定義のタイルは飛ばす。</summary>
     public void AppendChunk(int cx, int cy, Scene2D scene)
     {

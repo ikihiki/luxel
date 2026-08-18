@@ -6,7 +6,10 @@
 
   <ItemGroup>
     <PackageReference Include="icu.net" Version="3.0.2" />
-    <PackageReference Include="Icu4c.Win.Full.Bin" Version="59.1.15" />
+    <!-- icu.net transitively pins Newtonsoft.Json 9.0.1 through DependencyModel 2.x. Override the
+         vulnerable compile-time dependency while retaining the only available icu.net adapter. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Microsoft.ICU.ICU4C.Runtime" Version="72.1.0.3" />
   </ItemGroup>
 
   <PropertyGroup>

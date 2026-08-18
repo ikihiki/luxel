@@ -1,4 +1,4 @@
-﻿using System.Collections.Immutable;
+using System.Collections.Immutable;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
@@ -61,6 +61,9 @@ public sealed class ScriptHost
     /// <summary>キャッシュ済みスクリプト数 (テスト/診断用)。</summary>
     public int CachedScripts { get { lock (_gate) return _cache.Count; } }
 
+    /// <param name="references">スクリプトから参照できるアセンブリ。</param>
+    /// <param name="usings">スクリプトへ既定で導入する名前空間。</param>
+    /// <param name="globalsType">スクリプトの globals 型。</param>
     /// <param name="filePath">デバッグ emit の document パス。<c>null</c> = 論理名 <c>script.csx</c> (既定)。
     /// <b>外部デバッガアタッチ</b>には**実在する .csx の絶対パス**を渡す — 出力 PDB がその実ファイルを
     /// 指すので VS / VS Code がブレークポイントを束ねられる (ソース内容がスクリプトと一致している前提)。</param>

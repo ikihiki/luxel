@@ -1,4 +1,4 @@
-﻿namespace Luxel.Strudel;
+namespace Luxel.Strudel;
 
 /// <summary>
 /// 時間区間 [Begin, End) (Tidal の Arc / Strudel の TimeSpan)。単位はサイクル。
@@ -48,9 +48,9 @@ public readonly struct TimeArc(Fraction begin, Fraction end)
 
 /// <summary>
 /// パターンイベント (Tidal/Strudel の Hap)。
-/// <see cref="Whole"/> = イベント本来の全区間 (null = 連続値のサンプル — v1 では未使用)、
-/// <see cref="Part"/> = このクエリで見えている断片 (Whole ⊇ Part)。
-/// クエリ窓がイベントを跨ぐと同じ Whole の断片が複数回返る — 発音は <see cref="HasOnset"/>
+/// <c>Whole</c> = イベント本来の全区間 (null = 連続値のサンプル — v1 では未使用)、
+/// <c>Part</c> = このクエリで見えている断片 (Whole ⊇ Part)。
+/// クエリ窓がイベントを跨ぐと同じ Whole の断片が複数回返る — 発音は <c>HasOnset</c>
 /// (断片が頭を含む) のときだけ行う。これが「窓を跨いでも二重発火しない」仕組みの核。
 /// </summary>
 /// <summary>ミニ記法アトムのソース位置 (ソース文字列内の開始オフセット + 長さ)。

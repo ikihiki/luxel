@@ -19,6 +19,7 @@ public static class PlayerShipper
     /// <param name="playerAppProject">Luxel.Player.App の csproj パス (リポジトリ内)。</param>
     /// <param name="projectFolder">出荷するゲームプロジェクトフォルダ。</param>
     /// <param name="outDir">出力フォルダ (無ければ作成、既存 project/ は入れ替え)。</param>
+    /// <param name="selfContained">自己完結 publish を行う場合は <see langword="true"/>。</param>
     public static string Ship(string playerAppProject, string projectFolder, string outDir, bool selfContained = true)
     {
         if (!File.Exists(playerAppProject)) throw new FileNotFoundException(playerAppProject);

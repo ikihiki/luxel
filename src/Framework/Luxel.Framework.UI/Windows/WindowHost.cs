@@ -8,7 +8,7 @@ namespace Luxel.Framework.UI;
 /// 中身は <see cref="IWindowContent"/> に委譲する (UI 1 つ / 複数 UI 合成 / 3D — ウィンドウは UI と 1:1 ではない)。
 /// framebuffer 幅は 64 の倍数にパディング (D3D12 の 256B 行整列)、可視領域のみ present。
 /// リモート検証用に最新フレームの tight RGBA を保持する (内容ハッシュで rev 管理、Gallery と同じ流儀)。
-/// TSF (実 IME): スレッド共有の <see cref="TsfThread"/> + この窓の <see cref="TsfDocument"/> を持ち、
+/// TSF (実 IME): スレッド共有の <c>TsfThread</c> + この窓の <c>TsfDocument</c> を持ち、
 /// WM_SETFOCUS で IME フォーカス文書を切り替える。初期化失敗時は WM_CHAR フォールバック。
 /// </summary>
 internal sealed record WindowRemoteInfo(

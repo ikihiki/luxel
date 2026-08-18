@@ -299,7 +299,7 @@ public static class KnockdownStories
             _log($"shot {_shots}/{MaxShots}");
         }
 
-        /// <summary>台座から落ちた箱を数える (y < -3)。増えたらログ、全滅で再構築。</summary>
+        /// <summary>台座から落ちた箱を数える (<c>y &lt; -3</c>)。増えたらログ、全滅で再構築。</summary>
         private void CountKnocked()
         {
             int n = 0;

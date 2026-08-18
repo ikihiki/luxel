@@ -1,4 +1,4 @@
-﻿using Luxel.Animation;
+using Luxel.Animation;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
@@ -35,7 +35,7 @@ public sealed partial class ListView : Widget
     /// (参照が変わった時だけ再バインド — 選択解除 + スクロールはクランプ)。</summary>
     [UiParam] private readonly Bindable<Signal<IReadOnlyList<string>>> _items = new();
 
-    /// <summary>行の D&D 並べ替えを許可する (QP-M4)。ドロップで <see cref="OnReorder"/> が呼ばれる —
+    /// <summary>行の D&amp;D 並べ替えを許可する (QP-M4)。ドロップで <see cref="OnReorder"/> が呼ばれる —
     /// 呼び出し側が並べ替えた列を <see cref="Items"/> の signal へ入れ直す (このコントロールはデータを所有しない)。</summary>
     public bool AllowReorder { get; set; }
 

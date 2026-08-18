@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using Friflo.Engine.ECS;
 using Friflo.Engine.ECS.Serialize;
@@ -9,7 +9,7 @@ namespace Luxel.Ecs;
 /// ゲーム状態 (ECS <see cref="World"/>) のセーブ/ロード。Friflo 組み込みの <see cref="EntitySerializer"/>
 /// (component 名 → 値スキーマ、アーキタイプ非依存 = エンジン更新をまたいで安定) を土台に、
 /// バージョン付きラッパを被せる。**文字列 in/out** なのでファイル IO 非依存でテストできる
-/// (ファイル層は <see cref="Luxel.Resources"/> の <c>IVirtualFileSystem</c> 側で薄く繋ぐ)。
+/// (ファイル層は <c>Luxel.Resources</c> の <c>IVirtualFileSystem</c> 側で薄く繋ぐ)。
 ///
 /// <para><b>保存対象</b>: 純データ component のみ。GPU ハンドル/観測専用の component は
 /// Friflo の <c>[ComponentKey(null)]</c> で除外する (例: <see cref="DebugName"/>)。復元後に

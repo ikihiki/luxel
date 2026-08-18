@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Reflection;
@@ -15,9 +15,9 @@ namespace Luxel.DevTools;
 ///   GET /tree?rev=N    最新ツリー JSON。rev 不変なら 304
 ///   POST /cmd      操作 (単体 {op,..} or 配列) → EngineCommands へ Enqueue
 /// リソースの整理 (ウィンドウと UI は 1:1 ではないため別リソース):
-///   ウィンドウ: GET /windows (一覧+載っている UI 名) / GET /winframe?id=&rev= (提示ピクセル)
-///   フレーム系 (/frame /winframe /uiframe) は <c>&format=png</c> で PNG を返す (AI/ブラウザ確認用)
-///              — <see cref="IWindowRemoteHost"/> (省略可) からのプル。操作は POST /cmd の window.*
+///   ウィンドウ: GET /windows (一覧+載っている UI 名) / GET /winframe?id=&amp;rev= (提示ピクセル)
+///   フレーム系 (/frame /winframe /uiframe) は <c>&amp;format=png</c> で PNG を返す (AI/ブラウザ確認用)
+///              — <c>IWindowRemoteHost</c> (省略可) からのプル。操作は POST /cmd の window.*
 ///   UI:        GET /trees (全 UiHost の tree bundle) / GET /uiframe?i= (オフスクリーン UI 画像)
 ///              — 操作は POST /cmd の入力 op + ui.set ("ui" index/名前でルーティング)
 /// 高頻度データはプッシュせず最新のみ保持→rev 差分でプルさせ負荷を下げる。

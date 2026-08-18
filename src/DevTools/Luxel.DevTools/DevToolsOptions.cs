@@ -2,7 +2,7 @@ namespace Luxel.DevTools;
 
 /// <summary>
 /// DevTools 結線のオプトイン設定 (Q05 E)。ブラウザ版 (<see cref="DebugServer"/>) と
-/// 内蔵版 (<see cref="DevToolsApp"/>) を個別に選択・併用できる。既定はどちらも off
+/// 内蔵版 (<c>DevToolsApp</c>) を個別に選択・併用できる。既定はどちらも off
 /// (publish 成果物が勝手にサーバ/ウィンドウを立てないため)。
 ///
 /// <para>純粋な設定/引数解釈なのでこの net10.0 アセンブリに置く (テストから直接参照できる)。

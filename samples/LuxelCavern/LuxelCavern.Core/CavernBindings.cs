@@ -30,7 +30,7 @@ public static class CavernBindings
         jump.Keys.Add(KeyCode.Up);
     }
 
-    /// <summary>指定操作のプライマリキーを再割当する (<see cref="SettingsStore.AutoSave"/> が永続化)。</summary>
+    /// <summary>指定操作のプライマリキーを再割当する (<c>SettingsStore.AutoSave</c> が永続化)。</summary>
     public static void Rebind(CavernSettings s, CavernBind bind, KeyCode key)
     {
         switch (bind)

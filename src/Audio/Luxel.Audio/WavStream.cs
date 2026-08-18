@@ -38,13 +38,13 @@ public sealed class WavStream : IAudioStream
         int channels = 0, sampleRate = 0, bits = 0, fmtTag = 0;
         long dataStart = -1, dataBytes = 0;
         Span<byte> ch = stackalloc byte[8];
+        Span<byte> fmt = stackalloc byte[16];
         while (dataStart < 0)
         {
             if (!TryReadExact(ch)) throw new FormatException("WAV: data チャンクが見つかりません。");
             uint size = BinaryPrimitives.ReadUInt32LittleEndian(ch[4..]);
             if (ch[0] == 'f' && ch[1] == 'm' && ch[2] == 't' && ch[3] == ' ')
             {
-                Span<byte> fmt = stackalloc byte[16];
                 ReadExact(fmt);
                 fmtTag = BinaryPrimitives.ReadUInt16LittleEndian(fmt);
                 channels = BinaryPrimitives.ReadUInt16LittleEndian(fmt[2..]);

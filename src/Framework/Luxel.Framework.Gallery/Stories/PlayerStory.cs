@@ -237,7 +237,7 @@ public static class PlayerStory
             Encoding.UTF8.GetString(fs.ReadAsync(scriptFile, CancellationToken.None).GetAwaiter().GetResult()));
         TextEditorView ed = TextEditorView(code, editorHeight: 130f, editorWidth: 448f);
         ed.ShowLineNumbers = true;
-        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        (_, _, _, VectorFont? mono) = EditorFaces.Value;
         ed.EditorFont = mono;
         ed.LanguageService = lang;
         ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));

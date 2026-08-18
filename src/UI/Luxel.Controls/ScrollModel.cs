@@ -1,11 +1,11 @@
-﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
 namespace Luxel.Controls;
 
 /// <summary>
 /// 縦/横 1 軸ぶんのスクロール計算の共通機構。<see cref="ScrollViewer"/>/<see cref="ListView"/> のような
-/// スクロールバー付きコントロールと、自前描画パイプラインを持つもの (<see cref="RichTextEditor"/> 等) が
+/// スクロールバー付きコントロールと、自前描画パイプラインを持つもの (<c>RichTextEditor</c> 等) が
 /// 同じ数式 (クランプ・サム幾何・ドラッグ写像) を共有する。
 ///
 /// **オフセットだけでなく内容長/ビューポート長も Signal** で持つのが要点 —

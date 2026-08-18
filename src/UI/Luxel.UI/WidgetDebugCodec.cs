@@ -34,7 +34,8 @@ public static class WidgetDebugCodec
     /// <summary>IParsable な複合型 (Thickness 等) を文字列経由で書き込む。parse 失敗は no-op。</summary>
     public static void WriteParsable<T>(Bindable<T> field, JsonElement value) where T : IParsable<T>
     {
-        if (T.TryParse(CoerceString(value), System.Globalization.CultureInfo.InvariantCulture, out T parsed))
+        if (T.TryParse(CoerceString(value), System.Globalization.CultureInfo.InvariantCulture, out T? parsed)
+            && parsed is not null)
             field.SetOverride(parsed);
     }
 
@@ -58,7 +59,7 @@ public static class WidgetDebugCodec
             string value = CoerceString(el);
             if (!Enum.TryParse(typeof(T), value, ignoreCase: true, out object? parsed))
                 throw new FormatException($"'{value}' is not a valid {typeof(T).Name} value.");
-            return (T)parsed;
+            return (T)parsed!;
         }
         throw new InvalidCastException($"Debug arg type '{typeof(T).FullName}' requires a generated parser.");
     }

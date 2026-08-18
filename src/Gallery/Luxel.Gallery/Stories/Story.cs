@@ -122,7 +122,7 @@ public sealed class StoryContext : IDisposable
     /// <summary>ホスト所有の ResourceSystem (画像/テクスチャ等のロード窓口 — knob/Log と同じく
     /// 「ストーリーがホスト設備を借りる」窓口)。キャッシュはストーリー横断で共有され、
     /// ハンドルは取得側 (シーン等) が Dispose する (refcount)。Pump はホストの毎フレームループが叩き、
-    /// <see cref="Observe{T}"/> のsignalへ初回完了・reload・failureをUI thread上で反映する。</summary>
+    /// <c>Observe&lt;T&gt;</c> のsignalへ初回完了・reload・failureをUI thread上で反映する。</summary>
     public Luxel.Resources.ResourceSystem Resources
         => _resources ?? throw new InvalidOperationException("ホストが ResourceSystem を設定していません (StoryContext ctor で渡す)");
 

@@ -277,7 +277,7 @@ public sealed class CavernSim
         CheckpointsReached = Checkpoints.Select(c => c.Reached).ToArray(),
     };
 
-    /// <summary>セーブを適用して進捗を復元する (<see cref="CavernLevel.CreateSim"/> の新規 sim に対して呼ぶ)。</summary>
+    /// <summary>セーブを適用して進捗を復元する (<c>CavernLevel.CreateSim</c> の新規 sim に対して呼ぶ)。</summary>
     public void ApplySave(CavernSave s)
     {
         PlayerPos = new Vector2(s.PlayerX, s.PlayerY);

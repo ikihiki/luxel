@@ -23,6 +23,8 @@ public sealed class ReplConsole : CompositeControl
     internal int HistoryCount => _history.Count;
     internal string LastOutput => _history.Count > 0 ? _history[^1].Out : "";
 
+    /// <param name="maxWidth">コンソールの最大幅。</param>
+    /// <param name="host">REPL セッションを作成するスクリプトホスト。</param>
     /// <param name="globals">スクリプトから裸で見える API 面 (Log の宛先など)。セッションはこの
     /// インスタンスで開かれ、Gallery 起動中ずっと生きる (タブ/ストーリー切替で失わない)。</param>
     /// <param name="initial">エディタの初期テキスト。</param>
