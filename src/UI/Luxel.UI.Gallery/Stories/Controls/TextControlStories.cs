@@ -33,7 +33,7 @@ public static class TextControlStories
         StoryArgDefinition.Create("value", "string", "Editable text", "Current text value."),
     ];
 
-    [Story(Path = "Controls/Text/TextField/Playground", Args = nameof(TextFieldPlaygroundArgs))]
+    [Story(Path = "Controls/Text/TextField/Examples/Interactive", Args = nameof(TextFieldPlaygroundArgs))]
     public static StoryResult TextFieldPlayground(StoryContext ctx)
     {
         Signal<string> value = ctx.Arg("value", "Editable text",

@@ -129,24 +129,37 @@ public sealed class ProductionDocsCompletenessTests
     }
 
     [Fact]
-    public void Every_playground_runtime_arg_declaration_matches_its_static_schema()
+    public void Every_canonical_playground_contains_every_ui_param_and_runtime_matches_its_static_schema()
     {
+        int playgroundCount = 0;
         foreach ((StoryCatalog catalog, IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors) in OwnerCatalogs())
         {
             foreach (GeneratedComponentStoryDescriptor descriptor in descriptors.Where(static item => item.IsUserFacing))
             {
+                playgroundCount++;
                 StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find(descriptor.PlaygroundPath));
+                string[] staticArgs = (playground.ArgDefinitions ?? []).Select(static definition => definition.Name).ToArray();
+                ControlApi api = Assert.IsType<ControlApi>(ControlApiRegistry.Find(descriptor.ComponentType));
+                string[] missingParams = api.Members
+                    .Where(static member => member.Kind == "param")
+                    .Select(static member => LowerFirst(member.Name))
+                    .Distinct(StringComparer.Ordinal)
+                    .Where(name => !staticArgs.Contains(name, StringComparer.Ordinal))
+                    .ToArray();
+                Assert.True(missingParams.Length == 0,
+                    $"{descriptor.PlaygroundPath} is missing UiParam args: {string.Join(", ", missingParams)}");
+
                 using var context = new StoryContext();
                 _ = playground.Build(context);
-                Assert.Equal(
-                    (playground.ArgDefinitions ?? []).Select(static definition => definition.Name),
-                    context.ArgDefinitions.Select(static definition => definition.Name));
+                Assert.Equal(staticArgs, context.ArgDefinitions.Select(static definition => definition.Name));
             }
         }
+
+        Assert.Equal(57, playgroundCount);
     }
 
     [Fact]
-    public void High_value_playgrounds_have_visible_fixtures_and_complete_args()
+    public void High_value_generated_playgrounds_have_visible_fixtures()
     {
         StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
         string[] visibleFixtures =
@@ -169,15 +182,35 @@ public sealed class ProductionDocsCompletenessTests
             Assert.NotNull(result.Widget);
             Assert.IsNotType<StoryCapabilityFallback>(result.Widget);
         }
+    }
 
-        Assert.Equal(["items", "height", "rowHeight", "textColor", "selectedColor"],
-            catalog.Find("Controls/Collections/ListView/Playground")!.ArgDefinitions!.Select(static arg => arg.Name));
-        Assert.Equal(["labels", "selected", "foreground"],
-            catalog.Find("Controls/Collections/Tabs/Playground")!.ArgDefinitions!.Select(static arg => arg.Name));
-        Assert.Equal(["color"],
-            catalog.Find("Controls/Input/ColorPicker/Playground")!.ArgDefinitions!.Select(static arg => arg.Name));
-        Assert.Equal(["value", "min", "max", "width", "trackColor", "fillColor", "knobColor"],
-            catalog.Find("Controls/Input/Slider/Playground")!.ArgDefinitions!.Select(static arg => arg.Name));
+    [Fact]
+    public void Authored_interactive_examples_remain_registered_outside_canonical_playgrounds()
+    {
+        StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
+        string[] paths =
+        [
+            "Controls/Input/Button/Examples/Interactive",
+            "Controls/Input/ColorPicker/Examples/Interactive",
+            "Controls/Input/Slider/Examples/Interactive",
+            "Controls/Text/TextField/Examples/Interactive",
+            "Controls/Collections/TreeView/Examples/Interactive",
+            "Controls/Layout/Box/Examples/Interactive",
+            "Controls/Layout/Border/Examples/Interactive",
+            "Controls/Layout/Center/Examples/Interactive",
+            "Controls/Layout/Stack/Examples/Interactive",
+            "Controls/Layout/Spacer/Examples/Interactive",
+            "Controls/Collections/ListView/Examples/Interactive",
+            "Controls/Collections/Tabs/Examples/Interactive",
+        ];
+
+        foreach (string path in paths)
+        {
+            StoryInfo story = Assert.Single(catalog.All, candidate => candidate.Path == path);
+            Assert.Equal(StoryKind.Example, story.Kind);
+            using var context = new StoryContext();
+            Assert.NotNull(story.Build(context).Widget);
+        }
     }
 
     [Fact]
@@ -263,6 +296,8 @@ public sealed class ProductionDocsCompletenessTests
 
         Assert.Same(localized, ControlApiRegistry.Find("Probe.Priority.Localized"));
     }
+
+    private static string LowerFirst(string value) => char.ToLowerInvariant(value[0]) + value[1..];
 
     private static IEnumerable<(StoryCatalog Catalog, IReadOnlyList<GeneratedComponentStoryDescriptor> Descriptors)> OwnerCatalogs()
     {

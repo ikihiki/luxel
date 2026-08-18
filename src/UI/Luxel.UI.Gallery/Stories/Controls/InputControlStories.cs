@@ -6,7 +6,7 @@ using static Luxel.UI.Gallery.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 
-[ComponentStory(typeof(Luxel.Controls.Button), "Controls/Input/Button/Playground", Factory = typeof(Kit),
+[ComponentStory(typeof(Luxel.Controls.Button), "Controls/Input/Button/Examples/Interactive", Factory = typeof(Kit),
     Template = nameof(Template))]
 [ComponentArg(nameof(Luxel.Controls.Button.Text), "Click me", Description = "Button label", Order = 10)]
 [ComponentArg(nameof(Luxel.Controls.Button.Variant), Variant.Filled, Description = "Visual variant", Order = 20)]
@@ -38,7 +38,7 @@ public static class InputControlStories
         StoryArgDefinition.Create("color", "color", Tw.Blue500, "選択中の色。"),
     ];
 
-    [Story(Path = "Controls/Input/ColorPicker/Playground", Args = nameof(ColorPickerPlaygroundArgs))]
+    [Story(Path = "Controls/Input/ColorPicker/Examples/Interactive", Args = nameof(ColorPickerPlaygroundArgs))]
     public static StoryResult ColorPickerPlayground(StoryContext ctx)
         => ColorPicker(ctx.Arg("color", Tw.Blue500));
 
@@ -140,7 +140,7 @@ public static class InputControlStories
         StoryArgDefinition.Create("knobColor", "color", Tw.Blue500, "ノブ色。"),
     ];
 
-    [Story(Path = "Controls/Input/Slider/Playground", Args = nameof(SliderPlaygroundArgs))]
+    [Story(Path = "Controls/Input/Slider/Examples/Interactive", Args = nameof(SliderPlaygroundArgs))]
     public static StoryResult SliderPlayground(StoryContext ctx)
     {
         Signal<float> value = ctx.Arg("value", 35f);

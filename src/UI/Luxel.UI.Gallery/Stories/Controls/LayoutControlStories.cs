@@ -62,7 +62,7 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("filter", "string", "", "Tree filter text."),
     ];
 
-    [Story(Path = "Controls/Collections/TreeView/Playground", Args = nameof(TreeViewPlaygroundArgs))]
+    [Story(Path = "Controls/Collections/TreeView/Examples/Interactive", Args = nameof(TreeViewPlaygroundArgs))]
     public static StoryResult TreeViewPlayground(StoryContext ctx)
     {
         Signal<string> selected = ctx.Arg("selected", "docs/gpu/device",
@@ -196,18 +196,18 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("height", "float", 96f, "高さ (px)。", min: 24, max: 280, step: 8),
     ];
 
-    [Story(Path = "Controls/Layout/Box/Playground", Args = nameof(LayoutBoxPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Box/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs))]
     public static StoryResult BoxPlayground(StoryContext ctx) => Box(
         background: ctx.Arg("background", Tw.Blue500), rounded: ctx.Arg("rounded", 10f),
         width: ctx.Arg("width", 180f).Value, height: ctx.Arg("height", 96f).Value);
 
-    [Story(Path = "Controls/Layout/Border/Playground", Args = nameof(LayoutBoxPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Border/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs))]
     public static StoryResult BorderPlayground(StoryContext ctx) => Border(
         background: ctx.Arg("background", Tw.Blue500), rounded: ctx.Arg("rounded", 10f),
         padding: new Thickness(20), width: ctx.Arg("width", 180f).Value, height: ctx.Arg("height", 96f).Value)
         [Label("Border child fixture")];
 
-    [Story(Path = "Controls/Layout/Center/Playground", Args = nameof(LayoutBoxPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Center/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs))]
     public static StoryResult CenterPlayground(StoryContext ctx)
     {
         Signal<uint> background = ctx.Arg("background", Tw.Blue500);
@@ -224,7 +224,7 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("spacing", "float", 10f, "子要素間の間隔。", min: 0, max: 48, step: 1),
     ];
 
-    [Story(Path = "Controls/Layout/Stack/Playground", Args = nameof(StackPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Stack/Examples/Interactive", Args = nameof(StackPlaygroundArgs))]
     public static StoryResult StackPlayground(StoryContext ctx) => Stack(
         vertical: ctx.Arg("vertical", true), spacing: ctx.Arg("spacing", 10f))
         [
@@ -239,7 +239,7 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("height", "float", 64f, "空ける高さ (px)。", min: 0, max: 160, step: 8),
     ];
 
-    [Story(Path = "Controls/Layout/Spacer/Playground", Args = nameof(SpacerPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Spacer/Examples/Interactive", Args = nameof(SpacerPlaygroundArgs))]
     public static StoryResult SpacerPlayground(StoryContext ctx) => HStack(0)
     [
         Box(background: Tw.Blue500, rounded: 6, width: 64, height: 64),
@@ -256,7 +256,7 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("selectedColor", "color", Tw.Blue500, "選択色。"),
     ];
 
-    [Story(Path = "Controls/Collections/ListView/Playground", Args = nameof(ListViewPlaygroundArgs))]
+    [Story(Path = "Controls/Collections/ListView/Examples/Interactive", Args = nameof(ListViewPlaygroundArgs))]
     public static StoryResult ListViewPlayground(StoryContext ctx)
     {
         Signal<string> source = ctx.Arg("items", "Alpha\nBravo\nCharlie\nDelta\nEcho\nFoxtrot");
@@ -273,7 +273,7 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("foreground", "color", Tw.Slate200, "タブ文字色。"),
     ];
 
-    [Story(Path = "Controls/Collections/Tabs/Playground", Args = nameof(TabsPlaygroundArgs))]
+    [Story(Path = "Controls/Collections/Tabs/Examples/Interactive", Args = nameof(TabsPlaygroundArgs))]
     public static StoryResult TabsPlayground(StoryContext ctx)
     {
         string[] labels = ctx.Arg("labels", "Overview,Settings,Activity").Value
