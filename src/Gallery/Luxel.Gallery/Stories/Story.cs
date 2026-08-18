@@ -19,6 +19,8 @@ public class Story : Attribute
     public string? Path { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
+    /// <summary>Whether this authored story exposes an Args panel. Set to <see langword="false"/> to suppress inherited generated Args.</summary>
+    public bool ArgsEnabled { get; set; } = true;
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
     public string? Args { get; set; }
 

@@ -74,6 +74,18 @@ public sealed class ProductionDocsCompletenessTests
     }
 
     [Fact]
+    public void Button_basic_explicitly_disables_args_while_playground_keeps_them()
+    {
+        StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
+
+        StoryInfo basic = Assert.IsType<StoryInfo>(catalog.Find("Controls/Input/Button/Basic"));
+        Assert.Empty(Assert.IsAssignableFrom<IReadOnlyList<StoryArgDefinition>>(basic.ArgDefinitions));
+
+        StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find("Controls/Input/Button/Playground"));
+        Assert.NotEmpty(Assert.IsAssignableFrom<IReadOnlyList<StoryArgDefinition>>(playground.ArgDefinitions));
+    }
+
+    [Fact]
     public void Legacy_control_paths_are_aliases_and_not_sidebar_entries()
     {
         StoryCatalog ui = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();

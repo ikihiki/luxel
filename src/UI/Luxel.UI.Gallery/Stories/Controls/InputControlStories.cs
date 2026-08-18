@@ -24,7 +24,7 @@ public static class InputControlStories
 {
     // ---- Button ----
 
-    [Story(Path = "Controls/Input/Button/Basic")]
+    [Story(Path = "Controls/Input/Button/Basic", ArgsEnabled = false)]
     public static StoryResult ButtonPrimary() => Frame(Button(_ => { }, "Click me"));
 
     // ---- ColorPicker ----
