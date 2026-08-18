@@ -117,7 +117,7 @@ public sealed partial class DockHost : CompositeControl
             };
         }
 
-        DocumentTabs strip = Kit.DocumentTabs(tabs, active: activeId,
+        DocumentTabs strip = Kit.DocumentTabs(tabs, active: activeId ?? "",
             dragChannel: this,   // この DockHost 内の帯どうしでタブを移せる
             showClose: ShowTabClose.Or(true), stripHeight: TabStripHeight.Or(DocumentTabs.StripH),
             activeBackground: TabActiveBackground.Or(true),

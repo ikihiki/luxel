@@ -19,9 +19,10 @@ public sealed partial class MenuBar : CompositeControl
 
     /// <summary>コマンドの単一の真実。</summary>
     [UiParam] private readonly Bindable<CommandRegistry> _registry = new();
-    /// <summary>アクティブ doc の寄与 (null = なし)。Build 中に呼ぶ — 中で Workspace.Active 等の
+    /// <summary>アクティブ doc の寄与。既定は空。Build 中に呼ぶ — 中で Workspace.Active 等の
     /// signal を読めばアクティブ切替に自動追従する。</summary>
-    [UiParam] private readonly Bindable<Func<IReadOnlyList<CommandContribution>>?> _contributions = new();
+    [UiParam] private readonly Bindable<Func<IReadOnlyList<CommandContribution>>> _contributions =
+        (Func<IReadOnlyList<CommandContribution>>)(static () => []);
 
     private UiBuildContext? _ctx;
     private readonly Dictionary<string, Widget> _rootLabels = new();
@@ -36,7 +37,7 @@ public sealed partial class MenuBar : CompositeControl
     {
         CommandRegistry reg = Registry.Get();
         _ = reg.Version.Value;   // 登録変更で自動再構築
-        _nodes = reg.BuildMenu(Contributions.Get()?.Invoke());
+        _nodes = reg.BuildMenu(Contributions.Get().Invoke());
         _rootLabels.Clear();
 
         var roots = new List<Widget>();
@@ -83,7 +84,7 @@ public sealed partial class MenuBar : CompositeControl
                 {
                     Title = n.Label,
                     Gesture = cmd.Gesture is { } g ? KeyGestures.Format(g) : "",
-                    Enabled = cmd.IsEnabled,
+                    IsEnabled = cmd.IsEnabled,
                     OnRun = () => { ContextMenu.Close(_ctx!); cmd.Run(); },
                 });
             }
@@ -104,7 +105,7 @@ internal sealed class MenuCommandRow : Widget
 {
     public required string Title;
     public string Gesture = "";
-    public bool Enabled = true;
+    public bool IsEnabled = true;
     public required Action OnRun;
     public bool Highlight;   // パレットの選択行
 
@@ -139,20 +140,20 @@ internal sealed class MenuCommandRow : Widget
         {
             ctx.AddHit(node, new Rect(0, 0, Size.Width, RowH),
                 onHover: h => bg.Opacity = h ? 1f : 0f,
-                onClick: Enabled ? OnRun : null,
-                cursor: Enabled ? CursorKind.Hand : CursorKind.Arrow);
+                onClick: IsEnabled ? OnRun : null,
+                cursor: IsEnabled ? CursorKind.Hand : CursorKind.Arrow);
         }
         else
         {
-            ctx.AddHit(node, new Rect(0, 0, Size.Width, RowH), onClick: Enabled ? OnRun : null,
-                cursor: Enabled ? CursorKind.Hand : CursorKind.Arrow);
+            ctx.AddHit(node, new Rect(0, 0, Size.Width, RowH), onClick: IsEnabled ? OnRun : null,
+                cursor: IsEnabled ? CursorKind.Hand : CursorKind.Arrow);
         }
 
         UiNode lbl = ctx.Canvas.AddChild(node); lbl.Z = 1;
         var ls = new Scene2D();
         ctx.Font.AppendText(ls, Title, PadX, textY, fs, Color2D.White);
         lbl.Content = ls;
-        ctx.Effect(() => lbl.Color = Enabled ? ctx.Theme.Value.Text : ctx.Theme.Value.TextMuted);
+        ctx.Effect(() => lbl.Color = IsEnabled ? ctx.Theme.Value.Text : ctx.Theme.Value.TextMuted);
 
         if (Gesture.Length > 0)
         {
@@ -175,7 +176,8 @@ public sealed partial class Toolbar : CompositeControl
     /// <summary>コマンドの単一の真実。</summary>
     [UiParam] private readonly Bindable<CommandRegistry> _registry = new();
     /// <summary>アクティブ doc の寄与 (Build 中に評価)。</summary>
-    [UiParam] private readonly Bindable<Func<IReadOnlyList<CommandContribution>>?> _contributions = new();
+    [UiParam] private readonly Bindable<Func<IReadOnlyList<CommandContribution>>> _contributions =
+        (Func<IReadOnlyList<CommandContribution>>)(static () => []);
 
     private readonly Signal<int> _refresh = new(0);
 
@@ -189,7 +191,7 @@ public sealed partial class Toolbar : CompositeControl
         _ = reg.Version.Value;
         _ = _refresh.Value;
         var buttons = new List<Widget>();
-        foreach (Command cmd in reg.ToolbarCommands(Contributions.Get()?.Invoke()))
+        foreach (Command cmd in reg.ToolbarCommands(Contributions.Get().Invoke()))
         {
             Command c = cmd;
             buttons.Add(c.IsEnabled

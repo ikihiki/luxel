@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD.Skia\Luxel.Graphics.TwoD.Skia.csproj" />
     <ProjectReference Include="..\..\Platform\Luxel.Platform\Luxel.Platform.csproj" />
+    <ProjectReference Include="..\..\Editor\Luxel.Editor.UI\Luxel.Editor.UI.csproj" />
     <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\Framework\Luxel.Framework.UI\Luxel.Framework.UI.csproj" />
     <ProjectReference Include="..\..\Scripting\Luxel.Scripting.Gallery\Luxel.Scripting.Gallery.csproj" />

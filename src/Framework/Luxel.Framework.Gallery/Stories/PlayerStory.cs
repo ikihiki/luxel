@@ -9,6 +9,7 @@ using Luxel.Scripting;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
+using static Luxel.Controls.EditorKit;
 using static Luxel.Gallery.Stories.StoryKit;
 
 using Luxel.Typography.TwoD;

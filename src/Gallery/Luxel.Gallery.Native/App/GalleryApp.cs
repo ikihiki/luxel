@@ -6,6 +6,7 @@ using Luxel.Settings;
 using Luxel.UI;
 using Luxel.Workbench;
 using static Luxel.Controls.Kit;
+using static Luxel.Controls.EditorKit;
 using Split = Luxel.Controls.Splitter;   // 同上 (静的メンバ Thickness 参照用)
 
 namespace Luxel.Gallery;
