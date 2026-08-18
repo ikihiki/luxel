@@ -34,6 +34,17 @@ public sealed class GeneratedComponentStoryTests
                 public sealed class Signal<T> { public Signal(T value) { } }
                 public sealed class UiEvent { }
                 public readonly struct Length { }
+                public readonly record struct Thickness(float Value) : IParsable<Thickness>
+                {
+                    public static Thickness Parse(string value, IFormatProvider? provider) => new(float.Parse(value, provider));
+                    public static bool TryParse(string? value, IFormatProvider? provider, out Thickness result)
+                    {
+                        bool parsed = float.TryParse(value, provider, out float scalar);
+                        result = new Thickness(scalar);
+                        return parsed;
+                    }
+                    public override string ToString() => Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
                 public enum GridUnit { Pixel, Auto, Star }
                 public readonly record struct GridLength(float Value, GridUnit Unit)
                 {
@@ -75,6 +86,7 @@ public sealed class GeneratedComponentStoryTests
                 public sealed partial class PreviewPanel : Widget
                 {
                     [UiParam] public Bindable<Widget> Child { get; } = new();
+                    [UiParam] public Bindable<Thickness> Padding { get; } = new();
                     [UiParam] public Bindable<float> Min { get; } = new();
                     [UiParam] public Bindable<float> Max { get; } = new();
                     [UiParam] public Bindable<float> IconSize { get; } = new();
@@ -124,7 +136,7 @@ public sealed class GeneratedComponentStoryTests
         [
             ["services", "changed", "width"],
             ["text", "enabled", "width"],
-            ["child", "min", "max", "iconSize", "stroke", "surfaceWidth", "surfaceHeight", "spinnerSize",
+            ["child", "padding", "min", "max", "iconSize", "stroke", "surfaceWidth", "surfaceHeight", "spinnerSize",
              "viewportHeight", "editorWidth", "editorHeight", "open", "labels", "columns", "content", "width"],
         ];
         for (int block = 0; block < argBlocks.Count; block++)
@@ -150,6 +162,11 @@ public sealed class GeneratedComponentStoryTests
         Assert.Contains("clicked: () => ctx.Log(\"Button.Clicked\")", generated, StringComparison.Ordinal);
         Assert.Contains("child: global::Luxel.Controls.Kit.Text(\"Generated child\", 16f)", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("StoryCapabilityFallback(\"Child fixture\"", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"padding\", \"string\", default(global::Luxel.UI.Thickness).ToString() ?? string.Empty", generated, StringComparison.Ordinal);
+        Assert.Contains("ctx.Arg<string>(\"padding\", default(global::Luxel.UI.Thickness).ToString() ?? string.Empty", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Parser = static value => global::Luxel.UI.Thickness.Parse", generated, StringComparison.Ordinal);
+        Assert.Contains("padding: global::Luxel.UI.Thickness.Parse(arg", generated, StringComparison.Ordinal);
+        Assert.Contains(".Value, global::System.Globalization.CultureInfo.InvariantCulture)", generated, StringComparison.Ordinal);
         Assert.Contains("StoryArgDefinition.Create<float>(\"min\", \"float\", 0f", generated, StringComparison.Ordinal);
         Assert.Contains("StoryArgDefinition.Create<float>(\"max\", \"float\", 1f", generated, StringComparison.Ordinal);
         Assert.Contains("min: -100d, max: 100d, step: 0.1d", generated, StringComparison.Ordinal);

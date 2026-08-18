@@ -650,6 +650,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
     private static string StoryArgType(FieldModel field)
     {
         if (field.TypeFq == LengthType) return field.TypeFq;
+        if (field.Kind == BindKind.Parsable) return "string";
         if (TryGetSupportedSignalValueType(field, out string valueType)) return valueType;
         if (field.Kind == BindKind.Other) return "string";
         return field.TypeFq;
@@ -658,6 +659,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
     private static string StoryArgDefault(FieldModel field)
     {
         if (field.TypeFq == LengthType) return StoryDefault(field);
+        if (field.Kind == BindKind.Parsable) return "default(" + field.TypeFq + ").ToString() ?? string.Empty";
         if (TryGetSupportedSignalValueType(field, out string valueType)) return StoryScalarDefault(field, valueType);
         if (IsStringCollection(field)) return Lit("One, Two, Three");
         if (IsGridLengthCollection(field)) return Lit("1*, 1*");
@@ -790,8 +792,6 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
                 .Append(", new global::Luxel.Gallery.StoryArgOptions<").Append(argType).Append("> { Description = ")
                 .Append(ResolveExpression(XmlParamKey(widget, field), fallback));
             AppendStoryRange(sb, field, staticSchema: false);
-            if (field.Kind == BindKind.Parsable && field.TypeFq != LengthType)
-                sb.Append(", Parser = static value => ").Append(field.TypeFq).Append(".Parse(global::Luxel.UI.WidgetDebugCodec.CoerceString(value), global::System.Globalization.CultureInfo.InvariantCulture)");
             sb.AppendLine(" });");
         }
         for (int i = 0; i < args.Count; i++)
@@ -824,6 +824,8 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
 
     private static string? PlaygroundValue(FieldModel field, int index, bool hasVisibleWidgetFixture)
     {
+        if (field.Kind == BindKind.Parsable && field.TypeFq != LengthType)
+            return field.TypeFq + ".Parse(arg" + index + ".Value, global::System.Globalization.CultureInfo.InvariantCulture)";
         if (field.Kind != BindKind.Other || field.TypeFq == LengthType) return "arg" + index + ".Value";
         if (TryGetSupportedSignalValueType(field, out _)) return "value" + index;
         if (IsStringCollection(field))

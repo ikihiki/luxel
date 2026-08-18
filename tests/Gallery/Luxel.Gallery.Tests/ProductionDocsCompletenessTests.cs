@@ -139,7 +139,15 @@ public sealed class ProductionDocsCompletenessTests
                 playgroundCount++;
                 StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find(descriptor.PlaygroundPath));
                 string[] staticArgs = (playground.ArgDefinitions ?? []).Select(static definition => definition.Name).ToArray();
-                ControlApi api = Assert.IsType<ControlApi>(ControlApiRegistry.Find(descriptor.ComponentType));
+                string componentType = descriptor.ComponentType.StartsWith("global::", StringComparison.Ordinal)
+                    ? descriptor.ComponentType[8..]
+                    : descriptor.ComponentType;
+                int namespaceEnd = componentType.LastIndexOf('.');
+                string apiIdentity = namespaceEnd < 0
+                    ? descriptor.ControlName
+                    : componentType[..(namespaceEnd + 1)] + descriptor.ControlName;
+                ControlApi? api = ControlApiRegistry.Find(apiIdentity);
+                Assert.True(api is not null, $"No ControlApi registered for {apiIdentity} ({descriptor.PlaygroundPath}).");
                 string[] missingParams = api.Members
                     .Where(static member => member.Kind == "param")
                     .Select(static member => LowerFirst(member.Name))
