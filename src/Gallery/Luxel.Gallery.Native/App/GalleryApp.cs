@@ -662,7 +662,7 @@ public sealed class GalleryApp : IDisposable
         Widget newRoot;
         try
         {
-            StoryResult result = story.Build(newContext);
+            StoryResult result = global::Luxel.Gallery.UI.StoryPresentation.Build(story, newContext);
             newRoot = result.Kind == StoryResultKind.Markdown
                 ? StoryMarkdownRenderer.Build(story, newContext, result,
                     StoryPageNavigation.Resolve(_catalog, story))

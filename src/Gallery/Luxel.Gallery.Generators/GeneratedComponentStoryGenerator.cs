@@ -533,10 +533,17 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
                 .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Docs));");
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Basic"))
                 .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
-                .Append(Lit("Generated direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
-                .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget)))
+                .Append(Lit("Generated static direct typed factory for " + widget.TypeFq))
+                .Append(", ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>(), CapabilityNote: ").Append(Lit(CapabilityNote(widget)))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                 .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Basic));");
+            if (!IsGalleryInfrastructure(widget))
+                sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Playground"))
+                    .Append(", static ctx => Playground_").Append(index).Append("(ctx), Source: ")
+                    .Append(Lit("Generated editable direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
+                    .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget)))
+                    .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
+                    .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Playground));");
         }
         sb.AppendLine("        }");
         for (int index = 0; index < components.Count; index++)
@@ -552,7 +559,12 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             sb.AppendLine();
             EmitGeneratedDocs(sb, widget, args, index);
             sb.AppendLine();
-            EmitGeneratedBasic(sb, widget, args, index, factoryDefault);
+            EmitGeneratedBasic(sb, widget, index, factoryDefault);
+            if (!IsGalleryInfrastructure(widget))
+            {
+                sb.AppendLine();
+                EmitGeneratedPlayground(sb, widget, args, index, factoryDefault);
+            }
         }
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -659,9 +671,36 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             .Append(", global::Luxel.Gallery.StoryReference.To(").Append(Lit(RoutePrefix(widget) + "/Basic")).AppendLine("));");
     }
 
-    private static void EmitGeneratedBasic(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index, string factoryDefault)
+    private static void EmitGeneratedBasic(StringBuilder sb, WidgetModel widget, int index, string factoryDefault)
     {
         sb.Append("        private static global::Luxel.Gallery.StoryResult Basic_").Append(index).AppendLine("(global::Luxel.Gallery.StoryContext ctx)");
+        sb.AppendLine("        {");
+        if (RequiresFallback(widget))
+        {
+            string unsupported = string.Join(", ", widget.Fields.Where(field => field.Own && field.Kind == BindKind.Other && StoryFixture(field) is null).Select(field => field.Name));
+            sb.Append("            return new global::Luxel.Gallery.StoryCapabilityFallback(").Append(Lit(widget.FactoryName)).Append(", ")
+                .Append(Lit("Unsupported capability/constructor inputs use a deterministic fallback: " + unsupported + ".")).AppendLine(");");
+            sb.AppendLine("        }");
+            return;
+        }
+
+        string factory = "global::" + widget.Namespace + "." + (widget.FactoryClass ?? factoryDefault);
+        sb.Append("            ").Append(widget.TypeFq).Append(" component = ").Append(factory).Append('.').Append(widget.FactoryName).Append('(');
+        var values = new List<string>();
+        foreach (FieldModel field in StoryArgs(widget).Where(static field => field.Own))
+            values.Add(SafeName(ParamName(field.Name)) + ": " + StoryDefault(field));
+        foreach (FieldModel field in widget.Fields.Where(static field => field.Own && field.Kind == BindKind.Other))
+            if (StoryFixture(field) is { } fixture) values.Add(SafeName(ParamName(field.Name)) + ": " + fixture);
+        foreach (EventModel evt in widget.Events.Where(static value => value.Own))
+            values.Add(SafeName(ParamName(evt.Name)) + ": " + StoryEvent(evt, widget.FactoryName));
+        sb.Append(string.Join(", ", values)).AppendLine(");");
+        sb.AppendLine("            return component;");
+        sb.AppendLine("        }");
+    }
+
+    private static void EmitGeneratedPlayground(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index, string factoryDefault)
+    {
+        sb.Append("        private static global::Luxel.Gallery.StoryResult Playground_").Append(index).AppendLine("(global::Luxel.Gallery.StoryContext ctx)");
         sb.AppendLine("        {");
         if (RequiresFallback(widget))
         {

@@ -80,8 +80,10 @@ internal static class EditorControlDocs
 
     private static StoryResult Build(Page page, GeneratedComponentStoryDescriptor descriptor)
     {
-        var result = new StoryResult(1600, 1);
-        result.AppendLiteral($"# {page.Type}\n\n## 概要と用途\n\n{page.Overview}\n\n## 最小使用例\n\n```csharp\n{page.Usage}\n```\n\n## 状態の所有\n\n{page.State}\n\n## 主なパラメーターとイベント\n\n{page.MainApi}\n\n## 操作・キーボード・アクセシビリティ\n\n{page.Operations}\n\n## テーマとレイアウト\n\n{page.Theme}\n\n## 制約・能力・ライフサイクル\n\n{page.Limits}\n\n## API リファレンス\n\n");
+        var result = new StoryResult(1600, 2);
+        result.AppendLiteral($"# {page.Type}\n\n{page.Overview}\n\n");
+        result.AppendFormatted(StoryReference.To(descriptor.BasicPath));
+        result.AppendLiteral($"\n\n## 概要と用途\n\n{page.Overview}\n\n## 最小使用例\n\n```csharp\n{page.Usage}\n```\n\n## 状態の所有\n\n{page.State}\n\n## 主なパラメーターとイベント\n\n{page.MainApi}\n\n## 操作・キーボード・アクセシビリティ\n\n{page.Operations}\n\n## テーマとレイアウト\n\n{page.Theme}\n\n## 制約・能力・ライフサイクル\n\n{page.Limits}\n\n## API リファレンス\n\n");
         result.AppendFormatted(new DocEmbed(global::Luxel.Gallery.UI.Kit.ApiTable(page.Api, inherited: true, width: 760), DocEmbedKind.ControlApiTable, page.Api, IncludeInherited: true));
         result.AppendLiteral($"\n\n## 関連する Basic と Examples\n\n- [Basic](story:{descriptor.BasicPath})\n");
         foreach (string example in page.Examples.Where(path => path != descriptor.BasicPath)) result.AppendLiteral($"- [{example[(example.LastIndexOf('/') + 1)..]}](story:{example})\n");

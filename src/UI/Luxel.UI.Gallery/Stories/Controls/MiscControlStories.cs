@@ -25,13 +25,11 @@ public static class MiscControlStories
         Divider(), Skeleton(220, 14)]);
 
     [Story(Path = "Controls/Rendering/Spinner/Basic")]
-    public static StoryResult SpinnerBasic() => Frame(Spinner(36f));
+    public static StoryResult SpinnerBasic() => Spinner(36f);
 
     [Story(Path = "Controls/Text/LinkText/Basic")]
-    public static StoryResult LinkTextBasic(StoryContext ctx) => Frame(VStack(8)[
-        LinkText(_ => ctx.Log("link click"), "クリックできるリンク"),
-        LinkText(_ => { }, "アクティブ状態 (active: true)", active: true),
-        LinkText(_ => { }, "色とホバー色の指定", color: Tw.Red500, hoverColor: Tw.Amber500)]);
+    public static StoryResult LinkTextBasic(StoryContext ctx) =>
+        LinkText(_ => ctx.Log("link click"), "クリックできるリンク");
 
     [Story(Path = "Controls/Rendering/Icon/Examples/Kinds")]
     public static StoryResult IconKinds() => Frame(HStack(10)[
@@ -46,8 +44,6 @@ public static class MiscControlStories
             .Select(i => MathF.Sin(i * 0.35f) * 0.6f + 1.2f + i % 7 * 0.05f).ToArray();
         Sparkline line = Sparkline(260, 64);
         line.SetValues(vals);
-        Sparkline bars = Sparkline(260, 48, bars: true);
-        bars.SetValues(vals, min: 0);
-        return Frame(VStack(8)[line, bars]);
+        return line;
     }
 }

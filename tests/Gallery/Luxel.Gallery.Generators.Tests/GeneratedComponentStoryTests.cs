@@ -83,6 +83,9 @@ public sealed class GeneratedComponentStoryTests
         Assert.Contains("\"Controls/Input/Button/Docs\"", generated, StringComparison.Ordinal);
         Assert.Contains("StoryKind.Docs", generated, StringComparison.Ordinal);
         Assert.Contains("StoryKind.Basic", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryKind.Playground", generated, StringComparison.Ordinal);
+        Assert.Contains("\"Controls/Input/Button/Playground\"", generated, StringComparison.Ordinal);
+        Assert.Contains("ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>()", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Controls/Button/Overview", generated, StringComparison.Ordinal);
         Assert.Contains("StoryArgDefinition.Create<string>(\"text\", \"string\", \"Example\"", generated, StringComparison.Ordinal);
         Assert.Contains("GalleryXmlDocText.Resolve(\"xml:T:Demo.Button\", \"Clickable action.\")", generated, StringComparison.Ordinal);

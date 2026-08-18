@@ -103,7 +103,7 @@ public class StoryOrderTests
     }
 
     [Fact]
-    public void UiCatalog_HasOneCanonicalDocsAndBasicEntryPerProductionComponent()
+    public void UiCatalog_HasCanonicalDocsBasicAndUserFacingPlaygroundEntriesPerProductionComponent()
     {
         StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
 
@@ -129,6 +129,15 @@ public class StoryOrderTests
             Assert.Single(catalog.All, story => story.Path == component.BasicPath);
             Assert.Equal(StoryKind.Docs, catalog.Find(component.DocsPath)!.Kind);
             Assert.Equal(StoryKind.Basic, catalog.Find(component.BasicPath)!.Kind);
+            if (component.IsUserFacing)
+            {
+                Assert.Single(catalog.All, story => story.Path == component.PlaygroundPath);
+                Assert.Equal(StoryKind.Playground, catalog.Find(component.PlaygroundPath)!.Kind);
+            }
+            else
+            {
+                Assert.Null(catalog.Find(component.PlaygroundPath));
+            }
         }
     }
 

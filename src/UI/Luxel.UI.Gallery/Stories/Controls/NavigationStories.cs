@@ -47,7 +47,7 @@ public static class NavigationStories
             width: 680,
             height: 340)[host];
 
-        return Frame(view);
+        return view;
     }
 
     private static Widget Screen(string path, Navigation navigation, StoryContext ctx) =>

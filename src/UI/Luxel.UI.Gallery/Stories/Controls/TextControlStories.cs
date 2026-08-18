@@ -14,7 +14,7 @@ public static class TextControlStories
     [Story(Path = "Controls/Text/TextField/Basic")]
     public static StoryResult TextFieldBasic(StoryContext ctx)
     {
-        Signal<string> text = ctx.Signal("text", "Hello");
+        Signal<string> text = new("Hello");
         TextField tf = TextField(text, placeholder: "Type here...");
         // play: クリックでフォーカス → 入力 → signal 反映 → 入力後の絵 (E2E の対話ショーケース)
         ctx.Play(async d =>
@@ -25,14 +25,20 @@ public static class TextControlStories
             await d.Expect(() => text.Value == "Hello Luxel", "入力が signal へ反映される");
             await d.Snap("typed");
         });
-        return Frame(tf);
+        return tf;
     }
 
-    [Story(Path = "Controls/Text/TextField/Playground")]
+    public static IReadOnlyList<StoryArgDefinition> TextFieldPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("value", "string", "Editable text", "Current text value."),
+    ];
+
+    [Story(Path = "Controls/Text/TextField/Playground", Args = nameof(TextFieldPlaygroundArgs))]
     public static StoryResult TextFieldPlayground(StoryContext ctx)
     {
-        Signal<string> value = ctx.Signal("value", "Editable text");
-        return Frame(VStack(8)[TextField(value, placeholder: "Type here..."), Muted($"value: {value}")]);
+        Signal<string> value = ctx.Arg("value", "Editable text",
+            new StoryArgOptions<string> { Description = "Current text value." });
+        return TextField(value, placeholder: "Type here...");
     }
 
     [Story(Path = "Controls/Text/TextField/Examples/Slots")]
@@ -64,7 +70,7 @@ public static class TextControlStories
     {
         // CompositeControl の見本: タイプで候補が絞り込まれ (構造状態 → Rebuild)、行クリックで確定
         string[] langs = ["C#", "C++", "Rust", "Go", "TypeScript", "Python", "Ruby", "Swift", "Kotlin", "Zig"];
-        return Frame(SearchField(ctx.Signal("query", ""), langs));
+        return SearchField(new Signal<string>(""), langs);
     }
 
     [Story(Path = "Controls/Text/Text/Examples/EllipsisVerticalAlignment")]
@@ -97,8 +103,7 @@ public static class TextControlStories
         };
         RichTextView rtv = RichTextView(spans, wrap: Luxel.Typography.TextWrap.Word);
         rtv.Fonts = JpFallback.Value;
-        return Frame(Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 6,
-                            padding: new Thickness(10), width: 380)[rtv]);
+        return rtv;
     }
 
     [Story(Path = "Controls/Text/Text/Examples/Multiline")]

@@ -11,13 +11,9 @@ namespace Luxel.Gallery.Stories;
 public static class LayoutControlStories
 {
     [Story(Path = "Controls/Layout/Border/Basic")]
-    public static StoryResult BorderCard() => Frame(
+    public static StoryResult BorderCard() =>
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 12, padding: new Thickness(20))
-            [VStack(6)[
-                Heading("Card title", 2),
-                Muted("Supporting description text"),
-                Spacer(height: 8f),
-                Button(_ => { }, "Action")]]);
+            [Label("Border content")];
 
     [Story(Path = "Controls/Layout/Grid/Examples/Tracks")]
     public static StoryResult GridColumns() =>
@@ -42,10 +38,10 @@ public static class LayoutControlStories
     public static StoryResult SplitterBasic(StoryContext ctx) =>
         // 実アプリではドラッグ量 d でレイアウト変数を更新して chrome を再構築する
         // (GalleryApp のサイドバー/Log/右パネルがこの形)。ここでは delta を Log に流すのみ
-        Frame(HStack(0)[
+        HStack(0)[
             Box(background: Tw.Blue500, rounded: 6, width: 170, height: 160),
             Splitter(vertical: true, onResized: (_, d) => ctx.Log($"drag {d:+0.0;-0.0}px")),
-            Box(background: Tw.Amber500, rounded: 6, width: 170, height: 160)]);
+            Box(background: Tw.Amber500, rounded: 6, width: 170, height: 160)];
 
     [Story(Path = "Controls/Collections/TreeView/Basic")]
     public static StoryResult TreeViewBasic(StoryContext ctx)
@@ -55,20 +51,29 @@ public static class LayoutControlStories
         Signal<string> selected = new("docs/gpu/device");
         var expanded = new HashSet<string> { "docs", "docs/gpu" };
         ctx.Play(static d => d.Snap());
-        return Frame(TreeView(TreeRoots(), expanded: expanded,
+        return TreeView(TreeRoots(), expanded: expanded,
             onSelect: (_, n) => { selected.Value = n.Key; ctx.Log($"select {n.Key}"); },
-            selected: selected, width: 280));
+            selected: selected, width: 280);
     }
 
-    [Story(Path = "Controls/Collections/TreeView/Playground")]
+    public static IReadOnlyList<StoryArgDefinition> TreeViewPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("selected", "string", "docs/gpu/device", "Selected node key."),
+        StoryArgDefinition.Create("filter", "string", "", "Tree filter text."),
+    ];
+
+    [Story(Path = "Controls/Collections/TreeView/Playground", Args = nameof(TreeViewPlaygroundArgs))]
     public static StoryResult TreeViewPlayground(StoryContext ctx)
     {
-        Signal<string> selected = ctx.Signal("selected", "docs/gpu/device");
-        Signal<string> filter = ctx.Signal("filter", "");
-        return Frame(VStack(8)[
+        Signal<string> selected = ctx.Arg("selected", "docs/gpu/device",
+            new StoryArgOptions<string> { Description = "Selected node key." });
+        Signal<string> filter = ctx.Arg("filter", "",
+            new StoryArgOptions<string> { Description = "Tree filter text." });
+        // The filter field is a structural trigger for TreeView's filtering behavior.
+        return VStack(8)[
             TextField(filter, placeholder: "Filter tree..."),
             TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu" },
-                selected: selected, filter: filter, onSelect: (_, node) => selected.Value = node.Key, width: 300)]);
+                selected: selected, filter: filter, onSelect: (_, node) => selected.Value = node.Key, width: 300)];
     }
 
     [Story(Path = "Controls/Collections/TreeView/States/Selection")]
@@ -110,8 +115,7 @@ public static class LayoutControlStories
     {
         var rows = Enumerable.Range(1, 20).Select(i => (Widget)Label($"Row {i}")).ToArray();
         ctx.Play(static d => d.Snap());
-        return Frame(Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 8, padding: new Thickness(8), clip: true)
-            [Scroll(160f, width: 240)[VStack(4)[rows]]]);
+        return Scroll(160f, width: 240)[VStack(4)[rows]];
     }
 
     /// <summary>ヒットの transform 追従 + スクロールバードラッグの実証。クリックは Log にも記録。</summary>
@@ -133,7 +137,7 @@ public static class LayoutControlStories
         // EV: コールバックはファクトリの省略可能引数 (第一引数 = 発火元)。items も UI パラメータ
         ListView lv = ListView(180f, 18f, onSelect: (_, i) => ctx.Log($"selected: Item {i + 1}"),
             items: new Signal<IReadOnlyList<string>>(Enumerable.Range(1, 40).Select(i => $"Item {i}").ToArray()), width: 260f);
-        return Frame(lv);
+        return lv;
     }
 
     [Story(Path = "Controls/Collections/ListView/Examples/Reorder")]
@@ -178,9 +182,9 @@ public static class LayoutControlStories
                 Box(background: Tw.Red500, rounded: 4, width: "25vw", height: 18)]]);
 
     [Story(Path = "Controls/Layout/WrapPanel/Basic")]
-    public static StoryResult WrapBasic() => Frame(
+    public static StoryResult WrapBasic() =>
         Wrap(8, 8, width: 300f)[
             Enumerable.Range(1, 12).Select(i => (Widget)Box(
                 background: (i % 3) switch { 0 => Tw.Sky500, 1 => Tw.Indigo500, _ => Tw.Green500 },
-                rounded: 4, width: 40 + i % 4 * 25, height: 26)).ToArray()]);
+                rounded: 4, width: 40 + i % 4 * 25, height: 26)).ToArray()];
 }

@@ -48,7 +48,7 @@ public static class WorkbenchStory
     [Story(Path = "Controls/Collections/DocumentTabs/Basic")]
     public static StoryResult DocumentTabsBasic(StoryContext ctx)
     {
-        var dirty = ctx.Signal("dirty", true);
+        var dirty = new Signal<bool>(true);
         var demo = new TabsDemo(dirty);
 
         ctx.Play(async d =>
@@ -67,10 +67,7 @@ public static class WorkbenchStory
             await d.Snap("reordered");
         });
 
-        return VStack(10)[
-            Heading("DocumentTabs — ダーティ ● / × 閉じ / D&D 並べ替え"),
-            Muted("タブをドラッグすると並べ替え。readme.md はダーティ (●)。"),
-            demo];
+        return demo;
     }
 
     // ---- DockHost (DockTree を描く) ----
@@ -82,7 +79,7 @@ public static class WorkbenchStory
     [Story(Path = "Controls/Editor/DockHost/Basic")]
     public static StoryResult DockHostBasic(StoryContext ctx)
     {
-        var dirty = ctx.Signal("dirty", true);
+        var dirty = new Signal<bool>(true);
         var tree = new Signal<DockTree>(DockTree.Single("readme", "main", "graph"));
         DockItem Resolve(string id) => id switch
         {

@@ -16,9 +16,10 @@ internal static class ParticleViewDocs
 
     private static StoryResult Build(GeneratedComponentStoryDescriptor descriptor)
     {
-        var result = new StoryResult(1800, 1);
+        var result = new StoryResult(1800, 2);
+        result.AppendLiteral("# ParticleView\n\n二次元パーティクルシステムを UI ツリー内で表示するビューです。\n\n");
+        result.AppendFormatted(StoryReference.To(descriptor.BasicPath));
         result.AppendLiteral($"""
-            # ParticleView
 
             ## 概要と用途
 

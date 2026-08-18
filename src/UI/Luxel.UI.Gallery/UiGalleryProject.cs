@@ -79,8 +79,11 @@ public static class UiGalleryProject
         GeneratedComponentStoryDescriptor[] descriptors = ProductionLazy.Value;
         if (descriptors.Select(descriptor => descriptor.ComponentType).Distinct(StringComparer.Ordinal).Count() != descriptors.Length)
             throw new InvalidOperationException("Generated UI production component types must be unique.");
-        if (descriptors.SelectMany(static descriptor => new[] { descriptor.DocsPath, descriptor.BasicPath })
-                .Distinct(StringComparer.Ordinal).Count() != descriptors.Length * 2)
+        int expectedPaths = descriptors.Sum(static descriptor => descriptor.IsUserFacing ? 3 : 2);
+        if (descriptors.SelectMany(static descriptor => descriptor.IsUserFacing
+                    ? new[] { descriptor.DocsPath, descriptor.BasicPath, descriptor.PlaygroundPath }
+                    : new[] { descriptor.DocsPath, descriptor.BasicPath })
+                .Distinct(StringComparer.Ordinal).Count() != expectedPaths)
             throw new InvalidOperationException("Generated UI production component paths must be unique.");
     }
 }

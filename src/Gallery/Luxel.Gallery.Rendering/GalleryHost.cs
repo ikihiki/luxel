@@ -209,7 +209,7 @@ public sealed class GalleryHost : IDisposable
         if (_device is not null) _ctx.SetGpuHost(_device, _font);
         // 遷移はコマンドキュー経由 — 入力ディスパッチ中の即時 TearDown を避ける (次の Drain で適用)
         _ctx.SetNavigator(p => Commands.Enqueue("story.select", JsonSerializer.SerializeToElement(new { id = p })));
-        StoryResult result = _story.Build(_ctx);
+        StoryResult result = global::Luxel.Gallery.UI.StoryPresentation.Build(_story, _ctx);
         _root = result.Kind == StoryResultKind.Markdown
             ? StoryMarkdownRenderer.Build(_story, _ctx, result,
                 _catalog is null ? default : StoryPageNavigation.Resolve(_catalog, _story))

@@ -28,7 +28,7 @@ public static class DisplayControlStories
             }
         }
         view.SetPixels(w, h, px);
-        return Frame(view);
+        return view;
     }
 
     private const string SampleImage = "src/Gallery/Luxel.Gallery/assets/sample-sparkline.png";
@@ -42,7 +42,7 @@ public static class DisplayControlStories
         _imagePreload ??= ctx.Resources.Load<Luxel.Resources.CpuImage>(SampleImage);
         try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダ表示のまま */ }
         ctx.Play(static d => d.Snap());
-        return Frame(ImageBlock(new ImagePayload(SampleImage, "サンプル画像"), ctx.Resources, 360));
+        return ImageBlock(new ImagePayload(SampleImage, "サンプル画像"), ctx.Resources, 360);
     }
 
     [Story(Path = "Controls/Rendering/TableBlock/Basic")]
@@ -58,8 +58,8 @@ public static class DisplayControlStories
                 ["gamma", "3", "最後の行"],
             ],
             [TableAlign.Left, TableAlign.Right, TableAlign.Left]);
-        return Frame(TableBlock(payload, 420,
-            p => ctx.Log($"commit: {p.Rows.Count} 行")));
+        return TableBlock(payload, 420,
+            p => ctx.Log($"commit: {p.Rows.Count} 行"));
     }
 
     [Story(Path = "Controls/Rendering/SurfaceView/Basic")]
@@ -75,6 +75,6 @@ public static class DisplayControlStories
                 Heading("子 UiHost", 2),
                 Label("この矩形の中は独立した UI ツリー"),
                 HStack(8)[Switch(on), Button(_ => ctx.Log("child click"), "子のボタン")]]]);
-        return Frame(surface);
+        return surface;
     }
 }

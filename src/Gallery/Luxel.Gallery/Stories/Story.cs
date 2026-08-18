@@ -444,7 +444,7 @@ public sealed class StoryKnob
     }
 }
 
-/// <summary>Source-generated identity for one production <c>[UiComponent]</c> Docs/Basic pair.</summary>
+/// <summary>Source-generated identity for one production <c>[UiComponent]</c> Docs/Basic/Playground set.</summary>
 public sealed record GeneratedComponentStoryDescriptor(
     string ComponentType,
     string AssemblyOwner,
@@ -457,6 +457,7 @@ public sealed record GeneratedComponentStoryDescriptor(
         : $"Gallery/Infrastructure/{ControlName}";
     public string DocsPath => $"{RoutePrefix}/Docs";
     public string BasicPath => $"{RoutePrefix}/Basic";
+    public string PlaygroundPath => $"{RoutePrefix}/Playground";
 }
 
 /// <summary>StorybookのDocs/Story区分に対応する、pathとは独立したstoryの役割。</summary>

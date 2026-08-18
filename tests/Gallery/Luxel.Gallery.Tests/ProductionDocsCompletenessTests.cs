@@ -22,7 +22,10 @@ public sealed class ProductionDocsCompletenessTests
         Assert.Equal(60, all.Length);
         Assert.Equal(57, all.Count(static descriptor => descriptor.IsUserFacing));
         Assert.Equal(all.Length, all.Select(static descriptor => descriptor.ComponentType).Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(all.Length * 2, all.SelectMany(static descriptor => new[] { descriptor.DocsPath, descriptor.BasicPath })
+        int expectedPaths = all.Sum(static descriptor => descriptor.IsUserFacing ? 3 : 2);
+        Assert.Equal(expectedPaths, all.SelectMany(static descriptor => descriptor.IsUserFacing
+                ? new[] { descriptor.DocsPath, descriptor.BasicPath, descriptor.PlaygroundPath }
+                : new[] { descriptor.DocsPath, descriptor.BasicPath })
             .Distinct(StringComparer.Ordinal).Count());
 
         foreach (GeneratedComponentStoryDescriptor descriptor in all.Where(static descriptor => descriptor.IsUserFacing))
@@ -31,6 +34,7 @@ public sealed class ProductionDocsCompletenessTests
             Assert.StartsWith($"Controls/{descriptor.Category}/{descriptor.ControlName}/", descriptor.DocsPath, StringComparison.Ordinal);
             Assert.EndsWith("/Docs", descriptor.DocsPath, StringComparison.Ordinal);
             Assert.EndsWith("/Basic", descriptor.BasicPath, StringComparison.Ordinal);
+            Assert.EndsWith("/Playground", descriptor.PlaygroundPath, StringComparison.Ordinal);
         }
         Assert.All(all.Where(static descriptor => !descriptor.IsUserFacing), descriptor =>
             Assert.StartsWith("Gallery/Infrastructure/", descriptor.DocsPath, StringComparison.Ordinal));
@@ -60,7 +64,7 @@ public sealed class ProductionDocsCompletenessTests
     }
 
     [Fact]
-    public void Each_owner_catalog_has_one_docs_and_basic_story_with_matching_ownership()
+    public void Each_owner_catalog_has_one_docs_basic_and_user_facing_playground_story_with_matching_ownership()
     {
         VerifyOwner(global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog(),
             global::Luxel.UI.Gallery.UiGalleryProject.ProductionComponents,
@@ -102,6 +106,95 @@ public sealed class ProductionDocsCompletenessTests
     }
 
     [Fact]
+    public void Every_user_facing_component_has_exact_canonical_docs_basic_and_playground_contracts()
+    {
+        foreach ((StoryCatalog catalog, IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors) in OwnerCatalogs())
+        {
+            foreach (GeneratedComponentStoryDescriptor descriptor in descriptors.Where(static item => item.IsUserFacing))
+            {
+                StoryInfo docs = Assert.Single(catalog.All, story => story.Path == descriptor.DocsPath);
+                StoryInfo basic = Assert.Single(catalog.All, story => story.Path == descriptor.BasicPath);
+                StoryInfo playground = Assert.Single(catalog.All, story => story.Path == descriptor.PlaygroundPath);
+
+                Assert.Equal(StoryKind.Docs, docs.Kind);
+                Assert.Equal(StoryKind.Basic, basic.Kind);
+                Assert.Equal(StoryKind.Playground, playground.Kind);
+                Assert.Empty(basic.ArgDefinitions ?? []);
+
+                using var context = new StoryContext();
+                StoryResult docsResult = docs.Build(context);
+                Assert.Equal(descriptor.BasicPath, Assert.IsType<StoryReference>(docsResult.References.FirstOrDefault()).Path);
+            }
+        }
+    }
+
+    [Fact]
+    public void Every_playground_runtime_arg_declaration_matches_its_static_schema()
+    {
+        foreach ((StoryCatalog catalog, IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors) in OwnerCatalogs())
+        {
+            foreach (GeneratedComponentStoryDescriptor descriptor in descriptors.Where(static item => item.IsUserFacing))
+            {
+                StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find(descriptor.PlaygroundPath));
+                using var context = new StoryContext();
+                _ = playground.Build(context);
+                Assert.Equal(
+                    (playground.ArgDefinitions ?? []).Select(static definition => definition.Name),
+                    context.ArgDefinitions.Select(static definition => definition.Name));
+            }
+        }
+    }
+
+    [Fact]
+    public void Infrastructure_components_do_not_register_playgrounds()
+    {
+        StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
+        foreach (GeneratedComponentStoryDescriptor descriptor in global::Luxel.UI.Gallery.UiGalleryProject.ProductionComponents
+                     .Where(static item => !item.IsUserFacing))
+            Assert.Null(catalog.Find(descriptor.PlaygroundPath));
+    }
+
+    [Fact]
+    public void Auto_frame_wraps_basic_and_playground_widgets_but_not_docs()
+    {
+        using var context = new StoryContext();
+        var basic = new StoryInfo("Controls/Input/Test/Basic", _ => Luxel.Controls.Kit.Button(text: "Basic"), Kind: StoryKind.Basic);
+        var playground = new StoryInfo("Controls/Input/Test/Playground", _ => Luxel.Controls.Kit.Button(text: "Playground"), Kind: StoryKind.Playground);
+        var docs = new StoryInfo("Controls/Input/Test/Docs", _ => StoryResult.FromMarkdown("# Test"), Kind: StoryKind.Docs);
+
+        StoryResult basicResult = global::Luxel.Gallery.UI.StoryPresentation.Build(basic, context);
+        StoryResult playgroundResult = global::Luxel.Gallery.UI.StoryPresentation.Build(playground, context);
+        StoryResult docsResult = global::Luxel.Gallery.UI.StoryPresentation.Build(docs, context);
+
+        Assert.IsType<Luxel.Controls.Border>(basicResult.Widget);
+        Assert.IsType<Luxel.Controls.Border>(playgroundResult.Widget);
+        Assert.Equal(StoryResultKind.Markdown, docsResult.Kind);
+    }
+
+    [Fact]
+    public void Authored_basic_and_playground_sources_do_not_call_frame()
+    {
+        string root = FindRepositoryRoot();
+        string[] sourceRoots =
+        [
+            Path.Combine(root, "src", "UI", "Luxel.UI.Gallery"),
+            Path.Combine(root, "src", "Editor", "Luxel.Editor.Gallery"),
+            Path.Combine(root, "src", "Particles", "Luxel.Particles.Gallery"),
+        ];
+        var violations = new List<string>();
+        foreach (string file in sourceRoots.SelectMany(path => Directory.EnumerateFiles(path, "*.cs", SearchOption.AllDirectories)))
+        {
+            string source = File.ReadAllText(file);
+            foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(source,
+                         @"\[Story\([^\]]*/(?:Basic|Playground)[^\]]*\)\](?<body>.*?)(?=\n\s*\[Story|\z)",
+                         System.Text.RegularExpressions.RegexOptions.Singleline))
+                if (match.Groups["body"].Value.Contains("Frame(", StringComparison.Ordinal))
+                    violations.Add(Path.GetRelativePath(root, file));
+        }
+        Assert.True(violations.Count == 0, $"Basic/Playground stories must rely on auto-frame: {string.Join(", ", violations.Distinct())}");
+    }
+
+    [Fact]
     public void Xml_doc_resolver_is_case_sensitive_and_preserves_fallbacks()
     {
         Assert.Equal("fallback", GalleryXmlDocText.Resolve("xml:T:Missing", "fallback"));
@@ -134,6 +227,27 @@ public sealed class ProductionDocsCompletenessTests
         Assert.Same(localized, ControlApiRegistry.Find("Probe.Priority.Localized"));
     }
 
+    private static IEnumerable<(StoryCatalog Catalog, IReadOnlyList<GeneratedComponentStoryDescriptor> Descriptors)> OwnerCatalogs()
+    {
+        yield return (global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog(),
+            global::Luxel.UI.Gallery.UiGalleryProject.ProductionComponents);
+        yield return (global::Luxel.Editor.Gallery.EditorGalleryProject.CreateCatalog(),
+            global::Luxel.Editor.Gallery.EditorGalleryProject.ProductionComponents);
+        yield return (global::Luxel.Particles.Gallery.ParticlesGalleryProject.CreateCatalog(),
+            global::Luxel.Particles.Gallery.ParticlesGalleryProject.ProductionComponents);
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        DirectoryInfo? current = new(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "Luxel.slnx"))) return current.FullName;
+            current = current.Parent;
+        }
+        throw new DirectoryNotFoundException("Could not locate Luxel.slnx.");
+    }
+
     private static void VerifyOwner(StoryCatalog catalog,
         IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors, StoryOwnership ownership)
     {
@@ -145,6 +259,16 @@ public sealed class ProductionDocsCompletenessTests
             Assert.Equal(descriptor, basic.ProductionComponent);
             Assert.Equal(ownership, docs.Ownership);
             Assert.Equal(ownership, basic.Ownership);
+            if (descriptor.IsUserFacing)
+            {
+                StoryInfo playground = Assert.Single(catalog.All, story => story.Path == descriptor.PlaygroundPath);
+                Assert.Equal(descriptor, playground.ProductionComponent);
+                Assert.Equal(ownership, playground.Ownership);
+            }
+            else
+            {
+                Assert.Null(catalog.Find(descriptor.PlaygroundPath));
+            }
         }
     }
 }

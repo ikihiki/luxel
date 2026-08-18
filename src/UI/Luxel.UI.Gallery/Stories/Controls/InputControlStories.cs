@@ -15,7 +15,7 @@ internal static class ButtonPlaygroundStory
 {
     internal static void ApplyDisabled(Button button, bool disabled) => button.Enabled = !disabled;
 
-    internal static Widget Template(Button button) => Frame(button);
+    internal static Widget Template(Button button) => button;
 }
 
 /// <summary>入力/選択系コントロールのストーリー。ctx.Signal(...) は自動で knob になる。</summary>
@@ -25,20 +25,13 @@ public static class InputControlStories
     // ---- Button ----
 
     [Story(Path = "Controls/Input/Button/Basic", ArgsEnabled = false)]
-    public static StoryResult ButtonPrimary() => Frame(Button(_ => { }, "Click me"));
+    public static StoryResult ButtonPrimary() => Button(_ => { }, "Click me");
 
     // ---- ColorPicker ----
 
     [Story(Path = "Controls/Input/ColorPicker/Basic")]
-    public static StoryResult ColorPickerBasic(StoryContext ctx)
-    {
-        Signal<uint> color = new(Tw.Blue500);
-        return Frame(VStack(12)[
-            ColorPicker(color),
-            HStack(10)[
-                Box(background: color, rounded: 8, width: 44, height: 44),
-                Label("選択色は Signal<uint> に反映される")]]);
-    }
+    public static StoryResult ColorPickerBasic()
+        => ColorPicker(new Signal<uint>(Tw.Blue500));
 
     [Story(Path = "Controls/Input/Button/Examples/Variants")]
     public static StoryResult ButtonVariants() => Frame(HStack(8)[
@@ -112,7 +105,7 @@ public static class InputControlStories
 
     [Story(Path = "Controls/Input/CheckBox/Basic")]
     public static StoryResult CheckBasic(StoryContext ctx)
-        => Frame(Check(ctx.Signal("checked", false), "Subscribe to newsletter"));
+        => Check(new Signal<bool>(false), "Subscribe to newsletter");
 
     [Story(Path = "Controls/Input/CheckBox/Examples/Styled")]
     public static StoryResult CheckStyled(StoryContext ctx)
@@ -121,19 +114,25 @@ public static class InputControlStories
 
     [Story(Path = "Controls/Input/Switch/Basic")]
     public static StoryResult SwitchBasic(StoryContext ctx)
-        => Frame(Switch(ctx.Signal("on", true)));
+        => Switch(new Signal<bool>(true));
 
     [Story(Path = "Controls/Input/Slider/Basic")]
     public static StoryResult SliderBasic(StoryContext ctx)
-        => ctx.Snap(Frame(Slider(ctx.Signal("value", 0.35f))));
+        => ctx.Snap(Slider(new Signal<float>(0.35f)));
 
-    [Story(Path = "Controls/Input/Slider/Playground")]
+    public static IReadOnlyList<StoryArgDefinition> SliderPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("value", "float", 0.5f, "Current slider value.", min: 0, max: 1, step: 0.05),
+    ];
+
+    [Story(Path = "Controls/Input/Slider/Playground", Args = nameof(SliderPlaygroundArgs))]
     public static StoryResult SliderPlayground(StoryContext ctx)
     {
-        Signal<float> value = ctx.Signal("value", 0.5f);
+        Signal<float> value = ctx.Arg("value", 0.5f,
+            new StoryArgOptions<float> { Description = "Current slider value.", Min = 0, Max = 1, Step = 0.05 });
         Slider slider = Slider(value);
         ctx.Play(static d => d.Snap());
-        return Frame(VStack(8)[slider, Text($"value: {value}", 13)]);
+        return slider;
     }
 
     [Story(Path = "Controls/Input/Slider/Examples/Slots")]
@@ -167,22 +166,17 @@ public static class InputControlStories
 
     [Story(Path = "Controls/Input/SegmentedControl/Basic")]
     public static StoryResult SegmentedBasic(StoryContext ctx)
-        => Frame(Segmented(["Day", "Week", "Month"], ctx.Signal("selected", 0)));
+        => Segmented(["Day", "Week", "Month"], new Signal<int>(0));
 
     [Story(Path = "Controls/Input/RadioGroup/Basic")]
     public static StoryResult RadiosBasic(StoryContext ctx)
-        => Frame(Radios(["Small", "Medium", "Large"], ctx.Signal("selected", 1)));
+        => Radios(["Small", "Medium", "Large"], new Signal<int>(1));
 
     [Story(Path = "Controls/Input/Select/Basic")]
     public static StoryResult SelectBasic(StoryContext ctx)
-        => ctx.Snap(Frame(Select(["Apple", "Banana", "Cherry"], ctx.Signal("selected", 0))));
+        => ctx.Snap(Select(["Apple", "Banana", "Cherry"], new Signal<int>(0)));
 
     [Story(Path = "Controls/Input/LengthField/Basic")]
-    public static StoryResult LengthFieldBasic(StoryContext ctx)
-    {
-        var len = new Signal<Length>((Length)"50%");
-        return Frame(VStack(8)[
-            Text($"value: {len}", 13, color: Bind.From(() => UiTheme.T.Text)),
-            LengthField(len)]);
-    }
+    public static StoryResult LengthFieldBasic()
+        => LengthField(new Signal<Length>((Length)"50%"));
 }
