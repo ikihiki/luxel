@@ -203,6 +203,9 @@ body.resizing-story-panel iframe { pointer-events: none; }
 .arg-row label small { color: #6f85a0; font: 10px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .arg-row label span { grid-column: 1 / -1; color: var(--muted); font-size: 11px; line-height: 1.35; }
 .arg-row input:not([type="checkbox"]), .arg-row select { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid #344357; border-radius: 5px; outline: 0; background: #09111a; color: #e4edf8; }
+.arg-color-editor { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; }
+.arg-row .arg-color-editor input[type="color"] { width: 48px; height: 34px; padding: 3px; cursor: pointer; }
+.arg-color-editor output { color: #9fb0c5; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }
 .arg-row input:focus, .arg-row select:focus { border-color: #6293d3; box-shadow: 0 0 0 2px #33577d55; }
 .arg-row input[type="checkbox"] { width: 17px; height: 17px; margin: 0; accent-color: #6da3ee; justify-self: start; }
 .output-status { display: flex; align-items: center; gap: 8px; min-height: 28px; color: var(--muted); font-size: 11px; }

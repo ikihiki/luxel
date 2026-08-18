@@ -33,6 +33,15 @@ public static class InputControlStories
     public static StoryResult ColorPickerBasic()
         => ColorPicker(new Signal<uint>(Tw.Blue500));
 
+    public static IReadOnlyList<StoryArgDefinition> ColorPickerPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("color", "color", Tw.Blue500, "選択中の色。"),
+    ];
+
+    [Story(Path = "Controls/Input/ColorPicker/Playground", Args = nameof(ColorPickerPlaygroundArgs))]
+    public static StoryResult ColorPickerPlayground(StoryContext ctx)
+        => ColorPicker(ctx.Arg("color", Tw.Blue500));
+
     [Story(Path = "Controls/Input/Button/Examples/Variants")]
     public static StoryResult ButtonVariants() => Frame(HStack(8)[
         Button(_ => { }, "Filled"),
@@ -122,15 +131,29 @@ public static class InputControlStories
 
     public static IReadOnlyList<StoryArgDefinition> SliderPlaygroundArgs() =>
     [
-        StoryArgDefinition.Create("value", "float", 0.5f, "Current slider value.", min: 0, max: 1, step: 0.05),
+        StoryArgDefinition.Create("value", "float", 35f, "現在値。", min: 0, max: 100, step: 1),
+        StoryArgDefinition.Create("min", "float", 0f, "範囲の最小値。", min: -100, max: 99, step: 1),
+        StoryArgDefinition.Create("max", "float", 100f, "範囲の最大値。", min: 1, max: 200, step: 1),
+        StoryArgDefinition.Create("width", "float", 320f, "スライダーの幅。", min: 120, max: 640, step: 10),
+        StoryArgDefinition.Create("trackColor", "color", Tw.Slate300, "トラック色。"),
+        StoryArgDefinition.Create("fillColor", "color", Tw.Blue500, "塗りつぶし色。"),
+        StoryArgDefinition.Create("knobColor", "color", Tw.Blue500, "ノブ色。"),
     ];
 
     [Story(Path = "Controls/Input/Slider/Playground", Args = nameof(SliderPlaygroundArgs))]
     public static StoryResult SliderPlayground(StoryContext ctx)
     {
-        Signal<float> value = ctx.Arg("value", 0.5f,
-            new StoryArgOptions<float> { Description = "Current slider value.", Min = 0, Max = 1, Step = 0.05 });
-        Slider slider = Slider(value);
+        Signal<float> value = ctx.Arg("value", 35f);
+        Signal<float> min = ctx.Arg("min", 0f);
+        Signal<float> max = ctx.Arg("max", 100f);
+        Signal<float> width = ctx.Arg("width", 320f);
+        Signal<uint> trackColor = ctx.Arg("trackColor", Tw.Slate300);
+        Signal<uint> fillColor = ctx.Arg("fillColor", Tw.Blue500);
+        Signal<uint> knobColor = ctx.Arg("knobColor", Tw.Blue500);
+        if (max.Value <= min.Value) max.Value = min.Value + 1f;
+        value.Value = Math.Clamp(value.Value, min.Value, max.Value);
+        Slider slider = Slider(value, min: min, max: max, trackColor: trackColor,
+            fillColor: fillColor, knobColor: knobColor, width: width.Value);
         ctx.Play(static d => d.Snap());
         return slider;
     }

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using Luxel.Controls;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
@@ -26,6 +26,25 @@ public sealed partial class TestBadge : Widget
 
 public class WidgetDebugGenTests
 {
+    [Theory]
+    [InlineData(0xff332211u, "#112233")]
+    [InlineData(0x44332211u, "#11223344")]
+    public void Color_codec_round_trips_rgba(uint packed, string text)
+    {
+        Assert.Equal(text, WidgetDebugCodec.FormatColor(packed));
+        using JsonDocument json = JsonDocument.Parse($"\"{text}\"");
+        Assert.Equal(packed, WidgetDebugCodec.CoerceColor(json.RootElement));
+    }
+
+    [Fact]
+    public void Color_codec_accepts_short_hex_and_rejects_malformed_values()
+    {
+        using JsonDocument shortHex = JsonDocument.Parse("\"#abc\"");
+        Assert.Equal(0xffccbbaau, WidgetDebugCodec.CoerceColor(shortHex.RootElement));
+        using JsonDocument malformed = JsonDocument.Parse("\"#12zz34\"");
+        Assert.Throws<FormatException>(() => WidgetDebugCodec.CoerceColor(malformed.RootElement));
+    }
+
     // ---- ファクトリ生成 (組み立て側) ----
 
     [Fact]

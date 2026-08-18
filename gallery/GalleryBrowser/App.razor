@@ -157,6 +157,16 @@ else
                                                     <input id="@ArgId(definition)" type="checkbox" checked="@ArgBoolValue(definition)"
                                                            @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
                                                 }
+                                                else if (IsColor(definition))
+                                                {
+                                                    <div class="arg-color-editor">
+                                                        <input id="@ArgId(definition)" type="color" value="@ArgColorSwatch(definition)"
+                                                               aria-label="@($"{definition.Name} の色")"
+                                                               @oninput="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
+                                                        <input class="arg-color-hex" value="@ArgValue(definition)" aria-label="@($"{definition.Name} の16進色")"
+                                                               @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
+                                                    </div>
+                                                }
                                                 else
                                                 {
                                                     <input id="@ArgId(definition)" type="@(IsNumeric(definition) ? "number" : "text")"
@@ -462,6 +472,7 @@ else
     private static string PanelId(string tab) => "story-panel-" + tab.ToLowerInvariant();
     private string TabClass(string tab) => _activeTab == tab ? "active" : "";
     private static string ArgId(StoryArgDefinition definition) => "story-arg-" + definition.Name;
+    private static bool IsColor(StoryArgDefinition definition) => definition.Type.Equals("color", StringComparison.OrdinalIgnoreCase);
     private static bool IsBoolean(StoryArgDefinition definition) => definition.Type is "bool" or "boolean" or "System.Boolean";
     private static bool IsNumeric(StoryArgDefinition definition) => definition.Type.ToLowerInvariant() is
         "byte" or "sbyte" or "short" or "ushort" or "int" or "uint" or "long" or "ulong" or
@@ -471,6 +482,11 @@ else
     private string ArgValue(StoryArgDefinition definition) => _argValues.TryGetValue(definition.Name, out JsonElement value)
         ? value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : value.GetRawText()
         : "";
+    private string ArgColorSwatch(StoryArgDefinition definition)
+    {
+        string value = ArgValue(definition);
+        return value.Length >= 7 && value[0] == '#' ? value[..7] : "#000000";
+    }
     private bool ArgBoolValue(StoryArgDefinition definition) => _argValues.TryGetValue(definition.Name, out JsonElement value)
         && value.ValueKind is JsonValueKind.True or JsonValueKind.False && value.GetBoolean();
     private static string OutputKindLabel(string kind) => kind switch

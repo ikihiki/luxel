@@ -187,4 +187,103 @@ public static class LayoutControlStories
             Enumerable.Range(1, 12).Select(i => (Widget)Box(
                 background: (i % 3) switch { 0 => Tw.Sky500, 1 => Tw.Indigo500, _ => Tw.Green500 },
                 rounded: 4, width: 40 + i % 4 * 25, height: 26)).ToArray()];
+
+    public static IReadOnlyList<StoryArgDefinition> LayoutBoxPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("background", "color", Tw.Blue500, "背景色。"),
+        StoryArgDefinition.Create("rounded", "float", 10f, "角丸半径。", min: 0, max: 48, step: 1),
+        StoryArgDefinition.Create("width", "float", 180f, "幅 (px)。", min: 40, max: 480, step: 10),
+        StoryArgDefinition.Create("height", "float", 96f, "高さ (px)。", min: 24, max: 280, step: 8),
+    ];
+
+    [Story(Path = "Controls/Layout/Box/Playground", Args = nameof(LayoutBoxPlaygroundArgs))]
+    public static StoryResult BoxPlayground(StoryContext ctx) => Box(
+        background: ctx.Arg("background", Tw.Blue500), rounded: ctx.Arg("rounded", 10f),
+        width: ctx.Arg("width", 180f).Value, height: ctx.Arg("height", 96f).Value);
+
+    [Story(Path = "Controls/Layout/Border/Playground", Args = nameof(LayoutBoxPlaygroundArgs))]
+    public static StoryResult BorderPlayground(StoryContext ctx) => Border(
+        background: ctx.Arg("background", Tw.Blue500), rounded: ctx.Arg("rounded", 10f),
+        padding: new Thickness(20), width: ctx.Arg("width", 180f).Value, height: ctx.Arg("height", 96f).Value)
+        [Label("Border child fixture")];
+
+    [Story(Path = "Controls/Layout/Center/Playground", Args = nameof(LayoutBoxPlaygroundArgs))]
+    public static StoryResult CenterPlayground(StoryContext ctx)
+    {
+        Signal<uint> background = ctx.Arg("background", Tw.Blue500);
+        Signal<float> rounded = ctx.Arg("rounded", 10f);
+        Signal<float> width = ctx.Arg("width", 180f);
+        Signal<float> height = ctx.Arg("height", 96f);
+        return Center(width: width.Value, height: height.Value)
+            [Box(background: background, rounded: rounded, width: 72, height: 40)];
+    }
+
+    public static IReadOnlyList<StoryArgDefinition> StackPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("vertical", "bool", true, "縦方向に並べる。"),
+        StoryArgDefinition.Create("spacing", "float", 10f, "子要素間の間隔。", min: 0, max: 48, step: 1),
+    ];
+
+    [Story(Path = "Controls/Layout/Stack/Playground", Args = nameof(StackPlaygroundArgs))]
+    public static StoryResult StackPlayground(StoryContext ctx) => Stack(
+        vertical: ctx.Arg("vertical", true), spacing: ctx.Arg("spacing", 10f))
+        [
+            Box(background: Tw.Blue500, rounded: 6, width: 120, height: 36),
+            Box(background: Tw.Amber500, rounded: 6, width: 160, height: 36),
+            Box(background: Tw.Green500, rounded: 6, width: 96, height: 36)
+        ];
+
+    public static IReadOnlyList<StoryArgDefinition> SpacerPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("width", "float", 48f, "空ける幅 (px)。", min: 0, max: 240, step: 8),
+        StoryArgDefinition.Create("height", "float", 64f, "空ける高さ (px)。", min: 0, max: 160, step: 8),
+    ];
+
+    [Story(Path = "Controls/Layout/Spacer/Playground", Args = nameof(SpacerPlaygroundArgs))]
+    public static StoryResult SpacerPlayground(StoryContext ctx) => HStack(0)
+    [
+        Box(background: Tw.Blue500, rounded: 6, width: 64, height: 64),
+        Spacer(width: ctx.Arg("width", 48f).Value, height: ctx.Arg("height", 64f).Value),
+        Box(background: Tw.Amber500, rounded: 6, width: 64, height: 64)
+    ];
+
+    public static IReadOnlyList<StoryArgDefinition> ListViewPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("items", "string", "Alpha\nBravo\nCharlie\nDelta\nEcho\nFoxtrot", "改行区切りの項目。"),
+        StoryArgDefinition.Create("height", "float", 180f, "表示高。", min: 72, max: 420, step: 12),
+        StoryArgDefinition.Create("rowHeight", "float", 24f, "行高。", min: 16, max: 56, step: 2),
+        StoryArgDefinition.Create("textColor", "color", Tw.Slate200, "文字色。"),
+        StoryArgDefinition.Create("selectedColor", "color", Tw.Blue500, "選択色。"),
+    ];
+
+    [Story(Path = "Controls/Collections/ListView/Playground", Args = nameof(ListViewPlaygroundArgs))]
+    public static StoryResult ListViewPlayground(StoryContext ctx)
+    {
+        Signal<string> source = ctx.Arg("items", "Alpha\nBravo\nCharlie\nDelta\nEcho\nFoxtrot");
+        IReadOnlyList<string> rows = source.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return ListView(ctx.Arg("height", 180f), ctx.Arg("rowHeight", 24f),
+            onSelect: (_, index) => ctx.Log($"selected: {index}"), items: new Signal<IReadOnlyList<string>>(rows),
+            textColor: ctx.Arg("textColor", Tw.Slate200), selectedColor: ctx.Arg("selectedColor", Tw.Blue500), width: 300);
+    }
+
+    public static IReadOnlyList<StoryArgDefinition> TabsPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("labels", "string", "Overview,Settings,Activity", "カンマ区切りのタブラベル。"),
+        StoryArgDefinition.Create("selected", "int", 0, "選択中のタブ。", min: 0, max: 2, step: 1),
+        StoryArgDefinition.Create("foreground", "color", Tw.Slate200, "タブ文字色。"),
+    ];
+
+    [Story(Path = "Controls/Collections/Tabs/Playground", Args = nameof(TabsPlaygroundArgs))]
+    public static StoryResult TabsPlayground(StoryContext ctx)
+    {
+        string[] labels = ctx.Arg("labels", "Overview,Settings,Activity").Value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (labels.Length == 0) labels = ["Tab"];
+        Widget[] contents = labels.Select((label, index) => (Widget)Border(
+            background: index % 2 == 0 ? Tw.Slate800 : Tw.Slate700, padding: new Thickness(20),
+            width: 360, height: 120)[Label($"{label} content")]).ToArray();
+        Signal<int> selected = ctx.Arg("selected", 0);
+        if (selected.Value >= labels.Length) selected.Value = labels.Length - 1;
+        return Tabs(labels, contents, selected, foreground: ctx.Arg("foreground", Tw.Slate200), width: 380);
+    }
 }

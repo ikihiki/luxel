@@ -146,6 +146,41 @@ public sealed class ProductionDocsCompletenessTests
     }
 
     [Fact]
+    public void High_value_playgrounds_have_visible_fixtures_and_complete_args()
+    {
+        StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
+        string[] visibleFixtures =
+        [
+            "Controls/Layout/Box/Playground",
+            "Controls/Layout/Border/Playground",
+            "Controls/Layout/Center/Playground",
+            "Controls/Layout/Stack/Playground",
+            "Controls/Layout/Spacer/Playground",
+            "Controls/Collections/ListView/Playground",
+            "Controls/Collections/Tabs/Playground",
+            "Controls/Input/ColorPicker/Playground",
+            "Controls/Input/Slider/Playground",
+        ];
+        foreach (string path in visibleFixtures)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(path));
+            using var context = new StoryContext();
+            StoryResult result = story.Build(context);
+            Assert.NotNull(result.Widget);
+            Assert.IsNotType<StoryCapabilityFallback>(result.Widget);
+        }
+
+        Assert.Equal(["items", "height", "rowHeight", "textColor", "selectedColor"],
+            catalog.Find("Controls/Collections/ListView/Playground")!.ArgDefinitions!.Select(static arg => arg.Name));
+        Assert.Equal(["labels", "selected", "foreground"],
+            catalog.Find("Controls/Collections/Tabs/Playground")!.ArgDefinitions!.Select(static arg => arg.Name));
+        Assert.Equal(["color"],
+            catalog.Find("Controls/Input/ColorPicker/Playground")!.ArgDefinitions!.Select(static arg => arg.Name));
+        Assert.Equal(["value", "min", "max", "width", "trackColor", "fillColor", "knobColor"],
+            catalog.Find("Controls/Input/Slider/Playground")!.ArgDefinitions!.Select(static arg => arg.Name));
+    }
+
+    [Fact]
     public void Infrastructure_components_do_not_register_playgrounds()
     {
         StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
@@ -182,7 +217,9 @@ public sealed class ProductionDocsCompletenessTests
             Path.Combine(root, "src", "Particles", "Luxel.Particles.Gallery"),
         ];
         var violations = new List<string>();
-        foreach (string file in sourceRoots.SelectMany(path => Directory.EnumerateFiles(path, "*.cs", SearchOption.AllDirectories)))
+        foreach (string file in sourceRoots.SelectMany(path => Directory.EnumerateFiles(path, "*.cs", SearchOption.AllDirectories))
+                     .Where(static file => !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                         && !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)))
         {
             string source = File.ReadAllText(file);
             foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(source,
