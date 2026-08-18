@@ -39,6 +39,15 @@ public sealed class GeneratedComponentStoryTests
                 }
             }
 
+            namespace Luxel.Controls
+            {
+                public sealed class Text : Luxel.UI.Widget { }
+                public static class Kit
+                {
+                    public static Text Text(string text, float size) => new();
+                }
+            }
+
             namespace Demo
             {
                 using Luxel.UI;
@@ -52,6 +61,22 @@ public sealed class GeneratedComponentStoryTests
                     [UiParam] public Bindable<bool> Enabled { get; } = new();
                     /// <summary>Raised after activation.</summary>
                     [UiEvent] public UiEvent Clicked = new();
+                }
+
+                [UiComponent]
+                public sealed partial class PreviewPanel : Widget
+                {
+                    [UiParam] public Bindable<Widget> Child { get; } = new();
+                    [UiParam] public Bindable<float> Min { get; } = new();
+                    [UiParam] public Bindable<float> Max { get; } = new();
+                    [UiParam] public Bindable<float> IconSize { get; } = new();
+                    [UiParam] public Bindable<float> Stroke { get; } = new();
+                    [UiParam] public Bindable<float> SurfaceWidth { get; } = new();
+                    [UiParam] public Bindable<float> SurfaceHeight { get; } = new();
+                    [UiParam] public Bindable<float> SpinnerSize { get; } = new();
+                    [UiParam] public Bindable<float> ViewportHeight { get; } = new();
+                    [UiParam] public Bindable<float> EditorWidth { get; } = new();
+                    [UiParam] public Bindable<float> EditorHeight { get; } = new();
                 }
 
                 public sealed class Capability { }
@@ -78,7 +103,7 @@ public sealed class GeneratedComponentStoryTests
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
         string generated = Assert.Single(result.GeneratedTrees).ToString();
-        Assert.Contains("public const int ComponentCount = 2;", generated, StringComparison.Ordinal);
+        Assert.Contains("public const int ComponentCount = 3;", generated, StringComparison.Ordinal);
         Assert.Contains("GeneratedComponentStoryDescriptor", generated, StringComparison.Ordinal);
         Assert.Contains("\"Controls/Input/Button/Docs\"", generated, StringComparison.Ordinal);
         Assert.Contains("StoryKind.Docs", generated, StringComparison.Ordinal);
@@ -93,6 +118,20 @@ public sealed class GeneratedComponentStoryTests
         Assert.Contains("GalleryXmlDocText.Resolve(\"xml:E:Demo.Button.Clicked\", \"Raised after activation.\")", generated, StringComparison.Ordinal);
         Assert.Contains("global::Demo.Kit.Button(text: arg", generated, StringComparison.Ordinal);
         Assert.Contains("clicked: () => ctx.Log(\"Button.Clicked\")", generated, StringComparison.Ordinal);
+        Assert.Contains("child: global::Luxel.Controls.Kit.Text(\"Generated child\", 16f)", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("StoryCapabilityFallback(\"Child fixture\"", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"min\", \"float\", 0f", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"max\", \"float\", 1f", generated, StringComparison.Ordinal);
+        Assert.Contains("min: -100d, max: 100d, step: 0.1d", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"iconSize\", \"float\", 24f", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"stroke\", \"float\", 2f", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"surfaceWidth\", \"float\", 320f", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"surfaceHeight\", \"float\", 180f", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"spinnerSize\", \"float\", 32f", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"viewportHeight\", \"float\", 180f", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"editorWidth\", \"float\", 320f", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<float>(\"editorHeight\", \"float\", 240f", generated, StringComparison.Ordinal);
+        Assert.Contains("Min = 1d, Max = 1024d, Step = 1d", generated, StringComparison.Ordinal);
         Assert.Contains("new global::Luxel.Gallery.StoryCapabilityFallback(\"AssetBrowser\"", generated, StringComparison.Ordinal);
         Assert.Contains("Unsupported capability/constructor inputs use a deterministic fallback: Services.", generated, StringComparison.Ordinal);
         Assert.Contains("StoryResult.FromMarkdown", generated, StringComparison.Ordinal);
