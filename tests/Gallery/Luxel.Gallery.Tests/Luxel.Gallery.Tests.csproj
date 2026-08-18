@@ -91,6 +91,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\UI\Luxel.UI.Gallery\Luxel.UI.Gallery.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\..\src\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
   </ItemGroup>
 

@@ -127,29 +127,32 @@ public sealed class StoryCatalogBuilder
     {
         ObjectDisposedException.ThrowIf(_built, this);
         ArgumentNullException.ThrowIfNull(story);
+        if (story.Kind == StoryKind.Unspecified)
+            story = story with { Kind = StoryKindResolver.Infer(story.Path) };
         if (story.Ownership is null && _ownership is not null)
             story = story with { Ownership = _ownership };
         bool replacing = _stories.TryGetValue(story.Path, out StoryInfo? existing);
         if (replacing)
         {
+            StoryInfo generated = existing!;
             if (!replaceGenerated)
                 throw new InvalidOperationException($"Story '{story.Path}' is registered more than once.");
-            if (existing.RegistrationKind != StoryRegistrationKind.GeneratedComponentFallback
+            if (generated.RegistrationKind != StoryRegistrationKind.GeneratedComponentFallback
                 || story.RegistrationKind != StoryRegistrationKind.Authored
-                || existing.ProductionComponent is null)
+                || generated.ProductionComponent is null)
                 throw new InvalidOperationException(
                     $"Story '{story.Path}' can only replace an exact generated component fallback with an authored story.");
-            if (story.ProductionComponent is not null && story.ProductionComponent != existing.ProductionComponent)
+            if (story.ProductionComponent is not null && story.ProductionComponent != generated.ProductionComponent)
                 throw new InvalidOperationException(
                     $"Story '{story.Path}' attempted to replace a fallback for another production component.");
             // The authored implementation replaces only the renderer/source. Canonical production identity
             // and the generated static schema remain authoritative for URLs/manifests.
             story = story with
             {
-                ArgDefinitions = story.ArgDefinitions ?? existing.ArgDefinitions,
-                CapabilityNote = story.CapabilityNote ?? existing.CapabilityNote,
-                ProductionComponent = existing.ProductionComponent,
-                Ownership = existing.Ownership,
+                ArgDefinitions = story.ArgDefinitions ?? generated.ArgDefinitions,
+                CapabilityNote = story.CapabilityNote ?? generated.CapabilityNote,
+                ProductionComponent = generated.ProductionComponent,
+                Ownership = generated.Ownership,
             };
         }
         _stories[story.Path] = story;

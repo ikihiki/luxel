@@ -31,7 +31,7 @@ public static class CommandStory
         return null;
     }
 
-    [Story]
+    [Story(Path = "Controls/MenuBar/Basic")]
     public static StoryResult MenuBarBasic(StoryContext ctx)
     {
         string ran = "";
@@ -62,7 +62,7 @@ public static class CommandStory
                  13, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8, 10, 0, 0))];
     }
 
-    [Story]
+    [Story(Path = "Controls/CommandPalette/Basic")]
     public static StoryResult CommandPaletteBasic(StoryContext ctx)
     {
         string ran = "";
@@ -103,7 +103,7 @@ public static class CommandStory
             => OpenButton = Button(_ => { if (_ctx is not null) OnOpen(_ctx); }, "パレットを開く (Ctrl+Shift+P)");
     }
 
-    [Story]
+    [Story(Path = "Controls/Toolbar/Basic")]
     public static StoryResult ToolbarBasic(StoryContext ctx)
     {
         string ran = "";

@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls")]
 public static class LayoutControlStories
 {
-    [Story]
+    [Story(Path = "Controls/Border/Basic")]
     public static StoryResult BorderCard() => Frame(
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 12, padding: new Thickness(20))
             [VStack(6)[
@@ -19,7 +19,7 @@ public static class LayoutControlStories
                 Spacer(height: 8f),
                 Button(_ => { }, "Action")]]);
 
-    [Story]
+    [Story(Path = "Controls/Grid/Examples/Tracks")]
     public static StoryResult GridColumns() =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
         [Grid(columns: [1, 2, 1])[
@@ -27,7 +27,18 @@ public static class LayoutControlStories
             Box(background: Tw.Amber500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(1),
             Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(2)]];
 
-    [Story]
+    [Story(Path = "Controls/Grid/Examples/AttachedUtilities")]
+    public static StoryResult GridAttachedUtilities() =>
+        Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
+        [Grid(columns: [1, 2, 1])[
+            Box(background: Tw.Blue500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch,
+                utilities: [U.Margin(new Thickness(4)), U.Grid.Column(0)]),
+            Box(background: Tw.Amber500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch,
+                utilities: [U.Margin(new Thickness(4)), U.Grid.Column(1)]),
+            Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch,
+                utilities: [U.Margin(new Thickness(4)), U.Grid.Column(2)])]];
+
+    [Story(Path = "Controls/Splitter/Basic")]
     public static StoryResult SplitterBasic(StoryContext ctx) =>
         // 実アプリではドラッグ量 d でレイアウト変数を更新して chrome を再構築する
         // (GalleryApp のサイドバー/Log/右パネルがこの形)。ここでは delta を Log に流すのみ
@@ -36,33 +47,65 @@ public static class LayoutControlStories
             Splitter(vertical: true, onResized: (_, d) => ctx.Log($"drag {d:+0.0;-0.0}px")),
             Box(background: Tw.Amber500, rounded: 6, width: 170, height: 160)]);
 
-    [Story]
+    [Story(Path = "Controls/TreeView/Basic")]
     public static StoryResult TreeViewBasic(StoryContext ctx)
     {
         // Key は展開/選択の永続キー (再構築をまたいで一意なパス文字列)。
         // Tag != null の子持ちノードはラベルクリック = 選択 + 展開、開閉はシェブロン
-        List<TreeNode> roots =
-        [
-            new("docs", "Docs",
-            [
-                new("docs/gpu", "GPU",
-                [
-                    new("docs/gpu/device", "GpuDevice", Tag: "page"),
-                    new("docs/gpu/2d", "TwoD", Tag: "page"),
-                ]),
-                new("docs/ui", "UI", [new("docs/ui/controls", "Controls", Tag: "page")]),
-            ]),
-            new("samples", "Samples", [new("samples/gltf", "GltfBox", Tag: "page")]),
-        ];
         Signal<string> selected = new("docs/gpu/device");
         var expanded = new HashSet<string> { "docs", "docs/gpu" };
         ctx.Play(static d => d.Snap());
-        return Frame(TreeView(roots, expanded: expanded,
+        return Frame(TreeView(TreeRoots(), expanded: expanded,
             onSelect: (_, n) => { selected.Value = n.Key; ctx.Log($"select {n.Key}"); },
             selected: selected, width: 280));
     }
 
-    [Story]
+    [Story(Path = "Controls/TreeView/Playground")]
+    public static StoryResult TreeViewPlayground(StoryContext ctx)
+    {
+        Signal<string> selected = ctx.Signal("selected", "docs/gpu/device");
+        Signal<string> filter = ctx.Signal("filter", "");
+        return Frame(VStack(8)[
+            TextField(filter, placeholder: "Filter tree..."),
+            TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu" },
+                selected: selected, filter: filter, onSelect: (_, node) => selected.Value = node.Key, width: 300)]);
+    }
+
+    [Story(Path = "Controls/TreeView/States/Selection")]
+    public static StoryResult TreeViewSelection() => Frame(
+        TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu" },
+            selected: "docs/gpu/device", width: 300));
+
+    [Story(Path = "Controls/TreeView/States/Expanded")]
+    public static StoryResult TreeViewExpanded() => Frame(
+        TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu", "docs/ui", "samples" }, width: 300));
+
+    [Story(Path = "Controls/TreeView/Examples/Utilities")]
+    public static StoryResult TreeViewUtilities() => Frame(
+        TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu" }, width: 320, utilities:
+        [
+            U.TreeView.RowHeight(30),
+            U.TreeView.RowSpacing(3),
+            U.TreeView.Indent(24),
+            U.TreeView.Radius(8),
+            U.TreeView.SelectedBackground(Tw.Blue500),
+        ]));
+
+    private static List<TreeNode> TreeRoots() =>
+    [
+        new("docs", "Docs",
+        [
+            new("docs/gpu", "GPU",
+            [
+                new("docs/gpu/device", "GpuDevice", Tag: "page"),
+                new("docs/gpu/2d", "TwoD", Tag: "page"),
+            ]),
+            new("docs/ui", "UI", [new("docs/ui/controls", "Controls", Tag: "page")]),
+        ]),
+        new("samples", "Samples", [new("samples/gltf", "GltfBox", Tag: "page")]),
+    ];
+
+    [Story(Path = "Controls/ScrollViewer/Basic")]
     public static StoryResult ScrollBasic(StoryContext ctx)
     {
         var rows = Enumerable.Range(1, 20).Select(i => (Widget)Label($"Row {i}")).ToArray();
@@ -72,7 +115,7 @@ public static class LayoutControlStories
     }
 
     /// <summary>ヒットの transform 追従 + スクロールバードラッグの実証。クリックは Log にも記録。</summary>
-    [Story]
+    [Story(Path = "Controls/ScrollViewer/Examples/Clickable")]
     public static StoryResult ScrollClickable(StoryContext ctx)
     {
         Signal<string> last = ctx.Signal("lastClicked", "(none)");
@@ -84,7 +127,7 @@ public static class LayoutControlStories
             Scroll(160f, width: 240)[VStack(4)[rows]]]);
     }
 
-    [Story]
+    [Story(Path = "Controls/ListView/Basic")]
     public static StoryResult ListViewBasic(StoryContext ctx)
     {
         // EV: コールバックはファクトリの省略可能引数 (第一引数 = 発火元)。items も UI パラメータ
@@ -93,7 +136,7 @@ public static class LayoutControlStories
         return Frame(lv);
     }
 
-    [Story]
+    [Story(Path = "Controls/ListView/Examples/Reorder")]
     public static StoryResult ListViewReorder(StoryContext ctx)
     {
         // D&D 並べ替え (QP-M4): 行をドラッグ → 挿入位置インジケータ → ドロップで OnReorder。
@@ -116,7 +159,7 @@ public static class LayoutControlStories
         return Frame(lv);
     }
 
-    [Story]
+    [Story(Path = "Controls/ListView/Test/Huge")]
     public static StoryResult ListViewHuge(StoryContext ctx)
     {
         // 仮想化ゲート (AP-M3): 10 万行でも実体化は可視行プールのみ、スクロール/選択が破綻しない
@@ -125,7 +168,7 @@ public static class LayoutControlStories
         return Frame(lv);
     }
 
-    [Story]
+    [Story(Path = "Controls/Layout/Examples/Units")]
     public static StoryResult LayoutUnits() => Frame(
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 8, padding: new Thickness(8), width: 400)[
             VStack(6)[
@@ -134,7 +177,7 @@ public static class LayoutControlStories
                 Box(background: Tw.Green500, rounded: 4, width: "10em", height: 18),
                 Box(background: Tw.Red500, rounded: 4, width: "25vw", height: 18)]]);
 
-    [Story]
+    [Story(Path = "Controls/WrapPanel/Basic")]
     public static StoryResult WrapBasic() => Frame(
         Wrap(8, 8, width: 300f)[
             Enumerable.Range(1, 12).Select(i => (Widget)Box(

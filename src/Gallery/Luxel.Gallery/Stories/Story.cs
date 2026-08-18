@@ -15,6 +15,8 @@ public class Story : Attribute
     /// <summary>true = 実ウィンドウ専用 (音声再生・実デバイス入力など)。snap 回帰は SKIP し、
     /// Gallery アプリでは通常どおり表示される。golden は作らない。</summary>
     public bool RealWindowOnly { get; set; }
+    /// <summary>Optional canonical route override. When omitted, <c>StoryMeta/MethodName</c> is used.</summary>
+    public string? Path { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
@@ -440,12 +442,47 @@ public sealed class StoryKnob
     }
 }
 
-/// <summary>Source-generated identity for one production <c>[UiComponent]</c> Overview/Basic pair.</summary>
+/// <summary>Source-generated identity for one production <c>[UiComponent]</c> Docs/Basic pair.</summary>
 public sealed record GeneratedComponentStoryDescriptor(
     string ComponentType,
     string Category,
-    string OverviewPath,
+    string DocsPath,
     string BasicPath);
+
+/// <summary>StorybookのDocs/Story区分に対応する、pathとは独立したstoryの役割。</summary>
+public enum StoryKind
+{
+    Unspecified,
+    Docs,
+    Basic,
+    Playground,
+    Example,
+    State,
+    AccessibilityFixture,
+    TestFixture,
+}
+
+internal static class StoryKindResolver
+{
+    internal static StoryKind Infer(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string[] segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        if (segments.Length == 0) return StoryKind.Unspecified;
+
+        return segments[^1] switch
+        {
+            "Docs" => StoryKind.Docs,
+            "Basic" => StoryKind.Basic,
+            "Playground" => StoryKind.Playground,
+            _ when segments.Contains("Examples", StringComparer.Ordinal) => StoryKind.Example,
+            _ when segments.Contains("States", StringComparer.Ordinal) => StoryKind.State,
+            _ when segments.Contains("Accessibility", StringComparer.Ordinal) => StoryKind.AccessibilityFixture,
+            _ when segments.Contains("Test", StringComparer.Ordinal) => StoryKind.TestFixture,
+            _ => StoryKind.Unspecified,
+        };
+    }
+}
 
 /// <summary>Declares the category project that owns a compiled story route.</summary>
 public sealed record StoryOwnership(string Category, string RegistrationIdentity, GalleryCompatibility Compatibility)
@@ -479,7 +516,8 @@ public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Buil
                                StoryRegistrationKind RegistrationKind = StoryRegistrationKind.Authored,
                                GeneratedComponentStoryDescriptor? ProductionComponent = null,
                                StoryOwnership? Ownership = null,
-                               bool IncludeInPageNavigation = true)
+                               bool IncludeInPageNavigation = true,
+                               StoryKind Kind = StoryKind.Unspecified)
 {
     /// <summary>パスの先頭セグメント (章 — サイドバーのトップレベル)。</summary>
     public string Component => Path.IndexOf('/') is >= 0 and var i ? Path[..i] : Path;
@@ -497,6 +535,9 @@ public static class StoryRegistry
     private static readonly Dictionary<string, string> Aliases = new(StringComparer.Ordinal);
     public static void Register(StoryInfo story)
     {
+        ArgumentNullException.ThrowIfNull(story);
+        if (story.Kind == StoryKind.Unspecified)
+            story = story with { Kind = StoryKindResolver.Infer(story.Path) };
         lock (Gate)
         {
             int existing = Stories.FindIndex(item => item.Path == story.Path);

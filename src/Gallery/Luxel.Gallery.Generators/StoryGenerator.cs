@@ -95,13 +95,15 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     bool hasMeta = !string.IsNullOrWhiteSpace(title);
                     string path = hasMeta ? title + "/" + m.Name : m.Name;
                     bool realWindowOnly = false;
-                    string? capabilityNote = null, schemaMethod = null;
+                    string? capabilityNote = null, schemaMethod = null, routeOverride = null;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "RealWindowOnly" && na.Value.Value is bool rw) realWindowOnly = rw;
+                        if (na.Key == "Path" && na.Value.Value is string route) routeOverride = route.Trim().Trim('/');
                         if (na.Key == "CapabilityNote" && na.Value.Value is string cn) capabilityNote = cn;
                         if (na.Key == "Args" && na.Value.Value is string am) schemaMethod = am;
                     }
+                    if (!string.IsNullOrWhiteSpace(routeOverride)) path = routeOverride!;
                     bool returnsStoryResult = m.ReturnType.ToDisplayString() == "Luxel.Gallery.StoryResult";
                     // 引数: StoryContext は "ctx"、その他は DI 解決するグローバル修飾型名 (minimal API 風)
                     var paramz = new string[m.Parameters.Length];

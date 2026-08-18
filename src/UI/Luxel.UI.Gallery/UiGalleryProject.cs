@@ -21,6 +21,9 @@ public static class UiGalleryProject
         using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         RegisterProductionComponents(categoryBuilder);
+        // Enrich generated component Docs in the same catalog before authored exact-path
+        // replacements are applied. This keeps a single canonical Docs entry per component.
+        global::Luxel.Gallery.Stories.ControlDocsApi.RegisterControlStories(categoryBuilder);
         Merge(Luxel.Gallery.Generated.StoryRegistration_Luxel_UI_Gallery.Register);
         Merge(Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_UI_Gallery.Register);
 
@@ -72,7 +75,7 @@ public static class UiGalleryProject
         GeneratedComponentStoryDescriptor[] descriptors = ProductionLazy.Value;
         if (descriptors.Select(descriptor => descriptor.ComponentType).Distinct(StringComparer.Ordinal).Count() != descriptors.Length)
             throw new InvalidOperationException("Generated UI production component types must be unique.");
-        if (descriptors.SelectMany(static descriptor => new[] { descriptor.OverviewPath, descriptor.BasicPath })
+        if (descriptors.SelectMany(static descriptor => new[] { descriptor.DocsPath, descriptor.BasicPath })
                 .Distinct(StringComparer.Ordinal).Count() != descriptors.Length * 2)
             throw new InvalidOperationException("Generated UI production component paths must be unique.");
     }

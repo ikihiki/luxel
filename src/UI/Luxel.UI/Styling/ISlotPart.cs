@@ -1,4 +1,4 @@
-﻿namespace Luxel.UI.Styling;
+namespace Luxel.UI.Styling;
 
 /// <summary>
 /// Slot 上書きの宣言。<c>Slider()[SliderSlot.Knob(() => Circle())]</c> のように
@@ -23,6 +23,10 @@ public sealed class SlotPart<TKey>(TKey key, Func<Widget> template) : ISlotPart
 
     public void ApplyTo(Widget widget)
     {
-        if (widget is ISlotted<TKey> sw) sw.SetSlot(Key, Template);
+        ArgumentNullException.ThrowIfNull(widget);
+        if (widget is not ISlotted<TKey> slotted)
+            throw new InvalidOperationException(
+                $"Slot key type '{typeof(TKey).Name}' cannot be applied to widget '{widget.GetType().Name}'.");
+        slotted.SetSlot(Key, Template);
     }
 }

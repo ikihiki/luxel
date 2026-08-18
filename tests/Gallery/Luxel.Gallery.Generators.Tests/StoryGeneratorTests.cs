@@ -60,6 +60,19 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Story_path_can_use_an_explicit_canonical_override()
+    {
+        GeneratorDriverRunResult result = Run("""
+            [Story(Path = "/Controls/Button/Examples/Utilities/")]
+            public static StoryResult Tailwind() => new Widget();
+            """, "Legacy");
+
+        string generated = Assert.Single(result.GeneratedTrees).ToString();
+        Assert.Contains("\"Controls/Button/Examples/Utilities\"", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("\"Legacy/Tailwind\"", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Stories_in_the_same_meta_follow_method_declaration_order()
     {
         GeneratorDriverRunResult result = Run("""
@@ -191,6 +204,7 @@ public sealed class StoryGeneratorTests
                 [AttributeUsage(AttributeTargets.Method)]
                 public sealed class StoryAttribute : Attribute
                 {
+                    public string? Path { get; set; }
                     public bool RealWindowOnly { get; set; }
                     public string? Args { get; set; }
                     public string? CapabilityNote { get; set; }

@@ -52,7 +52,7 @@ public static class DocsHome
 
         ## 端末
 
-        `Luxel.Terminal`がUI非依存のVT/ANSI parser、screen、scrollback、入力encode、sessionを提供し、`.Windows`のConPTYと`.Linux`のUnix PTYを`ITerminalPty`の後ろへ分離します。`Luxel.Terminal.UI`の`TerminalView`は`Luxel.Controls`に依存せず、font fallback、selection、clipboard、IME、resize reflowを担当します。導入と調整方法は [Controls/Terminal/Overview](story:Controls/Terminal/Overview) へ。
+        `Luxel.Terminal`がUI非依存のVT/ANSI parser、screen、scrollback、入力encode、sessionを提供し、`.Windows`のConPTYと`.Linux`のUnix PTYを`ITerminalPty`の後ろへ分離します。`Luxel.Terminal.UI`の`TerminalView`は`Luxel.Controls`に依存せず、font fallback、selection、clipboard、IME、resize reflowを担当します。導入と調整方法は [Controls/Terminal/Docs](story:Controls/Terminal/Docs) へ。
 
         ## モーション
 

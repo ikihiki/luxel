@@ -25,22 +25,20 @@ internal static class GalleryChromeTheme
     public static uint OutputText => C(0xcb, 0xd7, 0xe5);
     public static uint Success => C(0x54, 0xbd, 0x83);
 
-    public static Theme Create()
+    public static Theme Create() => Theme.Dark.Compact() with
     {
-        Theme theme = Theme.Dark.Compact();
-        theme.Background = C(0x0b, 0x10, 0x17);
-        theme.Surface = C(0x11, 0x1a, 0x25);
-        theme.SurfaceAlt = C(0x10, 0x17, 0x21);
-        theme.BorderColor = C(0x26, 0x32, 0x42);
-        theme.Text = C(0xe5, 0xed, 0xf7);
-        theme.TextMuted = C(0x8f, 0xa0, 0xb5);
-        theme.Primary = C(0x76, 0xa9, 0xff);
-        theme.PrimaryHover = C(0x8b, 0xb8, 0xff);
-        theme.PrimaryActive = C(0x5f, 0x91, 0xe8);
-        theme.Radius = 6;
-        theme.RadiusLg = 9;
-        return theme;
-    }
+        Background = C(0x0b, 0x10, 0x17),
+        Surface = C(0x11, 0x1a, 0x25),
+        SurfaceAlt = C(0x10, 0x17, 0x21),
+        BorderColor = C(0x26, 0x32, 0x42),
+        Text = C(0xe5, 0xed, 0xf7),
+        TextMuted = C(0x8f, 0xa0, 0xb5),
+        Primary = C(0x76, 0xa9, 0xff),
+        PrimaryHover = C(0x8b, 0xb8, 0xff),
+        PrimaryActive = C(0x5f, 0x91, 0xe8),
+        Radius = 6,
+        RadiusLg = 9,
+    };
 
     private static uint C(byte r, byte g, byte b) => Color2D.Rgba(r, g, b);
 }

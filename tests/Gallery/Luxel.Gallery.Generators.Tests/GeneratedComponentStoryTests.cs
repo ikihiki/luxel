@@ -77,6 +77,10 @@ public sealed class GeneratedComponentStoryTests
         string generated = Assert.Single(result.GeneratedTrees).ToString();
         Assert.Contains("public const int ComponentCount = 2;", generated, StringComparison.Ordinal);
         Assert.Contains("GeneratedComponentStoryDescriptor", generated, StringComparison.Ordinal);
+        Assert.Contains("\"Controls/Button/Docs\"", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryKind.Docs", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryKind.Basic", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Controls/Button/Overview", generated, StringComparison.Ordinal);
         Assert.Contains("StoryArgDefinition.Create<string>(\"text\", \"string\", \"Example\"", generated, StringComparison.Ordinal);
         Assert.Contains("global::Demo.Kit.Button(text: arg", generated, StringComparison.Ordinal);
         Assert.Contains("clicked: () => ctx.Log(\"Button.Clicked\")", generated, StringComparison.Ordinal);

@@ -206,8 +206,7 @@ public class MarkdownDecorationsTests
 
         Assert.Equal(theme.Primary, At(provider.Provide(state), 1, 5).Foreground);
 
-        theme = Theme.Light;
-        theme.Primary = 0xff33aaff;
+        theme = Theme.Light with { Primary = 0xff33aaff };
 
         Assert.Equal(0xff33aaffu, At(provider.Provide(state), 1, 5).Foreground);
     }

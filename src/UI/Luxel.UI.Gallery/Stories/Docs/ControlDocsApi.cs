@@ -30,10 +30,10 @@ internal static class ControlDocsApi
             string? category = ExistingControlCategory(api.Name);
             if (category is null || !categories.Add(category)) continue;
             builder.Add(api.Name == "Button"
-                ? new StoryInfo("Controls/Button/Overview",
-                    static _ => ButtonOverview(), Source: "Generated control API overview.")
-                : new StoryInfo($"Controls/{category}/Overview",
-                    ctx => ControlPage(ctx, api), Source: "Generated control API overview."), replaceGenerated: true);
+                ? new StoryInfo("Controls/Button/Docs",
+                    static _ => ButtonDocs(), Source: "Generated component docs.")
+                : new StoryInfo($"Controls/{category}/Docs",
+                    ctx => ControlPage(ctx, api), Source: "Generated component docs."), replaceGenerated: true);
         }
 
         RegisterSpecialControlPage(builder, categories, "Layout", LayoutPage);
@@ -45,7 +45,7 @@ internal static class ControlDocsApi
         string category, Func<StoryContext, StoryResult> build)
     {
         if (!categories.Add(category)) return;
-        builder.Add(new StoryInfo($"Controls/{category}/Overview", build, Source: "Generated control API overview."),
+        builder.Add(new StoryInfo($"Controls/{category}/Docs", build, Source: "Generated component docs."),
             replaceGenerated: true);
     }
 
@@ -61,8 +61,8 @@ internal static class ControlDocsApi
                 if (api.Namespace != "Luxel.Controls") continue;
                 string? category = ExistingControlCategory(api.Name);
                 if (category is null || !RegisteredControlCategories.Add(category)) continue;
-                StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview",
-                    ctx => ControlPage(ctx, api), Source: "Generated control API overview."));
+                StoryRegistry.Register(new StoryInfo($"Controls/{category}/Docs",
+                    ctx => ControlPage(ctx, api), Source: "Generated component docs."));
             }
 
             RegisterSpecialControlPage("Layout", LayoutPage);
@@ -74,8 +74,8 @@ internal static class ControlDocsApi
     private static void RegisterSpecialControlPage(string category, Func<StoryContext, StoryResult> build)
     {
         if (!RegisteredControlCategories.Add(category)) return;
-        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Overview", build,
-            Source: "Generated control API overview."));
+        StoryRegistry.Register(new StoryInfo($"Controls/{category}/Docs", build,
+            Source: "Generated component docs."));
     }
 
     private static string? ExistingControlCategory(string apiName) => apiName switch
@@ -104,14 +104,14 @@ internal static class ControlDocsApi
         return s;
     }
 
-    private static StoryResult ButtonOverview() => $$"""
+    private static StoryResult ButtonDocs() => $$"""
         # Button
 
         `Button` executes an action in response to pointer activation. The browser bundle currently hosts
         the canonical interactive counter story; component-playground hosting remains native until the
         generated component catalog can be linked into the browser-safe dependency closure.
 
-        {{StoryReference.To("Controls/Button/CounterSample", new { count = 0 })}}
+        {{StoryReference.To("Controls/Button/Examples/Counter", new { count = 0 })}}
 
         The interactive reference above is isolated in its own browser runtime iframe; the surrounding
         overview remains semantic HTML.
@@ -128,7 +128,7 @@ internal static class ControlDocsApi
 
     public static IReadOnlyList<StoryArgDefinition> CounterSampleArgs() => InputControlStories.CounterArgs();
 
-    [Story(Args = nameof(CounterSampleArgs))]
+    [Story(Path = "Controls/Button/Examples/Counter", Args = nameof(CounterSampleArgs))]
     public static StoryResult CounterSample(StoryContext ctx) => InputControlStories.ButtonCounter(ctx);
 
     private static StoryResult LayoutPage(StoryContext ctx)
@@ -161,7 +161,7 @@ internal static class ControlDocsApi
         Border Breadcrumb(params string[] crumbs)
         ```
 
-        実例は [Badges](story:Controls/Badges) / [Alert](story:Controls/AlertStory) / [Typography](story:Controls/Typography) へ。
+        実例は [Badges](story:Controls/Kit/Examples/Badges) / [Alert](story:Controls/Kit/Examples/Alert) / [Typography](story:Controls/Kit/Examples/Typography) へ。
         """;
 
     private static StoryResult CommandPalettePage(StoryContext ctx) => $$"""

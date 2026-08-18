@@ -1,4 +1,4 @@
-﻿using Luxel.Animation;
+using Luxel.Animation;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Styling;
@@ -88,7 +88,7 @@ public sealed partial class Switch : Widget
 /// 塗りつぶしではなくストロークで描く — 保持型ツリーの描画順は「親自身の Content → 子 (Z 順)」なので、
 /// 子ノードの塗り角丸 (旧実装, Z=-1) は root 自身に載った背景より必ず後に描かれ、
 /// コントロール全面を覆ってしまう。輪郭なら描画順に依存しない。</summary>
-internal static class FocusRing
+public static class FocusRing
 {
     public static void Add(UiBuildContext ctx, UiNode parent, float x, float y, float w, float h, float r, Signal<bool> focused)
     {

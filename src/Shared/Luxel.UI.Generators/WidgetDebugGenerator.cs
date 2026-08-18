@@ -48,6 +48,21 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         "'{0}' は [UiComponent] ですが手書きコンストラクタがあります。パラメータなし internal ctor はジェネレーターが自動定義し、すべてのパラメータは [UiParam] 経由で渡してください (初期化は partial void OnConstruct() へ)",
         "Luxel.UI", DiagnosticSeverity.Warning, true);
 
+    private static readonly DiagnosticDescriptor ReactiveLayoutUtility = new(
+        "NGUI003", "reactive layout utility is not supported",
+        "Layout utility '{0}' cannot use a reactive value until layout invalidation is supported",
+        "Luxel.UI", DiagnosticSeverity.Error, true);
+
+    private static readonly DiagnosticDescriptor StatefulLayoutUtility = new(
+        "NGUI004", "layout utility cannot target visual state",
+        "Layout utility '{0}' cannot be applied inside '{1}' until state-driven layout invalidation is supported",
+        "Luxel.UI", DiagnosticSeverity.Error, true);
+
+    private static readonly DiagnosticDescriptor UtilityTargetMismatch = new(
+        "NGUI005", "utility target does not match component",
+        "Utility '{0}' targets '{1}' and cannot be applied to component '{2}'",
+        "Luxel.UI", DiagnosticSeverity.Error, true);
+
     internal enum BindKind { Color, Int, Float, Double, Bool, String, Enum, Parsable, Other, Text /* BindableString */ }
 
     internal sealed class FieldModel : IEquatable<FieldModel>
@@ -167,9 +182,121 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
             return (AssemblyName: c.AssemblyName ?? "Assembly", FactoryDefault: factoryDefault ?? "Factories");
         });
 
+        var reactiveLayoutUtilities = context.SyntaxProvider.CreateSyntaxProvider(
+                static (node, _) => node is InvocationExpressionSyntax,
+                static (ctx, ct) => FindReactiveLayoutUtility(ctx, ct))
+            .Where(static diagnostic => diagnostic is not null);
+        context.RegisterSourceOutput(reactiveLayoutUtilities,
+            static (spc, diagnostic) => spc.ReportDiagnostic(diagnostic!));
+
+        var statefulLayoutUtilities = context.SyntaxProvider.CreateSyntaxProvider(
+                static (node, _) => node is InvocationExpressionSyntax,
+                static (ctx, ct) => FindStatefulLayoutUtility(ctx, ct))
+            .Where(static diagnostic => diagnostic is not null);
+        context.RegisterSourceOutput(statefulLayoutUtilities,
+            static (spc, diagnostic) => spc.ReportDiagnostic(diagnostic!));
+
+        var utilityTargetMismatches = context.SyntaxProvider.CreateSyntaxProvider(
+                static (node, _) => node is InvocationExpressionSyntax,
+                static (ctx, ct) => FindUtilityTargetMismatch(ctx, ct))
+            .Where(static diagnostic => diagnostic is not null);
+        context.RegisterSourceOutput(utilityTargetMismatches,
+            static (spc, diagnostic) => spc.ReportDiagnostic(diagnostic!));
+
         context.RegisterSourceOutput(widgets.Combine(options),
             static (spc, pair) => Emit(spc, pair.Left, pair.Right.AssemblyName, pair.Right.FactoryDefault));
     }
+
+    private static Diagnostic? FindReactiveLayoutUtility(GeneratorSyntaxContext context, CancellationToken cancellationToken)
+    {
+        var invocation = (InvocationExpressionSyntax)context.Node;
+        if (invocation.ArgumentList.Arguments.Count == 0) return null;
+        if (context.SemanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol is not IMethodSymbol method)
+            return null;
+        if (method.ReturnType.ToDisplayString() != "Luxel.UI.U") return null;
+        if (!IsLayoutUtility(method.Name)) return null;
+
+        ExpressionSyntax value = invocation.ArgumentList.Arguments[0].Expression;
+        ITypeSymbol? sourceType = context.SemanticModel.GetTypeInfo(value, cancellationToken).Type;
+        bool signal = sourceType is INamedTypeSymbol named
+            && named.Name == "Signal"
+            && named.Arity == 1
+            && named.ContainingNamespace.ToDisplayString() == "Luxel.UI";
+        bool reactiveBind = value is InvocationExpressionSyntax bindInvocation
+            && context.SemanticModel.GetSymbolInfo(bindInvocation, cancellationToken).Symbol is IMethodSymbol bindMethod
+            && bindMethod.Name == "From"
+            && bindMethod.ContainingType.ToDisplayString() == "Luxel.UI.Bind";
+        if (!signal && !reactiveBind) return null;
+
+        return Diagnostic.Create(ReactiveLayoutUtility, value.GetLocation(), method.Name);
+    }
+
+    private static Diagnostic? FindUtilityTargetMismatch(GeneratorSyntaxContext context, CancellationToken cancellationToken)
+    {
+        var invocation = (InvocationExpressionSyntax)context.Node;
+        if (context.SemanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol is not IMethodSymbol componentFactory)
+            return null;
+        if (!IsWidgetType(componentFactory.ReturnType)) return null;
+
+        foreach (ArgumentSyntax argument in invocation.ArgumentList.Arguments)
+        {
+            if (argument.NameColon?.Name.Identifier.ValueText != "utilities"
+                || argument.Expression is not CollectionExpressionSyntax collection)
+                continue;
+            foreach (CollectionElementSyntax element in collection.Elements)
+            {
+                if (element is not ExpressionElementSyntax expressionElement
+                    || expressionElement.Expression is not InvocationExpressionSyntax utilityInvocation
+                    || context.SemanticModel.GetSymbolInfo(utilityInvocation, cancellationToken).Symbol is not IMethodSymbol utilityMethod)
+                    continue;
+                AttributeData? targetAttribute = utilityMethod.GetAttributes().FirstOrDefault(static attribute =>
+                    attribute.AttributeClass?.ToDisplayString() == "Luxel.UI.UtilityTargetAttribute");
+                if (targetAttribute is null || targetAttribute.ConstructorArguments.Length != 1
+                    || targetAttribute.ConstructorArguments[0].Value is not INamedTypeSymbol targetType) continue;
+                Conversion conversion = context.SemanticModel.Compilation.ClassifyConversion(componentFactory.ReturnType, targetType);
+                if (conversion.IsImplicit) continue;
+                return Diagnostic.Create(UtilityTargetMismatch, utilityInvocation.GetLocation(),
+                    utilityMethod.Name, targetType.Name, componentFactory.ReturnType.Name);
+            }
+        }
+        return null;
+    }
+
+    private static bool IsWidgetType(ITypeSymbol type)
+    {
+        for (ITypeSymbol? current = type; current is INamedTypeSymbol named; current = named.BaseType)
+            if (current.ToDisplayString() == WidgetTypeName) return true;
+        return false;
+    }
+
+    private static Diagnostic? FindStatefulLayoutUtility(GeneratorSyntaxContext context, CancellationToken cancellationToken)
+    {
+        var invocation = (InvocationExpressionSyntax)context.Node;
+        if (context.SemanticModel.GetSymbolInfo(invocation, cancellationToken).Symbol is not IMethodSymbol stateMethod)
+            return null;
+        if (stateMethod.ReturnType.ToDisplayString() != "Luxel.UI.U") return null;
+        if (stateMethod.Name is not ("When" or "Hover" or "Pressed" or "Focused" or "Disabled")) return null;
+
+        int utilitiesIndex = stateMethod.Name == "When" ? 1 : 0;
+        if (invocation.ArgumentList.Arguments.Count <= utilitiesIndex) return null;
+        ExpressionSyntax utilities = invocation.ArgumentList.Arguments[utilitiesIndex].Expression;
+        if (utilities is not CollectionExpressionSyntax collection) return null;
+
+        foreach (CollectionElementSyntax element in collection.Elements)
+        {
+            if (element is not ExpressionElementSyntax expressionElement
+                || expressionElement.Expression is not InvocationExpressionSyntax nested
+                || context.SemanticModel.GetSymbolInfo(nested, cancellationToken).Symbol is not IMethodSymbol utilityMethod
+                || utilityMethod.ReturnType.ToDisplayString() != "Luxel.UI.U"
+                || !IsLayoutUtility(utilityMethod.Name))
+                continue;
+            return Diagnostic.Create(StatefulLayoutUtility, nested.GetLocation(), utilityMethod.Name, stateMethod.Name);
+        }
+        return null;
+    }
+
+    private static bool IsLayoutUtility(string name)
+        => name is "Width" or "Height" or "Margin" or "Padding";
 
     // ---- 収集 ----
 
@@ -774,6 +901,9 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
             paramDecls.Add(paramType + " " + SafeName(ParamName(f.Name))
                 + (f.TypeFq == LengthType ? " = default" : " = null"));
         }
+        // Utility collection は全 factory 共通の末尾 optional parameter。
+        // 先に適用し、その後 named [UiParam] を流すことで named parameter を常に優先する。
+        paramDecls.Add("global::Luxel.UI.Utilities utilities = default");
         for (int i = 0; i < paramDecls.Count; i++)
         {
             sb.AppendLine();
@@ -783,8 +913,9 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         sb.AppendLine(")");
         sb.Append(pad).AppendLine("{");
 
-        // パラメータなし internal ctor (生成) で作り、すべて [UiParam]/[UiEvent] 経由で流し込む
+        // パラメータなし internal ctor (生成) で作り、Utility → named [UiParam]/[UiEvent] の順に流し込む。
         sb.Append(pad).Append("    var w = new ").Append(w.TypeFq).AppendLine("();");
+        sb.Append(pad).AppendLine("    utilities.ApplyTo(w);");
 
         foreach ((int _, FieldModel? f, EventModel? e) in merged)
         {
