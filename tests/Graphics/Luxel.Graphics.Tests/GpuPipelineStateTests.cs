@@ -49,25 +49,6 @@ public sealed class GpuPipelineStateTests
     }
 
     [Fact]
-    public void Legacy_descriptor_normalizes_into_separate_state_blocks()
-    {
-#pragma warning disable CS0618
-        GpuRasterDesc legacy = GpuRasterDesc.Default(GpuFormat.Bgra8Unorm);
-#pragma warning restore CS0618
-        legacy.Topology = GpuPrimitiveTopology.TriangleStrip;
-        legacy.DepthWrite = true;
-        legacy.CullMode = GpuCullMode.Back;
-        legacy.Blend = GpuBlendMode.AlphaBlend;
-        var value = legacy.Normalize();
-        Assert.Equal(GpuPrimitiveTopology.TriangleStrip, value.Pipeline.Topology);
-        Assert.Equal(GpuFormat.D32Float, value.Pipeline.Attachments.DepthStencilFormat);
-        Assert.False(value.DepthStencil.DepthTest);
-        Assert.True(value.DepthStencil.DepthWrite);
-        Assert.Equal(GpuCullMode.Back, value.Rasterizer.CullMode);
-        Assert.Equal(GpuBlendMode.AlphaBlend, value.Blend.Mode);
-    }
-
-    [Fact]
     public void Logical_pipeline_binding_preserves_independent_command_state()
     {
         var backendPipeline = new RecordingPipeline();
@@ -81,26 +62,6 @@ public sealed class GpuPipelineStateTests
         Assert.Equal(0, backendCommand.RasterizerStateChanges);
         Assert.Equal(0, backendCommand.DepthStencilStateChanges);
         Assert.Equal(0, backendCommand.BlendStateChanges);
-    }
-
-    [Fact]
-    public void Legacy_pipeline_binding_applies_legacy_state_bundle()
-    {
-        var rasterizer = new GpuRasterizerState(GpuCullMode.Back, GpuFrontFace.Clockwise);
-        var depthStencil = GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true };
-        var blend = GpuBlendState.AlphaBlend;
-        using var pipeline = new GpuPipeline(new RecordingPipeline())
-        {
-            LegacyGraphicsState = new GpuLegacyGraphicsState(rasterizer, depthStencil, blend),
-        };
-        var backendCommand = new RecordingCommandBuffer();
-        using var command = new GpuCommandBuffer(backendCommand);
-
-        command.SetGraphicsPipeline(pipeline);
-
-        Assert.Equal(rasterizer, backendCommand.Rasterizer);
-        Assert.Equal(depthStencil, backendCommand.DepthStencil);
-        Assert.Equal(blend, backendCommand.Blend);
     }
 
     [Fact]

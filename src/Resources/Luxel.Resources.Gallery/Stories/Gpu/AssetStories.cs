@@ -97,10 +97,9 @@ public static class AssetStories
             };
 
             _depth = Track(Device.CreateDepthTarget(W, H));
-            GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-            raster.DepthTest = true;
-            raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_lite"), raster));
+            var pipelineDesc = new GpuGraphicsPipelineDesc(
+                new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
+            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_lite"), pipelineDesc));
         }
 
         protected override void OnRender(float time)
@@ -112,6 +111,9 @@ public static class AssetStories
             using GpuCommandBuffer command = Device.MainQueue.StartCommandRecording();
             command.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
                 .SetGraphicsPipeline(_pipeline)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                .SetBlendState(GpuBlendState.None)
                 .SetRootArguments(new DrawArgs
                 {
                     ViewProj = Matrix4x4.Transpose(view * projection),
@@ -209,10 +211,9 @@ public static class AssetStories
             _extractor.Extract(new ExtractContext(Device, frameIndex: _frame++));
 
             _depth = Track(Device.CreateDepthTarget(W, H));
-            var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-            raster.DepthTest = true;
-            raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_lite"), raster));
+            var pipelineDesc = new GpuGraphicsPipelineDesc(
+                new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
+            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_lite"), pipelineDesc));
         }
 
         protected override void OnRender(float time)
@@ -244,7 +245,10 @@ public static class AssetStories
             pass.Execute(ctx =>
             {
                 ctx.Cmd.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
-                       .SetGraphicsPipeline(_pipeline);
+                       .SetGraphicsPipeline(_pipeline)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                .SetBlendState(GpuBlendState.None);
                 foreach ((BufferHandle hV, BufferHandle hI, ScenePrimitiveGpu gpu, int start, int count) in draws)
                 {
                     bool indexed = gpu.IndexCount > 0;

@@ -7,7 +7,6 @@ internal sealed record GpuPipelineRequest(
     ResourceHandle<GpuShaderCode>? Shader,
     bool IsCompute,
     GpuGraphicsPipelineDesc Graphics,
-    GpuRasterDesc? LegacyRaster,
     string ComputeEntry);
 
 internal enum GpuTextureRequestKind

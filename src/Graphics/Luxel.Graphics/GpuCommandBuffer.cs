@@ -61,12 +61,6 @@ public sealed class GpuCommandBuffer : IDisposable
     public GpuCommandBuffer SetGraphicsPipeline(GpuPipeline pipeline)
     {
         _cmd.SetGraphicsPipeline(pipeline.Backend);
-        if (pipeline.LegacyGraphicsState is { } legacy)
-        {
-            _cmd.SetRasterizerState(legacy.Rasterizer);
-            _cmd.SetDepthStencilState(legacy.DepthStencil);
-            _cmd.SetBlendState(legacy.Blend);
-        }
         return this;
     }
 

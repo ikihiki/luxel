@@ -75,7 +75,7 @@ public partial class AssetsGpuTests
 
         var compute = scope.CreateComputePipeline("pipeline/compute", code);
         var graphics = scope.CreateGraphicsPipeline(
-            "pipeline/graphics", code, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            "pipeline/graphics", code, new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm)));
         var sampled = scope.CreateSampledTexture(
             "texture/albedo", 1, 1, new byte[] { 1, 2, 3, 4 });
         var sampler = scope.CreateSampler("sampler/main");
@@ -136,7 +136,7 @@ public partial class AssetsGpuTests
             "controlled://shader", _ => completion.Task, ResourceOwnership.Borrowed);
 
         using ResourceHandle<GpuPipeline> pipeline = scope.CreateGraphicsPipeline(
-            "pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            "pipeline", shader, new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm)));
         Assert.False(pipeline.Ready.IsCompleted);
 
         completion.SetResult(new GpuShaderCode { SpirV = [1, 2, 3, 4] });
@@ -156,7 +156,7 @@ public partial class AssetsGpuTests
         using ResourceHandle<GpuShaderCode> shader = resources.Publish(
             "published://shader", new GpuShaderCode { SpirV = [1, 2, 3, 4] }, ResourceOwnership.Borrowed);
         using ResourceHandle<GpuPipeline> pipeline = scope.CreateGraphicsPipeline(
-            "pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            "pipeline", shader, new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm)));
         await pipeline.Ready;
         GpuPipeline first = pipeline.Value;
 

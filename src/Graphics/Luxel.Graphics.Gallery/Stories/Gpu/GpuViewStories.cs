@@ -84,7 +84,7 @@ public static class GpuViewStories
         ResourceHandle<GpuBuffer> vertexBuffer = resources.Create<float[], GpuBuffer>(
             "triangle.vertices", vertices);
         ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
-            "triangle.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            "triangle.pipeline", shader, new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm)));
         Signal<ResourceState> vertexBufferState = ctx.Observe(vertexBuffer);
         Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
 
@@ -104,6 +104,9 @@ public static class GpuViewStories
                 uint vertexBufferIndex = vertexBuffer.Value.BindlessIndex;
                 command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
                     .SetGraphicsPipeline(pipeline.Value)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default)
+                .SetBlendState(GpuBlendState.None)
                     .SetRootArguments(vertexBufferIndex)
                     .Draw(3)
                     .EndRendering();
@@ -162,7 +165,7 @@ public static class GpuViewStories
         ResourceHandle<GpuShaderCode> shader = resources.Create<SlangSource, GpuShaderCode>(
             "buffers-and-bindings.slang", new SlangSource("buffers-and-bindings.slang", slang), "graphics");
         ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
-            "buffers-and-bindings.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            "buffers-and-bindings.pipeline", shader, new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm)));
         Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
 
         return ctx.Snap(Frame(GpuView(
@@ -185,6 +188,9 @@ public static class GpuViewStories
                 using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();
                 command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
                     .SetGraphicsPipeline(pipeline.Value)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default)
+                .SetBlendState(GpuBlendState.None)
                     .SetRootArguments(args)
                     .Draw(6)
                     .EndRendering();
@@ -261,7 +267,7 @@ public static class GpuViewStories
         ResourceHandle<GpuShaderCode> shader = resources.Create<SlangSource, GpuShaderCode>(
             "textures.slang", new SlangSource("textures.slang", slang), "graphics");
         ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
-            "textures.pipeline", shader, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            "textures.pipeline", shader, new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm)));
         Signal<ResourceState> textureState = ctx.Observe(texture);
         Signal<ResourceState> pipelineState = ctx.Observe(pipeline);
 
@@ -293,6 +299,9 @@ public static class GpuViewStories
                         using GpuCommandBuffer command = gpu.MainQueue.StartCommandRecording();
                         command.BeginRendering(surface.ColorTarget, null, 0.055f, 0.07f, 0.11f, 1)
                             .SetGraphicsPipeline(pipeline.Value)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default)
+                .SetBlendState(GpuBlendState.None)
                             .SetRootArguments(args)
                             .Draw(6)
                             .EndRendering();

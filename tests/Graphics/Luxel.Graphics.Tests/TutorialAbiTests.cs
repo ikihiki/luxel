@@ -61,10 +61,9 @@ public sealed class TutorialAbiTests
     }
 
     [Fact]
-    public void Raster_defaults_preserve_existing_no_cull_behavior()
+    public void Rasterizer_defaults_preserve_existing_no_cull_behavior()
     {
-        GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-        Assert.Equal(GpuCullMode.None, raster.CullMode);
-        Assert.Equal(GpuFrontFace.CounterClockwise, raster.FrontFace);
+        Assert.Equal(GpuCullMode.None, GpuRasterizerState.Default.CullMode);
+        Assert.Equal(GpuFrontFace.CounterClockwise, GpuRasterizerState.Default.FrontFace);
     }
 }

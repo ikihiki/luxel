@@ -14,7 +14,6 @@ public sealed class GpuPipeline : IDisposable
     public GpuGraphicsPipelineDesc? GraphicsDescription => _pipeline.GraphicsDescription;
     public GpuPipelineDiagnostics Diagnostics => _pipeline.Diagnostics;
 
-    internal GpuLegacyGraphicsState? LegacyGraphicsState { get; set; }
     internal IGpuBackendPipeline Backend => _pipeline;
 
     public void Dispose()

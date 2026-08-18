@@ -50,14 +50,20 @@ public static class HeadlessWebGpuSample
         using var target = device.CreateRenderTarget(TargetSize, TargetSize, GpuFormat.Rgba8Unorm);
         using var readback = device.Malloc(TargetSize * TargetSize * 4, GpuMemoryKind.HostCached);
         using var graphicsPipeline = device.CreateGraphicsPipeline(
-            Wgsl(TriangleShader), GpuRasterDesc.Default(GpuFormat.Rgba8Unorm), "vs_main", "fs_main");
+            Wgsl(TriangleShader), new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm), VertexEntry: "vs_main", PixelEntry: "fs_main"));
 
         using (GpuCommandBuffer commands = device.MainQueue.StartCommandRecording())
         {
-            if (!setPipelineAfterBeginRendering) commands.SetGraphicsPipeline(graphicsPipeline);
+            if (!setPipelineAfterBeginRendering) commands.SetGraphicsPipeline(graphicsPipeline)
+            .SetRasterizerState(GpuRasterizerState.Default)
+            .SetDepthStencilState(GpuDepthStencilState.Default)
+            .SetBlendState(GpuBlendState.None);
             commands.SetRootArguments(new RootArguments(vertices.BindlessIndex, sampledTexture.BindlessIndex, sampler.BindlessIndex, 0))
                 .BeginRendering(target);
-            if (setPipelineAfterBeginRendering) commands.SetGraphicsPipeline(graphicsPipeline);
+            if (setPipelineAfterBeginRendering) commands.SetGraphicsPipeline(graphicsPipeline)
+            .SetRasterizerState(GpuRasterizerState.Default)
+            .SetDepthStencilState(GpuDepthStencilState.Default)
+            .SetBlendState(GpuBlendState.None);
             commands.Draw(3).EndRendering().CopyTextureToBuffer(target, readback);
             commands.Finish();
             device.MainQueue.Submit(commands);
@@ -77,6 +83,9 @@ public static class HeadlessWebGpuSample
         using (GpuCommandBuffer commands = device.MainQueue.StartCommandRecording())
         {
             commands.SetGraphicsPipeline(graphicsPipeline)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default)
+                .SetBlendState(GpuBlendState.None)
                 .SetRootArguments(new RootArguments(vertices.BindlessIndex, 16, sampler.BindlessIndex, 0))
                 .BeginRendering(invalidTarget)
                 .Draw(3).EndRendering().CopyTextureToBuffer(invalidTarget, invalidReadback);

@@ -226,7 +226,7 @@ public sealed class WebGpuHeadlessTests
             }
             else
             {
-                using GpuPipeline pipeline = device.CreateGraphicsPipeline(code, GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+                using GpuPipeline pipeline = device.CreateGraphicsPipeline(code, new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm)));
                 Assert.False(pipeline.IsCompute);
             }
         }

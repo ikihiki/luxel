@@ -53,7 +53,7 @@ public static partial class DocsAdr
         ## Consequences
 
         - ✅ アプリコードはバックエンド分岐なしの 1 本 — 確保 (Malloc) → パイプライン (Slang) → 記録 → Submit の 4 手で描画が完結し、ディスクリプタ管理コードが存在しない
-        - ✅ PSO 爆発が構造的に起きない (レイアウトが 1 つ、状態は GpuRasterDesc の宣言のみ)
+        - ✅ PSO 爆発が構造的に起きない (レイアウトが 1 つ、attachment layout と command state を明示)
         - ✅ 抽象が薄いので、その上の RenderGraph / TwoD / UI が GPU の実挙動に素直に載る
         - ⚠️ **最新 GPU 専用** — Vulkan 1.3 + bindless 必須。旧ハード・モバイル・macOS (Metal) は対象外。対応するなら別バックエンド追加という大工事になる
         - ⚠️ 抽象を自作した以上、**vk / dx ピクセル一致**を自分で保証し続ける必要がある — snap 回帰をバックエンド別 golden で持ち、新機能は両方で検証してから完了とする開発規律が生まれた

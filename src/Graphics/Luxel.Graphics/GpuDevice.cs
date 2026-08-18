@@ -59,19 +59,6 @@ public sealed class GpuDevice : IDisposable
         return new GpuPipeline(_backend.CreateGraphicsPipeline(vs, ps, description));
     }
 
-    /// <summary>Legacy adapter for the former monolithic raster descriptor.</summary>
-    [Obsolete("Use CreateGraphicsPipeline(GpuShaderCode, GpuGraphicsPipelineDesc) and command state setters.")]
-    public GpuPipeline CreateGraphicsPipeline(GpuShaderCode code, GpuRasterDesc raster,
-        string vertexEntry = "vsMain", string pixelEntry = "psMain")
-    {
-        var normalized = raster.Normalize();
-        var description = normalized.Pipeline with { VertexEntry = vertexEntry, PixelEntry = pixelEntry };
-        GpuPipeline pipeline = CreateGraphicsPipeline(code, description);
-        pipeline.LegacyGraphicsState = new GpuLegacyGraphicsState(
-            normalized.Rasterizer, normalized.DepthStencil, normalized.Blend);
-        return pipeline;
-    }
-
     /// <summary>レンダーターゲット (カラー) テクスチャを生成する。</summary>
     public GpuTexture CreateRenderTarget(uint width, uint height, GpuFormat format = GpuFormat.Rgba8Unorm)
     {

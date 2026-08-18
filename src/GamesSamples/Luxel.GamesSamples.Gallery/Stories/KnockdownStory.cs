@@ -173,6 +173,9 @@ public static class KnockdownStories
                     };
                     pctx.Cmd.BeginRendering(_target!, _depth!, 0.05f, 0.06f, 0.09f, 1f, 1f)
                         .SetGraphicsPipeline(_pipeline!)
+                        .SetRasterizerState(GpuRasterizerState.Default)
+                        .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                        .SetBlendState(GpuBlendState.None)
                         .SetRootArguments(args)
                         .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
                         .EndRendering()
@@ -206,10 +209,9 @@ public static class KnockdownStories
             _target = Device.CreateRenderTarget(W, H, GpuFormat.Rgba8Unorm);
             _depth = Device.CreateDepthTarget(W, H);
             _fb = Device.Malloc((ulong)W * H * 4, GpuMemoryKind.DeviceLocal);
-            var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-            raster.DepthTest = true;
-            raster.DepthWrite = true;
-            _pipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), raster);
+            var pipelineDesc = new GpuGraphicsPipelineDesc(
+                new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
+            _pipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), pipelineDesc);
             BuildSimulation();
         }
 

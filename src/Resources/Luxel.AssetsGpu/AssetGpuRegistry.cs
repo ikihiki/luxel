@@ -46,9 +46,7 @@ public sealed class AssetGpuRegistry : IDisposable
     internal GpuPipeline Create(GpuPipelineRequest request, GpuShaderCode code)
         => request.IsCompute
             ? _device.CreateComputePipeline(code, request.ComputeEntry)
-            : request.LegacyRaster is { } legacy
-                ? _device.CreateGraphicsPipeline(code, legacy)
-                : _device.CreateGraphicsPipeline(code, request.Graphics);
+            : _device.CreateGraphicsPipeline(code, request.Graphics);
 
     internal GpuBuffer Create(float[] data)
     {

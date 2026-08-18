@@ -28,6 +28,37 @@ public readonly record struct GpuGraphicsPipelineDesc(
     }
 }
 
+/// <summary>ラスタライザで除外する面。</summary>
+public enum GpuCullMode
+{
+    None,
+    Front,
+    Back,
+}
+
+/// <summary>表面と判定する頂点の回り順。</summary>
+public enum GpuFrontFace
+{
+    CounterClockwise,
+    Clockwise,
+}
+
+public enum GpuPrimitiveTopology
+{
+    TriangleList,
+    TriangleStrip,
+}
+
+/// <summary>ブレンドモード。</summary>
+public enum GpuBlendMode
+{
+    /// <summary>ブレンド無効 (上書き)。</summary>
+    None,
+
+    /// <summary>標準アルファブレンド (src.a, 1-src.a)。</summary>
+    AlphaBlend,
+}
+
 public readonly record struct GpuRasterizerState(GpuCullMode CullMode, GpuFrontFace FrontFace)
 {
     public static GpuRasterizerState Default => new(GpuCullMode.None, GpuFrontFace.CounterClockwise);
@@ -87,11 +118,6 @@ public readonly record struct GpuDepthStencilState(
             throw new ArgumentOutOfRangeException(name);
     }
 }
-
-internal readonly record struct GpuLegacyGraphicsState(
-    GpuRasterizerState Rasterizer,
-    GpuDepthStencilState DepthStencil,
-    GpuBlendState Blend);
 
 internal static class GpuGraphicsStateValidation
 {

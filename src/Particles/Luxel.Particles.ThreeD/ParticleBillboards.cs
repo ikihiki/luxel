@@ -38,11 +38,9 @@ public sealed class ParticleBillboards : IDisposable
     {
         _system = system;
         _instances = new RenderBuffer<Instance>(device, system.Capacity, "particleBillboards");
-        GpuRasterDesc raster = GpuRasterDesc.Default(colorFormat);
-        raster.DepthTest = true;
-        raster.DepthWrite = false;
-        raster.Blend = GpuBlendMode.AlphaBlend;
-        _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load("billboard"), raster);
+        var pipelineDesc = new GpuGraphicsPipelineDesc(
+            new GpuAttachmentLayout(colorFormat, GpuFormat.D32Float));
+        _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load("billboard"), pipelineDesc);
     }
 
     /// <summary>直近の <see cref="Sync"/> 時点の生存インスタンス数。</summary>
@@ -90,7 +88,11 @@ public sealed class ParticleBillboards : IDisposable
             InstIndex = _instances.Buffer.BindlessIndex,
             UpX = camUp.X, UpY = camUp.Y, UpZ = camUp.Z,
         };
-        cmd.SetGraphicsPipeline(_pipeline).SetRootArguments(args).Draw(6, (uint)InstanceCount);
+        cmd.SetGraphicsPipeline(_pipeline)
+            .SetRasterizerState(GpuRasterizerState.Default)
+            .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true })
+            .SetBlendState(GpuBlendState.AlphaBlend)
+            .SetRootArguments(args).Draw(6, (uint)InstanceCount);
     }
 
     /// <summary>視点 (eye) と注視点 (target) からビルボード展開用のスクリーン軸 (right/up) を計算する
