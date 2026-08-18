@@ -24,20 +24,26 @@ public sealed record ApiMember(string Name, string Type, string Kind, string Des
 
 /// <summary>コントロール 1 つの API 記述 (クラスの XML doc summary + メンバー一覧)。
 /// ソースジェネレーターが [UiComponent] から /// コメントごと焼き込む — reflection なし。</summary>
-public sealed record ControlApi(string Namespace, string Name, string Summary, IReadOnlyList<ApiMember> Members);
+public sealed record ControlApi(string Namespace, string Name, string Summary, IReadOnlyList<ApiMember> Members)
+{
+    /// <summary>Fully-qualified CLR identity used as the registry primary key.</summary>
+    public string FullName => string.IsNullOrEmpty(Namespace) ? Name : $"{Namespace}.{Name}";
+}
 
 /// <summary>Gallery-neutral identity for a generated production UI component.</summary>
 [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
 public sealed class GeneratedComponentMetadataAttribute(
     Type componentType,
-    string category,
+    string assemblyOwner,
+    string controlName,
     string factoryNamespace,
     string factoryClass,
     string factoryMethod,
     string summary) : Attribute
 {
     public Type ComponentType { get; } = componentType;
-    public string Category { get; } = category;
+    public string AssemblyOwner { get; } = assemblyOwner;
+    public string ControlName { get; } = controlName;
     public string FactoryNamespace { get; } = factoryNamespace;
     public string FactoryClass { get; } = factoryClass;
     public string FactoryMethod { get; } = factoryMethod;
@@ -89,21 +95,49 @@ public sealed class GeneratedComponentEventMetadataAttribute(
 public static class ControlApiRegistry
 {
     private static readonly object Gate = new();
-    private static readonly Dictionary<string, ControlApi> Apis = new();
+    private static readonly Dictionary<string, ControlApi> Apis = new(StringComparer.Ordinal);
+    private static readonly HashSet<string> Localized = new(StringComparer.Ordinal);
 
     public static void Register(ControlApi api)
     {
-        lock (Gate) Apis[api.Name] = api;
+        ArgumentNullException.ThrowIfNull(api);
+        lock (Gate)
+        {
+            if (!Localized.Contains(api.FullName)) Apis[api.FullName] = api;
+        }
+    }
+
+    /// <summary>Registers Gallery-localized metadata with precedence independent of module initializer order.</summary>
+    public static void RegisterLocalized(ControlApi api)
+    {
+        ArgumentNullException.ThrowIfNull(api);
+        lock (Gate)
+        {
+            Apis[api.FullName] = api;
+            Localized.Add(api.FullName);
+        }
     }
 
     public static ControlApi? Find(string name)
     {
-        lock (Gate) return Apis.GetValueOrDefault(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        lock (Gate)
+        {
+            if (Apis.TryGetValue(name, out ControlApi? exact)) return exact;
+            ControlApi? match = null;
+            foreach (ControlApi api in Apis.Values)
+            {
+                if (!string.Equals(api.Name, name, StringComparison.Ordinal)) continue;
+                if (match is not null) return null;
+                match = api;
+            }
+            return match;
+        }
     }
 
-    /// <summary>名前順のスナップショット。</summary>
+    /// <summary>Fully-qualified name order snapshot.</summary>
     public static IReadOnlyList<ControlApi> All
     {
-        get { lock (Gate) return Apis.Values.OrderBy(a => a.Name, StringComparer.Ordinal).ToArray(); }
+        get { lock (Gate) return Apis.Values.OrderBy(a => a.FullName, StringComparer.Ordinal).ToArray(); }
     }
 }

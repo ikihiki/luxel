@@ -12,7 +12,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>SceneEditorView — シーンエディタ (ADR-0016 / ToDo 27 GE-1) のビュー。エンティティの選択/移動/複製/削除を
 /// 編集する。編集意味論は canvas 非依存の Luxel.SceneEdit (Transaction スタック 3 本目)、空間の知識 (座標変換/ヒット/
 /// カメラ/描画) は ISceneSpaceAdapter に閉じる — M11 は 2D アダプタ、3D アダプタは M12 でシェル無改修で足す。</summary>
-[StoryMeta("Controls/SceneEditorView")]
+[StoryMeta("Controls/Editor/SceneEditorView")]
 public static class SceneEditorViewStory
 {
     // Player / Enemy / Coin の 3 エンティティ (transform2d のみ — 見た目はプレースホルダボックス)

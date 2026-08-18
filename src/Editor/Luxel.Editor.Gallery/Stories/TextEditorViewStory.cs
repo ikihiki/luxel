@@ -11,7 +11,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>TextEditorView — テキストエディタ新スタック (ADR-0006 / ToDo 22) のビュー。
 /// 編集意味論・座標写像・装飾は canvas 非依存の Luxel.Document が持ち、この widget は入力を Transaction にして
 /// ジオメトリの矩形を塗るだけ。折返し・プロポーショナル・マルチカーソルはジオメトリ由来で最初から正しい。</summary>
-[StoryMeta("Controls/TextEditorView")]
+[StoryMeta("Controls/Editor/TextEditorView")]
 public static class TextEditorViewStory
 {
     [Story]

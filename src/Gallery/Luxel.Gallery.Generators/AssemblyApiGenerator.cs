@@ -121,13 +121,13 @@ public sealed class AssemblyApiGenerator : IIncrementalGenerator
         };
         sb.Append("            global::Luxel.UI.TypeApiRegistry.Register(new global::Luxel.UI.TypeApi(")
           .Append(Lit(ns)).Append(", ").Append(Lit(t.ToDisplayString(Short))).Append(", ").Append(Lit(kind))
-          .Append(", ").Append(Lit(Summary(t, docs)))
+          .Append(", ").Append(ResolveExpression(t, Summary(t, docs)))
           .AppendLine(", new global::Luxel.UI.ApiMember[] {");
 
         if (t.TypeKind == TypeKind.Enum)
         {
             foreach (IFieldSymbol f in t.GetMembers().OfType<IFieldSymbol>().Where(f => f.IsConst || f.HasConstantValue))
-                Row(sb, f.Name, "", "field", Summary(f, docs));
+                Row(sb, f.Name, "", "field", f, Summary(f, docs));
         }
         else
         {
@@ -136,22 +136,22 @@ public sealed class AssemblyApiGenerator : IIncrementalGenerator
                 switch (m)
                 {
                     case IMethodSymbol { MethodKind: MethodKind.Constructor } c:
-                        Row(sb, t.Name, "(" + Params(c) + ")", "ctor", Summary(c, docs));
+                        Row(sb, t.Name, "(" + Params(c) + ")", "ctor", c, Summary(c, docs));
                         break;
                     case IMethodSymbol { MethodKind: MethodKind.Ordinary } f:
                         string ret = f.ReturnsVoid ? "void" : f.ReturnType.ToDisplayString(Short);
-                        Row(sb, f.Name, "(" + Params(f) + ") → " + ret, "method", Summary(f, docs));
+                        Row(sb, f.Name, "(" + Params(f) + ") → " + ret, "method", f, Summary(f, docs));
                         break;
                     case IPropertySymbol p:
                         string acc = p.SetMethod is { DeclaredAccessibility: Accessibility.Public } ? "get/set" : "get";
-                        Row(sb, p.Name, p.Type.ToDisplayString(Short) + " (" + acc + ")", "prop", Summary(p, docs));
+                        Row(sb, p.Name, p.Type.ToDisplayString(Short) + " (" + acc + ")", "prop", p, Summary(p, docs));
                         break;
                     case IEventSymbol e:
-                        Row(sb, e.Name, e.Type.ToDisplayString(Short), "event", Summary(e, docs));
+                        Row(sb, e.Name, e.Type.ToDisplayString(Short), "event", e, Summary(e, docs));
                         break;
                     case IFieldSymbol fd:
                         Row(sb, fd.Name, fd.Type.ToDisplayString(Short) + (fd.IsConst ? " (const)" : fd.IsStatic ? " (static)" : ""),
-                            "field", Summary(fd, docs));
+                            "field", fd, Summary(fd, docs));
                         break;
                 }
             }
@@ -174,9 +174,9 @@ public sealed class AssemblyApiGenerator : IIncrementalGenerator
     private static string Params(IMethodSymbol m)
         => string.Join(", ", m.Parameters.Select(p => p.Type.ToDisplayString(Short) + " " + p.Name));
 
-    private static void Row(StringBuilder sb, string name, string type, string kind, string desc)
+    private static void Row(StringBuilder sb, string name, string type, string kind, ISymbol symbol, string desc)
         => sb.Append("                new(").Append(Lit(name)).Append(", ").Append(Lit(type))
-             .Append(", ").Append(Lit(kind)).Append(", ").Append(Lit(desc)).AppendLine("),");
+             .Append(", ").Append(Lit(kind)).Append(", ").Append(ResolveExpression(symbol, desc)).AppendLine("),");
 
     /// <summary>XML doc の &lt;summary&gt; を取り出して整形 (see cref → 名前、タグ剥がし)。
     /// AdditionalFiles の doc ファイル索引を doc-comment ID で引き、無ければシンボル直読みに落とす。</summary>
@@ -196,6 +196,12 @@ public sealed class AssemblyApiGenerator : IIncrementalGenerator
         });
         body = Regex.Replace(body, @"<[^>]+>", "");
         return Regex.Replace(body, @"\s+", " ").Trim();
+    }
+
+    private static string ResolveExpression(ISymbol symbol, string fallback)
+    {
+        string key = "xml:" + (symbol.GetDocumentationCommentId() ?? string.Empty);
+        return "global::Luxel.Gallery.GalleryXmlDocText.Resolve(" + Lit(key) + ", " + Lit(fallback) + ")";
     }
 
     private static string Lit(string s) => SymbolDisplay.FormatLiteral(s, true);

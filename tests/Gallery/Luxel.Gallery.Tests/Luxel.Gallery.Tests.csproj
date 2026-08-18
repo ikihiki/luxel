@@ -91,6 +91,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Editor\Luxel.Editor.Gallery\Luxel.Editor.Gallery.csproj" />
+    <ProjectReference Include="..\..\..\src\Particles\Luxel.Particles.Gallery\Luxel.Particles.Gallery.csproj" />
     <ProjectReference Include="..\..\..\src\UI\Luxel.UI.Gallery\Luxel.UI.Gallery.csproj" />
   </ItemGroup>
 

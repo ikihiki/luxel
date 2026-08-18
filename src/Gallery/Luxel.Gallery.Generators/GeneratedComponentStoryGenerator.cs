@@ -410,10 +410,14 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             string factoryDefault = FactoryDefault(compilation.Assembly);
             current.Sort(static (a, b) => string.CompareOrdinal(a.TypeFq, b.TypeFq));
             EmitComponentStories(source, current, compilation.AssemblyName ?? "Assembly", factoryDefault);
+            EmitControlApi(source, current, compilation.AssemblyName ?? "Assembly");
         }
 
         foreach ((string assemblyName, List<WidgetModel> referenced) in ReadReferencedMetadata(compilation))
+        {
             EmitComponentStories(source, referenced, assemblyName, "Factories");
+            EmitControlApi(source, referenced, assemblyName);
+        }
 
         if (source.Length > 100)
             spc.AddSource("LuxelGeneratedComponentStories.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
@@ -443,11 +447,11 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             {
                 string? name = attribute.AttributeClass?.ToDisplayString();
                 ImmutableArray<TypedConstant> args = attribute.ConstructorArguments;
-                if (name == componentAttribute && args.Length == 6 && args[0].Value is INamedTypeSymbol component)
+                if (name == componentAttribute && args.Length == 7 && args[0].Value is INamedTypeSymbol component)
                 {
                     string key = component.ToDisplayString(TypeFmt);
-                    components[key] = (component, (string)args[1].Value!, (string)args[2].Value!,
-                        (string)args[3].Value!, (string)args[4].Value!, (string)args[5].Value!);
+                    components[key] = (component, (string)args[2].Value!, (string)args[3].Value!,
+                        (string)args[4].Value!, (string)args[5].Value!, (string)args[6].Value!);
                 }
                 else if (name == parameterAttribute && args.Length == 8 && args[0].Value is INamedTypeSymbol owner
                     && args[2].Value is ITypeSymbol valueType && Enum.TryParse((string?)args[3].Value, out BindKind kind))
@@ -505,11 +509,13 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine("        [");
         foreach (WidgetModel widget in components)
         {
-            string category = widget.FactoryName;
+            string controlName = CanonicalControlName(widget.ClassName);
+            string category = CategoryOf(controlName);
+            bool userFacing = !IsGalleryInfrastructure(widget);
             sb.Append("            new global::Luxel.Gallery.GeneratedComponentStoryDescriptor(")
-                .Append(Lit(widget.TypeFq)).Append(", ").Append(Lit(category)).Append(", ")
-                .Append(Lit("Controls/" + category + "/Docs")).Append(", ")
-                .Append(Lit("Controls/" + category + "/Basic")).AppendLine("),");
+                .Append(Lit(widget.TypeFq)).Append(", ").Append(Lit(assemblyName)).Append(", ")
+                .Append(Lit(category)).Append(", ").Append(Lit(controlName)).Append(", ")
+                .Append(userFacing ? "true" : "false").AppendLine("),");
         }
         sb.AppendLine("        ];");
         sb.AppendLine();
@@ -519,13 +525,13 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         for (int index = 0; index < components.Count; index++)
         {
             WidgetModel widget = components[index];
-            string category = widget.FactoryName;
-            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Docs"))
+            string route = RoutePrefix(widget);
+            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Docs"))
                 .Append(", static _ => Docs_").Append(index).Append("(), Source: ")
                 .Append(Lit("Generated component docs for " + widget.TypeFq))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                 .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Docs));");
-            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Basic"))
+            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Basic"))
                 .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
                 .Append(Lit("Generated direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
                 .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget)))
@@ -541,7 +547,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             sb.Append("        private static readonly global::Luxel.Gallery.StoryArgDefinition[] Args_").Append(index).AppendLine(" =");
             sb.AppendLine("        [");
             foreach (FieldModel field in args)
-                EmitStaticArgDefinition(sb, field);
+                EmitStaticArgDefinition(sb, widget, field);
             sb.AppendLine("        ];");
             sb.AppendLine();
             EmitGeneratedDocs(sb, widget, args, index);
@@ -551,6 +557,34 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
         sb.AppendLine("}");
     }
+
+    private static bool IsGalleryInfrastructure(WidgetModel widget)
+        => widget.Namespace == "Luxel.Gallery.UI"
+            && widget.ClassName is "ApiTable" or "KnobsTable" or "TypeApiTable";
+
+    private static string RoutePrefix(WidgetModel widget)
+    {
+        string controlName = CanonicalControlName(widget.ClassName);
+        return IsGalleryInfrastructure(widget)
+            ? "Gallery/Infrastructure/" + controlName
+            : "Controls/" + CategoryOf(controlName) + "/" + controlName;
+    }
+
+    private static string CanonicalControlName(string className)
+        => className == "StackPanel" ? "Stack" : className;
+
+    private static string CategoryOf(string controlName) => controlName switch
+    {
+        "Box" or "Border" or "Center" or "Spacer" or "Stack" or "Grid" or "WrapPanel" or "Splitter" => "Layout",
+        "Button" or "CheckBox" or "Switch" or "Slider" or "SegmentedControl" or "RadioGroup" or "Select" or "ColorPicker" or "LengthField" => "Input",
+        "Text" or "TextField" or "SearchField" or "RichTextView" or "LinkText" => "Text",
+        "ListView" or "TreeView" or "NavigationView" or "Tabs" or "Accordion" or "DocumentTabs" or "AssetBrowser" or "ScrollViewer" => "Collections",
+        "Dialog" or "Toast" or "Drawer" or "Dropdown" or "Tooltip" or "MenuRow" or "MenuBar" or "Toolbar" => "Overlay",
+        "Icon" or "ImageView" or "ImageBlock" or "TableBlock" or "SurfaceView" or "Canvas2D" or "GpuView" or "DiagramBlock" or "MathBlockView" or "Sparkline" or "Spinner" or "ParticleView" => "Rendering",
+        "DockHost" or "NodeGraphView" or "PropertyGrid" or "SceneEditorView" or "SceneInspector" or "StatusBar" or "TextEditorView" => "Editor",
+        "ApiTable" or "KnobsTable" or "TypeApiTable" => "Infrastructure",
+        _ => "Editor",
+    };
 
     private static bool RequiresFallback(WidgetModel widget)
         => widget.Fields.Any(field => field.Own && field.Kind == BindKind.Other && StoryFixture(field) is null);
@@ -593,12 +627,15 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         }
     }
 
-    private static void EmitStaticArgDefinition(StringBuilder sb, FieldModel field)
+    private static void EmitStaticArgDefinition(StringBuilder sb, WidgetModel widget, FieldModel field)
     {
         string defaultValue = StoryDefault(field);
+        string fallback = field.Summary.Length > 0 ? field.Summary : field.Own
+            ? field.Name + " コンポーネントパラメーター。"
+            : "継承されたレイアウトパラメーター。";
         sb.Append("            global::Luxel.Gallery.StoryArgDefinition.Create<").Append(field.TypeFq).Append(">(")
             .Append(Lit(ParamName(field.Name))).Append(", ").Append(Lit(StoryTypeHint(field))).Append(", ").Append(defaultValue)
-            .Append(", description: ").Append(Lit(field.Summary.Length > 0 ? field.Summary : field.Own ? field.Name + " component parameter." : "Inherited layout parameter."));
+            .Append(", description: ").Append(ResolveExpression(XmlParamKey(widget, field), fallback));
         if (field.Kind == BindKind.Enum)
         {
             string[] names = field.EnumHint.StartsWith("enum:", StringComparison.Ordinal) ? field.EnumHint.Substring(5).Split('|') : Array.Empty<string>();
@@ -609,15 +646,17 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
 
     private static void EmitGeneratedDocs(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index)
     {
-        string category = widget.FactoryName;
-        string summary = widget.DocSummary.Length > 0 ? widget.DocSummary : category + " is a production Luxel UI component.";
-        string own = string.Join(", ", widget.Fields.Where(static field => field.Own).Select(static field => "`" + field.Name + "`").DefaultIfEmpty("No component-specific parameters"));
-        string events = string.Join(", ", widget.Events.Where(static value => value.Own).Select(static value => "`" + value.Name + "`").DefaultIfEmpty("No declared events"));
+        string controlName = CanonicalControlName(widget.ClassName);
+        string summaryFallback = widget.DocSummary.Length > 0 ? widget.DocSummary : controlName + " は Luxel UI の production component です。";
+        string own = string.Join(", ", widget.Fields.Where(static field => field.Own).Select(static field => "`" + field.Name + "`").DefaultIfEmpty("固有パラメーターなし"));
+        string events = string.Join(", ", widget.Events.Where(static value => value.Own).Select(static value => "`" + value.Name + "`").DefaultIfEmpty("宣言イベントなし"));
         string exampleArgs = string.Join(", ", args.Where(static field => field.Own).Take(4).Select(field => ParamName(field.Name) + ": " + StoryDefault(field)));
         string example = widget.FactoryName + "(" + exampleArgs + ")";
-        string markdown = "# " + category + "\n\n" + summary + "\n\n```luxel-story\n0\n```\n\n## Implementation\n\n```csharp\n" + example + "\n```\n\n## Patterns and variants\n\n- Basic typed factory usage\n- Representative editable scalar args\n- Inherited layout args: width, height, alignment and transforms when supported\n- Deterministic browser fixture/fallback for capability inputs\n\n## Events, parameters and API\n\n**Events:** " + events + "\n\n**Component parameters:** " + own + "\n\nSee `ControlApiRegistry` / the generated API table for the complete inherited API.\n";
+        string prefix = "# " + controlName + "\n\n";
+        string suffix = "\n\n```luxel-story\n0\n```\n\n## 実装例\n\n```csharp\n" + example + "\n```\n\n## パターンとバリエーション\n\n- 型付きファクトリの基本利用\n- 編集可能な代表的 scalar args\n- 対応する継承レイアウト引数\n- capability 入力向けの決定的 fallback\n\n## イベント、パラメーター、API\n\n**イベント:** " + events + "\n\n**固有パラメーター:** " + own + "\n\n完全な継承 API は生成された API table を参照してください。\n";
         sb.Append("        private static global::Luxel.Gallery.StoryResult Docs_").Append(index).Append("() => global::Luxel.Gallery.StoryResult.FromMarkdown(")
-            .Append(Lit(markdown)).Append(", global::Luxel.Gallery.StoryReference.To(").Append(Lit("Controls/" + category + "/Basic")).AppendLine("));");
+            .Append(Lit(prefix)).Append(" + ").Append(ResolveExpression(XmlTypeKey(widget), summaryFallback)).Append(" + ").Append(Lit(suffix))
+            .Append(", global::Luxel.Gallery.StoryReference.To(").Append(Lit(RoutePrefix(widget) + "/Basic")).AppendLine("));");
     }
 
     private static void EmitGeneratedBasic(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index, string factoryDefault)
@@ -635,10 +674,13 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         for (int i = 0; i < args.Count; i++)
         {
             FieldModel field = args[i];
+            string fallback = field.Summary.Length > 0 ? field.Summary : field.Own
+                ? field.Name + " コンポーネントパラメーター。"
+                : "継承されたレイアウトパラメーター。";
             sb.Append("            global::Luxel.UI.Signal<").Append(field.TypeFq).Append("> arg").Append(i).Append(" = ctx.Arg<")
                 .Append(field.TypeFq).Append(">(").Append(Lit(ParamName(field.Name))).Append(", ").Append(StoryDefault(field))
                 .Append(", new global::Luxel.Gallery.StoryArgOptions<").Append(field.TypeFq).Append("> { Description = ")
-                .Append(Lit(field.Summary.Length > 0 ? field.Summary : field.Own ? field.Name + " component parameter." : "Inherited layout parameter."));
+                .Append(ResolveExpression(XmlParamKey(widget, field), fallback));
             if (field.Kind == BindKind.Parsable && field.TypeFq != LengthType)
                 sb.Append(", Parser = static value => ").Append(field.TypeFq).Append(".Parse(global::Luxel.UI.WidgetDebugCodec.CoerceString(value), global::System.Globalization.CultureInfo.InvariantCulture)");
             sb.AppendLine(" });");
@@ -722,8 +764,9 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine("        {");
         foreach (WidgetModel w in comps)
         {
-            sb.Append("            global::Luxel.UI.ControlApiRegistry.Register(new global::Luxel.UI.ControlApi(")
-              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.DocSummary))
+            sb.Append("            global::Luxel.UI.ControlApiRegistry.RegisterLocalized(new global::Luxel.UI.ControlApi(")
+              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(CanonicalControlName(w.ClassName))).Append(", ")
+              .Append(ResolveExpression(XmlTypeKey(w), w.DocSummary))
               .AppendLine(", new global::Luxel.UI.ApiMember[] {");
             foreach (EventModel e in w.Events)
             {
@@ -731,12 +774,12 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
                     ? "UiEvent"
                     : "UiEvent<" + string.Join(", ", e.ArgTypesFq.Select(ShortType)) + ">";
                 sb.Append("                new(").Append(Lit(e.Name)).Append(", ").Append(Lit(type))
-                  .Append(", \"event\", ").Append(Lit(e.Summary))
+                  .Append(", \"event\", ").Append(ResolveExpression(XmlEventKey(w, e), e.Summary))
                   .Append(", false, ").Append(e.Own ? "false" : "true").AppendLine("),");
             }
             foreach (FieldModel f in w.Fields.OrderBy(static f => f.Own ? 0 : 1))
                 sb.Append("                new(").Append(Lit(f.Name)).Append(", ").Append(Lit(ShortType(f.TypeFq)))
-                  .Append(", \"param\", ").Append(Lit(f.Summary)).Append(", ")
+                  .Append(", \"param\", ").Append(ResolveExpression(XmlParamKey(w, f), f.Summary)).Append(", ")
                   .Append(f.Stateable ? "true" : "false").Append(", ").Append(f.Own ? "false" : "true").AppendLine("),");
             sb.AppendLine("            }));");
         }
@@ -744,6 +787,21 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
         sb.AppendLine("}");
     }
+
+    private static string XmlTypeKey(WidgetModel widget)
+        => "xml:T:" + StripGlobal(widget.TypeFq);
+
+    private static string XmlParamKey(WidgetModel widget, FieldModel field)
+        => "xml:P:" + StripGlobal(widget.TypeFq) + "." + field.Name;
+
+    private static string XmlEventKey(WidgetModel widget, EventModel evt)
+        => "xml:E:" + StripGlobal(widget.TypeFq) + "." + evt.Name;
+
+    private static string StripGlobal(string typeName)
+        => typeName.StartsWith("global::", StringComparison.Ordinal) ? typeName.Substring(8) : typeName;
+
+    private static string ResolveExpression(string key, string fallback)
+        => "global::Luxel.Gallery.GalleryXmlDocText.Resolve(" + Lit(key) + ", " + Lit(fallback) + ")";
 
     private static string Lit(string s) => SymbolDisplay.FormatLiteral(s, true);
 

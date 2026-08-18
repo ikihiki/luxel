@@ -550,7 +550,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
 
         // Gallery-neutral component metadata is emitted into production assemblies. Gallery-side
         // generators consume these assembly attributes from referenced production assemblies.
-        EmitComponentMetadata(sb, list, factoryDefault);
+        EmitComponentMetadata(sb, list, assemblyName, factoryDefault);
 
         // ---- (1) SetProp + デバッグ焼き込み (partial override) ----
         foreach (WidgetModel w in list)
@@ -581,19 +581,20 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                        .ThenBy(static kv => kv.Key.Factory, StringComparer.Ordinal))
             EmitFactoryClass(sb, g.Key.Ns, g.Key.Factory, g.Value);
 
-        // ---- (3) ControlApi 登録 (docs の ApiTable 用 — /// コメントごと焼き込み) ----
+        // Raw XML summaries remain available outside Gallery. Gallery-side generated registration
+        // replaces these entries with localized values through RegisterLocalized.
         EmitControlApi(sb, list, assemblyName);
 
         spc.AddSource("LuxelUiComponents.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    private static void EmitComponentMetadata(StringBuilder sb, List<WidgetModel> list, string factoryDefault)
+    private static void EmitComponentMetadata(StringBuilder sb, List<WidgetModel> list, string assemblyName, string factoryDefault)
     {
         foreach (WidgetModel w in list.Where(static value => value.IsComponent).OrderBy(static value => value.FactoryName, StringComparer.Ordinal))
         {
             string factoryClass = w.FactoryClass ?? factoryDefault;
             sb.Append("[assembly: global::Luxel.UI.GeneratedComponentMetadata(typeof(").Append(w.TypeFq).Append("), ")
-              .Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.Namespace)).Append(", ")
+              .Append(Lit(assemblyName)).Append(", ").Append(Lit(w.ClassName)).Append(", ").Append(Lit(w.Namespace)).Append(", ")
               .Append(Lit(factoryClass)).Append(", ").Append(Lit(w.FactoryName)).Append(", ")
               .Append(Lit(w.DocSummary)).AppendLine(")] ");
             foreach (FieldModel f in w.Fields)
@@ -633,7 +634,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         foreach (WidgetModel w in comps)
         {
             sb.Append("            global::Luxel.UI.ControlApiRegistry.Register(new global::Luxel.UI.ControlApi(")
-              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.DocSummary))
+              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(w.ClassName == "StackPanel" ? "Stack" : w.ClassName)).Append(", ").Append(Lit(w.DocSummary))
               .AppendLine(", new global::Luxel.UI.ApiMember[] {");
             foreach (EventModel e in w.Events)
             {

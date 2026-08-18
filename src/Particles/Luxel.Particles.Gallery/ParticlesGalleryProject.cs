@@ -25,8 +25,10 @@ public static class ParticlesGalleryProject
         foreach (StoryInfo story in authoredBuilder.Build().All)
             categoryBuilder.Add(story, replaceGenerated: true);
 
-        foreach (StoryInfo story in categoryBuilder.Build().All)
+        StoryCatalog catalog = categoryBuilder.Build();
+        foreach (StoryInfo story in catalog.All)
             builder.Add(story, replaceGenerated: true);
+        ControlStoryAliases.Add(builder, catalog, ProductionComponents);
     }
 
     public static StoryCatalog CreateCatalog()

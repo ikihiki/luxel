@@ -7,7 +7,7 @@ using static Luxel.Gallery.Story;
 namespace Luxel.Gallery.Stories;
 
 /// <summary>Terminal control overview and integration guide.</summary>
-[StoryMeta("Controls/Terminal")]
+[StoryMeta("Controls/Editor/Terminal")]
 public static class TerminalOverviewStory
 {
     [Story]

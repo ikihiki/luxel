@@ -445,9 +445,17 @@ public sealed class StoryKnob
 /// <summary>Source-generated identity for one production <c>[UiComponent]</c> Docs/Basic pair.</summary>
 public sealed record GeneratedComponentStoryDescriptor(
     string ComponentType,
+    string AssemblyOwner,
     string Category,
-    string DocsPath,
-    string BasicPath);
+    string ControlName,
+    bool IsUserFacing = true)
+{
+    public string RoutePrefix => IsUserFacing
+        ? $"Controls/{Category}/{ControlName}"
+        : $"Gallery/Infrastructure/{ControlName}";
+    public string DocsPath => $"{RoutePrefix}/Docs";
+    public string BasicPath => $"{RoutePrefix}/Basic";
+}
 
 /// <summary>StorybookのDocs/Story区分に対応する、pathとは独立したstoryの役割。</summary>
 public enum StoryKind

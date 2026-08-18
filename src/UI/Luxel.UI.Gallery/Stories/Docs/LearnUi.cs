@@ -79,7 +79,7 @@ public static class LearnUi
         - 重ね合わせるなら`Overlay`
         - 長い内容を表示するなら`ScrollView`
 
-        Controlの具体例は[Button docs](story:Controls/Button/Docs)で確認できます。
+        Controlの具体例は[Button docs](story:Controls/Input/Button/Docs)で確認できます。
 
         > [!TIP]
         > まず既存Controlを組み合わせます。入力、フォーカス、テーマ対応をすべて自作する必要がある場合だけ、低水準Widgetを検討してください。
@@ -160,7 +160,7 @@ public static class LearnUi
 
         マウスだけでなく、Tab移動、EnterまたはSpace、Escape、文字選択、IME入力を確認します。読み取り専用表示はテキスト選択を許可しても、編集用ツールバーやスラッシュメニューを出しません。
 
-        複雑な編集UIは[TextEditorView](story:Controls/TextEditorView/Basic)を実例として参照できます。
+        複雑な編集UIは[TextEditorView](story:Controls/Editor/TextEditorView/Basic)を実例として参照できます。
         """;
 
     [Story]
@@ -253,6 +253,6 @@ public static class LearnUi
 
         GalleryではArgsで状態を変え、Outputでイベントを確認し、Sourceで構築コードを読みます。再現条件をStoryへ閉じ込めると、Native版とBlazor版の差も比較しやすくなります。
 
-        次は実際のControlを[Controls](story:Controls/Button/Docs)で確認するか、[Framework](story:Learn/Framework/Overview)でアプリケーションの実行ループへ進んでください。
+        次は実際のControlを[Controls](story:Controls/Input/Button/Docs)で確認するか、[Framework](story:Learn/Framework/Overview)でアプリケーションの実行ループへ進んでください。
         """;
 }

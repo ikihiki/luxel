@@ -9,13 +9,13 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls")]
 public static class OverlayControlStories
 {
-    [Story(Path = "Controls/Tabs/Basic")]
+    [Story(Path = "Controls/Collections/Tabs/Basic")]
     public static StoryResult TabsBasic(StoryContext ctx)
         => ctx.Snap(Frame(Tabs(["One", "Two", "Three"],
             [Label("Content of tab one"), Label("Content of tab two"), Label("Content of tab three")],
             ctx.Signal("selected", 0), width: 380, height: 160)));
 
-    [Story(Path = "Controls/Tabs/Examples/SelectionChanged")]
+    [Story(Path = "Controls/Collections/Tabs/Examples/SelectionChanged")]
     public static StoryResult TabsEvnet(StoryContext ctx)
     => Frame(Tabs(["One", "Two", "Three"],
         [
@@ -25,22 +25,22 @@ public static class OverlayControlStories
         ],
         ctx.Signal("selected", 0), width: 380, height: 160));
 
-    [Story(Path = "Controls/Accordion/Basic")]
+    [Story(Path = "Controls/Collections/Accordion/Basic")]
     public static StoryResult AccordionBasic(StoryContext ctx) =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
             [Accordion("Details", VStack(4)[Label("Hidden line 1"), Label("Hidden line 2")],
                        ctx.Signal("expanded", true))];
 
-    [Story(Path = "Controls/Dropdown/Basic")]
+    [Story(Path = "Controls/Overlay/Dropdown/Basic")]
     public static StoryResult DropdownBasic() =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24))
             [Dropdown("Open menu", [("Alpha", () => { }), ("Beta", () => { }), ("Gamma", () => { })])];
 
-    [Story(Path = "Controls/Tooltip/Basic")]
+    [Story(Path = "Controls/Overlay/Tooltip/Basic")]
     public static StoryResult TooltipBasic() => Frame(
         Tooltip(Button(_ => { }, "Hover me"), "Helpful hint"));
 
-    [Story(Path = "Controls/MenuRow/Basic")]
+    [Story(Path = "Controls/Overlay/MenuRow/Basic")]
     public static StoryResult MenuRowBasic() => Frame(
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 8, padding: new Thickness(6))
             [VStack(2)[
@@ -48,7 +48,7 @@ public static class OverlayControlStories
                 MenuRow("Save", _ => { }, hAlign: Align.Stretch),
                 MenuRow("Exit", _ => { }, hAlign: Align.Stretch)]]);
 
-    [Story(Path = "Controls/Dialog/Basic")]
+    [Story(Path = "Controls/Overlay/Dialog/Basic")]
     public static StoryResult DialogBasic(StoryContext ctx)
     {
         Signal<bool> open = ctx.Signal("open", true);
@@ -73,7 +73,7 @@ public static class OverlayControlStories
                     Button(_ => open.Value = false, "Close")]))]];
     }
 
-    [Story(Path = "Controls/Toast/Basic")]
+    [Story(Path = "Controls/Overlay/Toast/Basic")]
     public static StoryResult ToastBasic(StoryContext ctx)
     {
         Signal<bool> open = ctx.Signal("open", true);
@@ -83,7 +83,7 @@ public static class OverlayControlStories
                 Toast(open, Card(Label("Saved successfully")))]];
     }
 
-    [Story(Path = "Controls/Drawer/Basic")]
+    [Story(Path = "Controls/Overlay/Drawer/Basic")]
     public static StoryResult DrawerBasic(StoryContext ctx)
     {
         Signal<bool> open = ctx.Signal("open", true);

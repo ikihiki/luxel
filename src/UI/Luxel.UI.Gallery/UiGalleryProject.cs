@@ -27,8 +27,12 @@ public static class UiGalleryProject
         Merge(Luxel.Gallery.Generated.StoryRegistration_Luxel_UI_Gallery.Register);
         Merge(Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_UI_Gallery.Register);
 
-        foreach (StoryInfo story in categoryBuilder.Build().All)
+        StoryCatalog catalog = categoryBuilder.Build();
+        foreach (StoryInfo story in catalog.All)
             builder.Add(story, replaceGenerated: true);
+        ControlStoryAliases.Add(builder, catalog, ProductionComponents);
+        ControlStoryAliases.AddIfHidden(builder, catalog, "Controls/Layout/Docs", "Controls/Layout/Layout/Docs");
+        ControlStoryAliases.AddIfHidden(builder, catalog, "Controls/Kit/Docs", "Controls/Layout/Kit/Docs");
 
         void Merge(Action<StoryCatalogBuilder> register)
         {
