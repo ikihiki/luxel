@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace Luxel.Graphics.TwoD;
 
@@ -11,7 +11,7 @@ public delegate void DebugTextDrawer(Scene2D scene, string text, float x, float 
 
 /// <summary>
 /// 即時モードのデバッグ描画 (gizmo の基盤)。ゲームコード / DevTools が任意の場所で
-/// <see cref="Line"/>/<see cref="Rect"/>/<see cref="Circle"/>/<see cref="Text"/> を呼び、
+/// <c>Line</c>/<c>Rect</c>/<c>Circle</c>/<c>Text</c> を呼び、
 /// 描画側が毎フレーム <see cref="Flush"/> で最前面オーバーレイ (<see cref="Scene2D"/>) へ流し込む。
 ///
 /// <para><b>2D/3D 両対応</b>: コマンドはワールド空間で溜め、<see cref="Flush"/> に渡す

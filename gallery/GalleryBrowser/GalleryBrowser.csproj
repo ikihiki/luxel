@@ -41,8 +41,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Gallery\Luxel.Gallery.Browser\Luxel.Gallery.Browser.csproj" />
-    <ProjectReference Include="..\..\src\Resources\Luxel.Resources.Gallery\Luxel.Resources.Gallery.csproj" />
-    <ProjectReference Include="..\..\src\Audio\Luxel.Audio.Gallery\Luxel.Audio.Gallery.csproj" />
   </ItemGroup>
   <ItemGroup>
     <_GalleryBrowserLinkedAsset Include="..\..\src\Graphics\Luxel.Shaders.Slang.Browser\wwwroot\slang-browser.js">

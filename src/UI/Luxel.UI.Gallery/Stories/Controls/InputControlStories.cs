@@ -6,7 +6,7 @@ using static Luxel.UI.Gallery.StoryKit;
 
 namespace Luxel.Gallery.Stories;
 
-[ComponentStory(typeof(Luxel.Controls.Button), "Controls/Button/Playground", Factory = typeof(Kit),
+[ComponentStory(typeof(Luxel.Controls.Button), "Controls/Input/Button/Examples/Interactive", Factory = typeof(Kit),
     Template = nameof(Template))]
 [ComponentArg(nameof(Luxel.Controls.Button.Text), "Click me", Description = "Button label", Order = 10)]
 [ComponentArg(nameof(Luxel.Controls.Button.Variant), Variant.Filled, Description = "Visual variant", Order = 20)]
@@ -15,7 +15,7 @@ internal static class ButtonPlaygroundStory
 {
     internal static void ApplyDisabled(Button button, bool disabled) => button.Enabled = !disabled;
 
-    internal static Widget Template(Button button) => Frame(button);
+    internal static Widget Template(Button button) => button;
 }
 
 /// <summary>入力/選択系コントロールのストーリー。ctx.Signal(...) は自動で knob になる。</summary>
@@ -24,37 +24,39 @@ public static class InputControlStories
 {
     // ---- Button ----
 
-    [Story(Path = "Controls/Button/Basic")]
-    public static StoryResult ButtonPrimary() => Frame(Button(_ => { }, "Click me"));
+    [Story(Path = "Controls/Input/Button/Basic", ArgsEnabled = false)]
+    public static StoryResult ButtonPrimary() => Button(_ => { }, "Click me");
 
     // ---- ColorPicker ----
 
-    [Story(Path = "Controls/ColorPicker/Basic")]
-    public static StoryResult ColorPickerBasic(StoryContext ctx)
-    {
-        Signal<uint> color = new(Tw.Blue500);
-        return Frame(VStack(12)[
-            ColorPicker(color),
-            HStack(10)[
-                Box(background: color, rounded: 8, width: 44, height: 44),
-                Label("選択色は Signal<uint> に反映される")]]);
-    }
+    [Story(Path = "Controls/Input/ColorPicker/Basic")]
+    public static StoryResult ColorPickerBasic()
+        => ColorPicker(new Signal<uint>(Tw.Blue500));
 
-    [Story(Path = "Controls/Button/Examples/Variants")]
+    public static IReadOnlyList<StoryArgDefinition> ColorPickerPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("color", "color", Tw.Blue500, "選択中の色。"),
+    ];
+
+    [Story(Path = "Controls/Input/ColorPicker/Examples/Interactive", Args = nameof(ColorPickerPlaygroundArgs))]
+    public static StoryResult ColorPickerPlayground(StoryContext ctx)
+        => ColorPicker(ctx.Arg("color", Tw.Blue500));
+
+    [Story(Path = "Controls/Input/Button/Examples/Variants")]
     public static StoryResult ButtonVariants() => Frame(HStack(8)[
         Button(_ => { }, "Filled"),
         Button(_ => { }, "Tonal", variant: Variant.Tonal),
         Button(_ => { }, "Outline", variant: Variant.Outline),
         Button(_ => { }, "Ghost", variant: Variant.Ghost)]);
 
-    [Story(Path = "Controls/Button/Examples/Intents")]
+    [Story(Path = "Controls/Input/Button/Examples/Intents")]
     public static StoryResult ButtonIntents(StoryContext ctx) => ctx.Snap(Frame(HStack(8)[
         Button(_ => { }, "Primary"),
         Button(_ => { }, "Success", intent: Intent.Success),
         Button(_ => { }, "Danger", intent: Intent.Danger),
         Button(_ => { }, "Neutral", intent: Intent.Neutral)]));
 
-    [Story(Path = "Controls/Button/Examples/Utilities")]
+    [Story(Path = "Controls/Input/Button/Examples/Utilities")]
     public static StoryResult ButtonTailwind() => Frame(
         Button(_ => { }, "Hover me", utilities:
         [
@@ -76,7 +78,7 @@ public static class InputControlStories
             ]),
         ]));
 
-    [Story(Path = "Controls/Button/States/Interaction")]
+    [Story(Path = "Controls/Input/Button/States/Interaction")]
     public static StoryResult ButtonInteractionStates()
     {
         Button hovered = Button(_ => { }, "Hovered");
@@ -110,33 +112,53 @@ public static class InputControlStories
 
     // ---- 入力/選択 ----
 
-    [Story(Path = "Controls/CheckBox/Basic")]
+    [Story(Path = "Controls/Input/CheckBox/Basic")]
     public static StoryResult CheckBasic(StoryContext ctx)
-        => Frame(Check(ctx.Signal("checked", false), "Subscribe to newsletter"));
+        => Check(new Signal<bool>(false), "Subscribe to newsletter");
 
-    [Story(Path = "Controls/CheckBox/Examples/Styled")]
+    [Story(Path = "Controls/Input/CheckBox/Examples/Styled")]
     public static StoryResult CheckStyled(StoryContext ctx)
         => Frame(Check(ctx.Signal("checked", true), "Custom checked color")
             .When(WidgetState.Checked, background: Tw.Green500));
 
-    [Story(Path = "Controls/Switch/Basic")]
+    [Story(Path = "Controls/Input/Switch/Basic")]
     public static StoryResult SwitchBasic(StoryContext ctx)
-        => Frame(Switch(ctx.Signal("on", true)));
+        => Switch(new Signal<bool>(true));
 
-    [Story(Path = "Controls/Slider/Basic")]
+    [Story(Path = "Controls/Input/Slider/Basic")]
     public static StoryResult SliderBasic(StoryContext ctx)
-        => ctx.Snap(Frame(Slider(ctx.Signal("value", 0.35f))));
+        => ctx.Snap(Slider(new Signal<float>(0.35f)));
 
-    [Story(Path = "Controls/Slider/Playground")]
+    public static IReadOnlyList<StoryArgDefinition> SliderPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("value", "float", 35f, "現在値。", min: 0, max: 100, step: 1),
+        StoryArgDefinition.Create("min", "float", 0f, "範囲の最小値。", min: -100, max: 99, step: 1),
+        StoryArgDefinition.Create("max", "float", 100f, "範囲の最大値。", min: 1, max: 200, step: 1),
+        StoryArgDefinition.Create("width", "float", 320f, "スライダーの幅。", min: 120, max: 640, step: 10),
+        StoryArgDefinition.Create("trackColor", "color", Tw.Slate300, "トラック色。"),
+        StoryArgDefinition.Create("fillColor", "color", Tw.Blue500, "塗りつぶし色。"),
+        StoryArgDefinition.Create("knobColor", "color", Tw.Blue500, "ノブ色。"),
+    ];
+
+    [Story(Path = "Controls/Input/Slider/Examples/Interactive", Args = nameof(SliderPlaygroundArgs))]
     public static StoryResult SliderPlayground(StoryContext ctx)
     {
-        Signal<float> value = ctx.Signal("value", 0.5f);
-        Slider slider = Slider(value);
+        Signal<float> value = ctx.Arg("value", 35f);
+        Signal<float> min = ctx.Arg("min", 0f);
+        Signal<float> max = ctx.Arg("max", 100f);
+        Signal<float> width = ctx.Arg("width", 320f);
+        Signal<uint> trackColor = ctx.Arg("trackColor", Tw.Slate300);
+        Signal<uint> fillColor = ctx.Arg("fillColor", Tw.Blue500);
+        Signal<uint> knobColor = ctx.Arg("knobColor", Tw.Blue500);
+        if (max.Value <= min.Value) max.Value = min.Value + 1f;
+        value.Value = Math.Clamp(value.Value, min.Value, max.Value);
+        Slider slider = Slider(value, min: min, max: max, trackColor: trackColor,
+            fillColor: fillColor, knobColor: knobColor, width: width.Value);
         ctx.Play(static d => d.Snap());
-        return Frame(VStack(8)[slider, Text($"value: {value}", 13)]);
+        return slider;
     }
 
-    [Story(Path = "Controls/Slider/Examples/Slots")]
+    [Story(Path = "Controls/Input/Slider/Examples/Slots")]
     public static StoryResult SliderSlots(StoryContext ctx) => Frame(
         Slider(ctx.Signal("value", 0.65f))
         [
@@ -144,7 +166,7 @@ public static class InputControlStories
             SliderSlot.Knob(() => Box(background: Tw.Amber500, rounded: 9, width: 18, height: 18))
         ]);
 
-    [Story(Path = "Controls/Slider/States/Focused")]
+    [Story(Path = "Controls/Input/Slider/States/Focused")]
     public static StoryResult SliderFocused(StoryContext ctx)
     {
         Slider slider = Slider(ctx.Signal("value", 0.4f));
@@ -152,7 +174,7 @@ public static class InputControlStories
         return Frame(slider);
     }
 
-    [Story(Path = "Controls/Slider/States/Disabled")]
+    [Story(Path = "Controls/Input/Slider/States/Disabled")]
     public static StoryResult SliderDisabled(StoryContext ctx)
     {
         Slider slider = Slider(ctx.Signal("value", 0.4f), utilities: [U.Opacity(0.45f)]);
@@ -160,29 +182,24 @@ public static class InputControlStories
         return Frame(slider);
     }
 
-    [Story(Path = "Controls/Slider/Examples/Colors")]
+    [Story(Path = "Controls/Input/Slider/Examples/Colors")]
     public static StoryResult SliderColors(StoryContext ctx)
         => Frame(Slider(ctx.Signal("value", 0.6f),
             trackColor: Tw.Slate200, fillColor: Tw.Amber500, knobColor: Tw.Amber500));
 
-    [Story(Path = "Controls/Segmented/Basic")]
+    [Story(Path = "Controls/Input/SegmentedControl/Basic")]
     public static StoryResult SegmentedBasic(StoryContext ctx)
-        => Frame(Segmented(["Day", "Week", "Month"], ctx.Signal("selected", 0)));
+        => Segmented(["Day", "Week", "Month"], new Signal<int>(0));
 
-    [Story(Path = "Controls/Radios/Basic")]
+    [Story(Path = "Controls/Input/RadioGroup/Basic")]
     public static StoryResult RadiosBasic(StoryContext ctx)
-        => Frame(Radios(["Small", "Medium", "Large"], ctx.Signal("selected", 1)));
+        => Radios(["Small", "Medium", "Large"], new Signal<int>(1));
 
-    [Story(Path = "Controls/Select/Basic")]
+    [Story(Path = "Controls/Input/Select/Basic")]
     public static StoryResult SelectBasic(StoryContext ctx)
-        => ctx.Snap(Frame(Select(["Apple", "Banana", "Cherry"], ctx.Signal("selected", 0))));
+        => ctx.Snap(Select(["Apple", "Banana", "Cherry"], new Signal<int>(0)));
 
-    [Story(Path = "Controls/LengthField/Basic")]
-    public static StoryResult LengthFieldBasic(StoryContext ctx)
-    {
-        var len = new Signal<Length>((Length)"50%");
-        return Frame(VStack(8)[
-            Text($"value: {len}", 13, color: Bind.From(() => UiTheme.T.Text)),
-            LengthField(len)]);
-    }
+    [Story(Path = "Controls/Input/LengthField/Basic")]
+    public static StoryResult LengthFieldBasic()
+        => LengthField(new Signal<Length>((Length)"50%"));
 }

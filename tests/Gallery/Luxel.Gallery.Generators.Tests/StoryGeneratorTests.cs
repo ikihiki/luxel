@@ -126,6 +126,18 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Args_can_be_explicitly_disabled_for_an_authored_story()
+    {
+        GeneratorDriverRunResult result = Run("""
+            [Story(ArgsEnabled = false)]
+            public static StoryResult Demo() => new Widget();
+            """);
+
+        string generated = Assert.Single(result.GeneratedTrees).ToString();
+        Assert.Contains("ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>()", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Direct_markdown_story_is_emitted_from_the_return_type()
     {
         GeneratorDriverRunResult result = Run("""
@@ -206,6 +218,7 @@ public sealed class StoryGeneratorTests
                 {
                     public string? Path { get; set; }
                     public bool RealWindowOnly { get; set; }
+                    public bool ArgsEnabled { get; set; } = true;
                     public string? Args { get; set; }
                     public string? CapabilityNote { get; set; }
                 }

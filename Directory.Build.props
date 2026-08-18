@@ -7,6 +7,7 @@
     <!-- 型 API リファレンス (AssemblyApiGenerator) と ApiTable が /// を読むため全プロジェクトで XML doc を出力 -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
   <!-- Architecture metadata defaults. Gallery projects override every value explicitly. -->

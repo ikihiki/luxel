@@ -210,6 +210,9 @@ public static class RangeStories
                   // 1) 起伏メッシュ地形 (scene_pbr_lite)
                   pctx.Cmd.BeginRendering(_target!, _depth!, 0.05f, 0.06f, 0.09f, 1f, 1f)
                           .SetGraphicsPipeline(_pbrPipeline!)
+                          .SetRasterizerState(GpuRasterizerState.Default)
+                          .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                          .SetBlendState(GpuBlendState.None)
                           .SetRootArguments(new PbrDrawArgs
                           {
                               ViewProj = vpT,
@@ -221,6 +224,9 @@ public static class RangeStories
                           .Draw((uint)_terrainIndexCount, 1);
                   // 2) 的/弾/小物 (cube_forward)
                   pctx.Cmd.SetGraphicsPipeline(_pipeline!)
+                          .SetRasterizerState(GpuRasterizerState.Default)
+                          .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                          .SetBlendState(GpuBlendState.None)
                           .SetRootArguments(new DrawArgs
                           {
                               ViewProj = vpT,
@@ -232,6 +238,9 @@ public static class RangeStories
                   if (drawFox)
                   {
                       pctx.Cmd.SetGraphicsPipeline(_skinPipeline!)
+                              .SetRasterizerState(GpuRasterizerState.Default)
+                              .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                              .SetBlendState(GpuBlendState.None)
                               .SetRootArguments(new SkinnedDrawArgs
                               {
                                   ViewProj = vpT,
@@ -288,11 +297,10 @@ public static class RangeStories
             _target = Device.CreateRenderTarget(W, H, GpuFormat.Rgba8Unorm);
             _depth = Device.CreateDepthTarget(W, H);
             _fb = Device.Malloc((ulong)W * H * 4, GpuMemoryKind.DeviceLocal);
-            var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-            raster.DepthTest = true;
-            raster.DepthWrite = true;
-            _pipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), raster);
-            _pbrPipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), raster);
+            var pipelineDesc = new GpuGraphicsPipelineDesc(
+                new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
+            _pipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), pipelineDesc);
+            _pbrPipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), pipelineDesc);
 
             _sim = new RangeSim();
             TransformPropagateSystem.Run(_sim.World);   // 初期 (静止) シーンの GlobalTransform
@@ -357,17 +365,11 @@ public static class RangeStories
 
             _foxJoints = new RenderBuffer<Matrix4x4>(Device, Math.Max(1, jointMats.Length), "foxJoints");
             _foxInst = Device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
-            _skinPipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"), MeshRaster());
+            _skinPipeline = Device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"),
+                new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float)));
             UploadFox();
         }
 
-        private static GpuRasterDesc MeshRaster()
-        {
-            var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-            raster.DepthTest = true;
-            raster.DepthWrite = true;
-            return raster;
-        }
 
         /// <summary>Fox のアニメを時刻 t で sample → 伝播 → SkinningSystem。skin primitive と joint 行列を取り出す。</summary>
         private void PoseFox(float t, out Matrix4x4[] jointMats)
@@ -381,7 +383,7 @@ public static class RangeStories
                 (ref AssetMeshRef mr, ref AssetSkinRef _, ref JointMatrices jm, Friflo.Engine.ECS.Entity _) =>
                 {
                     AssetPrimitive p = mr.Mesh.Primitives[0];
-                    if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) && gpu.HasSkinning)
+                    if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu? gpu) && gpu is { HasSkinning: true })
                     { _foxPrim = gpu; mats = jm.Matrices; }   // 毎回 joint 行列を取り出す (アニメ更新のため)
                 });
             jointMats = mats;

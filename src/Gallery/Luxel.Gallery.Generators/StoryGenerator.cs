@@ -41,14 +41,15 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly bool Valid;
         public readonly bool HasMeta;
         public readonly bool RealWindowOnly;
+        public readonly bool ArgsEnabled;
         public readonly string? SchemaMethod;
         public StoryModel(string path, string title, string methodFq, string source, string sourceFile, int sourcePosition,
-            string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, string? capabilityNote, string? schemaMethod)
-        { Path = path; Title = title; MethodFq = methodFq; Source = source; SourceFile = sourceFile; SourcePosition = sourcePosition; Params = paramz; Valid = valid; HasMeta = hasMeta; RealWindowOnly = realWindowOnly; CapabilityNote = capabilityNote; SchemaMethod = schemaMethod; }
+            string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, bool argsEnabled, string? capabilityNote, string? schemaMethod)
+        { Path = path; Title = title; MethodFq = methodFq; Source = source; SourceFile = sourceFile; SourcePosition = sourcePosition; Params = paramz; Valid = valid; HasMeta = hasMeta; RealWindowOnly = realWindowOnly; ArgsEnabled = argsEnabled; CapabilityNote = capabilityNote; SchemaMethod = schemaMethod; }
         public bool Equals(StoryModel? o) => o is not null && Path == o.Path && Title == o.Title && MethodFq == o.MethodFq && Source == o.Source
             && SourceFile == o.SourceFile && SourcePosition == o.SourcePosition
             && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly
-            && HasMeta == o.HasMeta && CapabilityNote == o.CapabilityNote
+            && ArgsEnabled == o.ArgsEnabled && HasMeta == o.HasMeta && CapabilityNote == o.CapabilityNote
             && SchemaMethod == o.SchemaMethod;
         private bool ParamsEqual(StoryModel o) { for (int i = 0; i < Params.Length; i++) if (Params[i] != o.Params[i]) return false; return true; }
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
@@ -63,7 +64,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
                 hash = hash * 397 ^ SourceFile.GetHashCode();
                 hash = hash * 397 ^ SourcePosition;
                 hash = hash * 397 ^ (CapabilityNote?.GetHashCode() ?? 0);
-                return hash * 8 + (Params.Length << 2) + (HasMeta ? 2 : 0) + (RealWindowOnly ? 1 : 0);
+                return hash * 16 + (Params.Length << 3) + (HasMeta ? 4 : 0) + (RealWindowOnly ? 2 : 0) + (ArgsEnabled ? 1 : 0);
             }
         }
     }
@@ -95,10 +96,12 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     bool hasMeta = !string.IsNullOrWhiteSpace(title);
                     string path = hasMeta ? title + "/" + m.Name : m.Name;
                     bool realWindowOnly = false;
+                    bool argsEnabled = true;
                     string? capabilityNote = null, schemaMethod = null, routeOverride = null;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "RealWindowOnly" && na.Value.Value is bool rw) realWindowOnly = rw;
+                        if (na.Key == "ArgsEnabled" && na.Value.Value is bool enabled) argsEnabled = enabled;
                         if (na.Key == "Path" && na.Value.Value is string route) routeOverride = route.Trim().Trim('/');
                         if (na.Key == "CapabilityNote" && na.Value.Value is string cn) capabilityNote = cn;
                         if (na.Key == "Args" && na.Value.Value is string am) schemaMethod = am;
@@ -122,7 +125,7 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     string source = methodDeclaration.ToString();
                     string? schemaFq = schemaMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + schemaMethod;
                     return new StoryModel(path, title ?? "", fq, source, methodDeclaration.SyntaxTree.FilePath,
-                        methodDeclaration.SpanStart, paramz, valid, hasMeta, realWindowOnly, capabilityNote, schemaFq);
+                        methodDeclaration.SpanStart, paramz, valid, hasMeta, realWindowOnly, argsEnabled, capabilityNote, schemaFq);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -218,7 +221,10 @@ public sealed class StoryGenerator : IIncrementalGenerator
               .Append(semanticBuilder)
               .Append(", Source: ").Append(Literal(s.Source))
               .Append(", RealWindowOnly: ").Append(s.RealWindowOnly ? "true" : "false");
-            if (s.SchemaMethod is not null) sb.Append(", ArgDefinitions: ").Append(s.SchemaMethod).Append("()");
+            if (!s.ArgsEnabled)
+                sb.Append(", ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>()");
+            else if (s.SchemaMethod is not null)
+                sb.Append(", ArgDefinitions: ").Append(s.SchemaMethod).Append("()");
             if (s.CapabilityNote is not null) sb.Append(", CapabilityNote: ").Append(Literal(s.CapabilityNote));
             if (!IsPageNavigationCandidate(s.SourceFile)) sb.Append(", IncludeInPageNavigation: false");
             sb.AppendLine("));");

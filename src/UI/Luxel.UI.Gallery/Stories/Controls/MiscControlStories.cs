@@ -10,44 +10,40 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls")]
 public static class MiscControlStories
 {
-    [Story(Path = "Controls/Kit/Examples/Badges")]
+    [Story(Path = "Controls/Layout/Kit/Examples/Badges")]
     public static StoryResult Badges() => Frame(HStack(8)[
         Badge("Primary"), Badge("OK", Intent.Success), Badge("Error", Intent.Danger), Chip("Chip")]);
 
-    [Story(Path = "Controls/Kit/Examples/Alert")]
+    [Story(Path = "Controls/Layout/Kit/Examples/Alert")]
     public static StoryResult AlertStory() => Frame(VStack(8)[
         Alert("Information message", Intent.Info),
         Alert("Something went wrong", Intent.Danger)]);
 
-    [Story(Path = "Controls/Kit/Examples/Typography")]
+    [Story(Path = "Controls/Layout/Kit/Examples/Typography")]
     public static StoryResult Typography() => Frame(VStack(6)[
         Heading("Heading 1"), Heading("Heading 2", 2), Label("Body label"), Muted("Muted caption"),
         Divider(), Skeleton(220, 14)]);
 
-    [Story(Path = "Controls/Spinner/Basic")]
-    public static StoryResult SpinnerBasic() => Frame(Spinner(36f));
+    [Story(Path = "Controls/Rendering/Spinner/Basic")]
+    public static StoryResult SpinnerBasic() => Spinner(36f);
 
-    [Story(Path = "Controls/LinkText/Basic")]
-    public static StoryResult LinkTextBasic(StoryContext ctx) => Frame(VStack(8)[
-        LinkText(_ => ctx.Log("link click"), "クリックできるリンク"),
-        LinkText(_ => { }, "アクティブ状態 (active: true)", active: true),
-        LinkText(_ => { }, "色とホバー色の指定", color: Tw.Red500, hoverColor: Tw.Amber500)]);
+    [Story(Path = "Controls/Text/LinkText/Basic")]
+    public static StoryResult LinkTextBasic(StoryContext ctx) =>
+        LinkText(_ => ctx.Log("link click"), "クリックできるリンク");
 
-    [Story(Path = "Controls/Icon/Examples/Kinds")]
+    [Story(Path = "Controls/Rendering/Icon/Examples/Kinds")]
     public static StoryResult IconKinds() => Frame(HStack(10)[
         Icon(IconKind.Check), Icon(IconKind.Close), Icon(IconKind.ChevronDown), Icon(IconKind.ChevronRight),
         Icon(IconKind.Plus), Icon(IconKind.Minus), Icon(IconKind.Dot), Icon(IconKind.Circle),
         Icon(IconKind.Check, color: Tw.Green500), Icon(IconKind.Close, color: Tw.Red500)]);
 
-    [Story(Path = "Controls/Sparkline/Basic")]
+    [Story(Path = "Controls/Rendering/Sparkline/Basic")]
     public static StoryResult SparklineBasic()
     {
         float[] vals = Enumerable.Range(0, 40)
             .Select(i => MathF.Sin(i * 0.35f) * 0.6f + 1.2f + i % 7 * 0.05f).ToArray();
         Sparkline line = Sparkline(260, 64);
         line.SetValues(vals);
-        Sparkline bars = Sparkline(260, 48, bars: true);
-        bars.SetValues(vals, min: 0);
-        return Frame(VStack(8)[line, bars]);
+        return line;
     }
 }

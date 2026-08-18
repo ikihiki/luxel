@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using BepuPhysics;
 using Friflo.Engine.ECS;
 
@@ -72,7 +72,7 @@ public struct StaticBody : IComponent
 }
 
 /// <summary>静的メッシュコライダー — 三角形スープ (頂点 + インデックス) で地形/建物と衝突する静的 collidable。
-/// <see cref="Collider"/> (凸プリミティブ) の代わりに付ける。pose は Attach 時の <see cref="LocalTransform"/>。
+/// <see cref="Collider"/> (凸プリミティブ) の代わりに付ける。pose は Attach 時の <c>LocalTransform</c>。
 /// 動的メッシュは Bepu で非推奨のため非対応 (動的な実形状は <see cref="HullCollider"/> = 凸包を使う)。</summary>
 public struct MeshCollider : IComponent
 {

@@ -142,24 +142,40 @@ else
                                                         <span>@definition.Description</span>
                                                     }
                                                 </label>
-                                                @if (definition.Options is { Count: > 0 })
+                                                @if ((definition.EditorKind is StoryArgEditorKind.Enum or StoryArgEditorKind.Preset)
+                                                    && definition.Options is { Count: > 0 })
                                                 {
                                                     <select id="@ArgId(definition)" value="@ArgValue(definition)"
                                                             @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)">
                                                         @foreach (string option in definition.Options)
                                                         {
-                                                            <option value="@option">@option</option>
+                                                            <option value="@option">@PresetLabel(option)</option>
                                                         }
                                                     </select>
                                                 }
-                                                else if (IsBoolean(definition))
+                                                else if (definition.EditorKind == StoryArgEditorKind.Boolean)
                                                 {
                                                     <input id="@ArgId(definition)" type="checkbox" checked="@ArgBoolValue(definition)"
                                                            @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
                                                 }
+                                                else if (definition.EditorKind == StoryArgEditorKind.Color)
+                                                {
+                                                    <div class="arg-color-editor">
+                                                        <input id="@ArgId(definition)" type="color" value="@ArgColorSwatch(definition)"
+                                                               aria-label="@($"{definition.Name} の色")"
+                                                               @oninput="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
+                                                        <input class="arg-color-hex" value="@ArgValue(definition)" aria-label="@($"{definition.Name} の16進色")"
+                                                               @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
+                                                    </div>
+                                                }
+                                                else if (definition.EditorKind == StoryArgEditorKind.Json)
+                                                {
+                                                    <textarea id="@ArgId(definition)" rows="3" spellcheck="false" value="@ArgValue(definition)"
+                                                              @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)"></textarea>
+                                                }
                                                 else
                                                 {
-                                                    <input id="@ArgId(definition)" type="@(IsNumeric(definition) ? "number" : "text")"
+                                                    <input id="@ArgId(definition)" type="@(definition.EditorKind == StoryArgEditorKind.Number ? "number" : "text")"
                                                            value="@ArgValue(definition)" min="@definition.Min" max="@definition.Max" step="@ArgStep(definition)"
                                                            @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)" />
                                                 }
@@ -380,13 +396,25 @@ else
 
     private static JsonElement ParseArgValue(StoryArgDefinition definition, object? rawValue)
     {
-        if (IsBoolean(definition)) return StoryArgCodec.Serialize(rawValue is bool value ? value : bool.Parse(rawValue?.ToString() ?? "false"));
+        if (definition.EditorKind == StoryArgEditorKind.Boolean)
+            return StoryArgCodec.Serialize(rawValue is bool value ? value : bool.Parse(rawValue?.ToString() ?? "false"));
+
         string text = Convert.ToString(rawValue, CultureInfo.InvariantCulture) ?? "";
-        if (!IsNumeric(definition)) return StoryArgCodec.Serialize(text);
-        using JsonDocument document = JsonDocument.Parse(text);
-        if (document.RootElement.ValueKind != JsonValueKind.Number)
-            throw new FormatException($"'{text}'は数値ではありません。");
-        return document.RootElement.Clone();
+        if (definition.EditorKind is StoryArgEditorKind.Json or StoryArgEditorKind.Preset or StoryArgEditorKind.Number)
+        {
+            try
+            {
+                using JsonDocument document = JsonDocument.Parse(text);
+                if (definition.EditorKind == StoryArgEditorKind.Number && document.RootElement.ValueKind != JsonValueKind.Number)
+                    throw new FormatException($"'{text}'は数値ではありません。");
+                return document.RootElement.Clone();
+            }
+            catch (JsonException) when (definition.EditorKind == StoryArgEditorKind.Preset)
+            {
+                return StoryArgCodec.Serialize(text);
+            }
+        }
+        return StoryArgCodec.Serialize(text);
     }
 
     private string? TryRenderDocument(StoryInfo story, string argsJson)
@@ -396,7 +424,7 @@ else
             StoryArgs args = StoryArgs.Parse(argsJson).WithDefaults(story.ArgDefinitions ?? Array.Empty<StoryArgDefinition>());
             using var context = new StoryContext(args: args);
             context.SetServices(Services);
-            StoryResult result = story.Build(context);
+            StoryResult result = global::Luxel.Gallery.UI.StoryPresentation.Build(story, context);
             return result.Kind == StoryResultKind.Markdown
                 ? GalleryMarkdownHtml.Render(story, result)
                 : null;
@@ -462,15 +490,37 @@ else
     private static string PanelId(string tab) => "story-panel-" + tab.ToLowerInvariant();
     private string TabClass(string tab) => _activeTab == tab ? "active" : "";
     private static string ArgId(StoryArgDefinition definition) => "story-arg-" + definition.Name;
-    private static bool IsBoolean(StoryArgDefinition definition) => definition.Type is "bool" or "boolean" or "System.Boolean";
-    private static bool IsNumeric(StoryArgDefinition definition) => definition.Type.ToLowerInvariant() is
-        "byte" or "sbyte" or "short" or "ushort" or "int" or "uint" or "long" or "ulong" or
-        "float" or "double" or "decimal" or "system.int32" or "system.int64" or "system.single" or "system.double" or "system.decimal";
     private string ArgStep(StoryArgDefinition definition) => definition.Step?.ToString(CultureInfo.InvariantCulture)
         ?? (definition.Type.Contains("float", StringComparison.OrdinalIgnoreCase) || definition.Type.Contains("double", StringComparison.OrdinalIgnoreCase) ? "any" : "1");
-    private string ArgValue(StoryArgDefinition definition) => _argValues.TryGetValue(definition.Name, out JsonElement value)
-        ? value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : value.GetRawText()
-        : "";
+    private static string PresetLabel(string option)
+    {
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(option);
+            return document.RootElement.ValueKind == JsonValueKind.String
+                ? document.RootElement.GetString() ?? ""
+                : option;
+        }
+        catch (JsonException)
+        {
+            return option;
+        }
+    }
+    private string ArgValue(StoryArgDefinition definition)
+    {
+        if (!_argValues.TryGetValue(definition.Name, out JsonElement value)) return "";
+        if (definition.EditorKind == StoryArgEditorKind.Preset && definition.Options is { Count: > 0 })
+        {
+            string raw = value.GetRawText();
+            if (definition.Options.Contains(raw, StringComparer.Ordinal)) return raw;
+        }
+        return value.ValueKind == JsonValueKind.String ? value.GetString() ?? "" : value.GetRawText();
+    }
+    private string ArgColorSwatch(StoryArgDefinition definition)
+    {
+        string value = ArgValue(definition);
+        return value.Length >= 7 && value[0] == '#' ? value[..7] : "#000000";
+    }
     private bool ArgBoolValue(StoryArgDefinition definition) => _argValues.TryGetValue(definition.Name, out JsonElement value)
         && value.ValueKind is JsonValueKind.True or JsonValueKind.False && value.GetBoolean();
     private static string OutputKindLabel(string kind) => kind switch

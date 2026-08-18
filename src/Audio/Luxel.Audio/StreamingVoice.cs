@@ -1,7 +1,7 @@
 namespace Luxel.Audio;
 
 /// <summary>
-/// <see cref="IAudioStream"/> を**デコードしながら再生**する声 — BGM 等の長尺用。<see cref="StreamMixerSink"/> と
+/// <see cref="IAudioStream"/> を**デコードしながら再生**する声 — BGM 等の長尺用。<c>StreamMixerSink</c> と
 /// 同じ「毎 Tick <see cref="Pump"/> + キュー深さ &lt; <see cref="QueueDepth"/> まで補充」方式なので専用スレッド不要
 /// (フレームレート依存のジッタはキュー深さで吸収)。チャンクは float→16bit へ量子化して submit。
 /// ループは <see cref="LoopingStream"/> でラップして渡す (このクラスは終端で止まる)。

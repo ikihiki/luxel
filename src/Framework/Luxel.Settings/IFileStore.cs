@@ -1,4 +1,4 @@
-﻿namespace Luxel.Settings;
+namespace Luxel.Settings;
 
 /// <summary>
 /// 設定ファイルの読み書き抽象 (Read/Write/Exists)。単体テストはインメモリ実装で file IO 非依存にできる
@@ -26,7 +26,7 @@ public sealed class InMemoryFileStore : IFileStore
     public void Write(string name, string content) { lock (_lock) _files[name] = content; }
 }
 
-/// <summary>実ディスクの <see cref="IFileStore"/>。<paramref name="root"/> 直下にファイルを置く
+/// <summary>実ディスクの <see cref="IFileStore"/>。コンストラクタで指定したルート直下にファイルを置く
 /// (既定は <c>%APPDATA%/&lt;ゲーム名&gt;</c> 等をアプリが渡す)。書き込み時にディレクトリを作る。</summary>
 public sealed class PhysicalFileStore : IFileStore
 {

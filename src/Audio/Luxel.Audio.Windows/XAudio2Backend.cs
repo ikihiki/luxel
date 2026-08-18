@@ -123,7 +123,7 @@ internal sealed class XAudio2Voice : IAudioVoice
             {
                 float left = _pan <= 0 ? 1f : 1f - _pan;
                 float right = _pan >= 0 ? 1f : 1f + _pan;
-                _src.SetOutputMatrix(null, 2, 2, new[] { left, 0f, 0f, right });
+                _src.SetOutputMatrix(null!, 2, 2, new[] { left, 0f, 0f, right });
             }
         }
     }

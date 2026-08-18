@@ -11,11 +11,11 @@ namespace Luxel.UI;
 /// </summary>
 public static class WidgetDebugCodec
 {
-    /// <summary>rgba (little-endian 0xAABBGGRR パック) を #rrggbb に落とす。</summary>
+    /// <summary>rgba (little-endian 0xAABBGGRR パック) を #rrggbb / #rrggbbaa にする。</summary>
     public static string FormatColor(uint u)
     {
-        byte r = (byte)(u & 0xff), g = (byte)((u >> 8) & 0xff), b = (byte)((u >> 16) & 0xff);
-        return $"#{r:x2}{g:x2}{b:x2}";
+        byte r = (byte)(u & 0xff), g = (byte)((u >> 8) & 0xff), b = (byte)((u >> 16) & 0xff), a = (byte)(u >> 24);
+        return a == 0xff ? $"#{r:x2}{g:x2}{b:x2}" : $"#{r:x2}{g:x2}{b:x2}{a:x2}";
     }
 
     /// <summary>null 許容 boxed 値の表示文字列 (色以外の任意型)。生成コードの非対応 T 用。</summary>
@@ -34,7 +34,8 @@ public static class WidgetDebugCodec
     /// <summary>IParsable な複合型 (Thickness 等) を文字列経由で書き込む。parse 失敗は no-op。</summary>
     public static void WriteParsable<T>(Bindable<T> field, JsonElement value) where T : IParsable<T>
     {
-        if (T.TryParse(CoerceString(value), System.Globalization.CultureInfo.InvariantCulture, out T parsed))
+        if (T.TryParse(CoerceString(value), System.Globalization.CultureInfo.InvariantCulture, out T? parsed)
+            && parsed is not null)
             field.SetOverride(parsed);
     }
 
@@ -58,28 +59,34 @@ public static class WidgetDebugCodec
             string value = CoerceString(el);
             if (!Enum.TryParse(typeof(T), value, ignoreCase: true, out object? parsed))
                 throw new FormatException($"'{value}' is not a valid {typeof(T).Name} value.");
-            return (T)parsed;
+            return (T)parsed!;
         }
         throw new InvalidCastException($"Debug arg type '{typeof(T).FullName}' requires a generated parser.");
     }
 
     // ---- JSON → 値の coerce (型別) ----
 
-    /// <summary>"#rrggbb" 文字列 or 整数 → rgba パック uint (A=ff)。</summary>
+    /// <summary>"#rgb" / "#rrggbb" / "#rrggbbaa" 文字列 or 整数 → rgba パック uint。</summary>
     public static uint CoerceColor(JsonElement el)
     {
-        if (el.ValueKind == JsonValueKind.String)
-        {
-            string s = el.GetString() ?? "";
-            if (s.StartsWith('#')) s = s[1..];
-            if (uint.TryParse(s, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out uint rgb))
-            {
-                byte r = (byte)((rgb >> 16) & 0xff), g = (byte)((rgb >> 8) & 0xff), b = (byte)(rgb & 0xff);
-                return 0xff000000u | ((uint)b << 16) | ((uint)g << 8) | r;   // A=ff, packed R->G->B->A little-endian
-            }
-            return uint.TryParse(s, out uint u) ? u : 0u;
-        }
-        return el.ValueKind == JsonValueKind.Number ? el.GetUInt32() : 0u;
+        if (el.ValueKind == JsonValueKind.Number) return el.GetUInt32();
+        if (el.ValueKind != JsonValueKind.String)
+            throw new FormatException("Color must be a hexadecimal string or an unsigned integer.");
+
+        string text = el.GetString() ?? "";
+        string hex = text.StartsWith('#') ? text[1..] : text;
+        if (hex.Length == 3)
+            hex = string.Concat(hex[0], hex[0], hex[1], hex[1], hex[2], hex[2]);
+        if (hex.Length is not (6 or 8)
+            || !uint.TryParse(hex, System.Globalization.NumberStyles.HexNumber,
+                System.Globalization.CultureInfo.InvariantCulture, out uint rgba))
+            throw new FormatException($"'{text}' is not a valid color.");
+
+        byte r = (byte)(rgba >> (hex.Length == 8 ? 24 : 16));
+        byte g = (byte)(rgba >> (hex.Length == 8 ? 16 : 8));
+        byte b = (byte)(rgba >> (hex.Length == 8 ? 8 : 0));
+        byte a = hex.Length == 8 ? (byte)rgba : (byte)0xff;
+        return ((uint)a << 24) | ((uint)b << 16) | ((uint)g << 8) | r;
     }
 
     public static int CoerceInt(JsonElement el)

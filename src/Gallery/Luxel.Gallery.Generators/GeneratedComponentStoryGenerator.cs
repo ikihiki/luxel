@@ -405,15 +405,21 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         var current = new List<WidgetModel>();
         foreach (WidgetModel? model in models)
             if (model is not null && seen.Add(model.TypeFq)) current.Add(model);
+        bool hasVisibleWidgetFixture = compilation.GetTypeByMetadataName("Luxel.Controls.Text") is not null
+            && compilation.GetTypeByMetadataName("Luxel.Controls.Kit") is not null;
         if (current.Count > 0)
         {
             string factoryDefault = FactoryDefault(compilation.Assembly);
             current.Sort(static (a, b) => string.CompareOrdinal(a.TypeFq, b.TypeFq));
-            EmitComponentStories(source, current, compilation.AssemblyName ?? "Assembly", factoryDefault);
+            EmitComponentStories(source, current, compilation.AssemblyName ?? "Assembly", factoryDefault, hasVisibleWidgetFixture);
+            EmitControlApi(source, current, compilation.AssemblyName ?? "Assembly");
         }
 
         foreach ((string assemblyName, List<WidgetModel> referenced) in ReadReferencedMetadata(compilation))
-            EmitComponentStories(source, referenced, assemblyName, "Factories");
+        {
+            EmitComponentStories(source, referenced, assemblyName, "Factories", hasVisibleWidgetFixture);
+            EmitControlApi(source, referenced, assemblyName);
+        }
 
         if (source.Length > 100)
             spc.AddSource("LuxelGeneratedComponentStories.g.cs", SourceText.From(source.ToString(), Encoding.UTF8));
@@ -443,11 +449,11 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             {
                 string? name = attribute.AttributeClass?.ToDisplayString();
                 ImmutableArray<TypedConstant> args = attribute.ConstructorArguments;
-                if (name == componentAttribute && args.Length == 6 && args[0].Value is INamedTypeSymbol component)
+                if (name == componentAttribute && args.Length == 7 && args[0].Value is INamedTypeSymbol component)
                 {
                     string key = component.ToDisplayString(TypeFmt);
-                    components[key] = (component, (string)args[1].Value!, (string)args[2].Value!,
-                        (string)args[3].Value!, (string)args[4].Value!, (string)args[5].Value!);
+                    components[key] = (component, (string)args[2].Value!, (string)args[3].Value!,
+                        (string)args[4].Value!, (string)args[5].Value!, (string)args[6].Value!);
                 }
                 else if (name == parameterAttribute && args.Length == 8 && args[0].Value is INamedTypeSymbol owner
                     && args[2].Value is ITypeSymbol valueType && Enum.TryParse((string?)args[3].Value, out BindKind kind))
@@ -487,7 +493,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         }
     }
 
-    private static void EmitComponentStories(StringBuilder sb, List<WidgetModel> list, string assemblyName, string factoryDefault)
+    private static void EmitComponentStories(StringBuilder sb, List<WidgetModel> list, string assemblyName, string factoryDefault, bool hasVisibleWidgetFixture)
     {
         List<WidgetModel> components = list.Where(static widget => widget.IsComponent).OrderBy(static widget => widget.FactoryName, StringComparer.Ordinal).ToList();
         if (components.Count == 0) return;
@@ -505,11 +511,13 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine("        [");
         foreach (WidgetModel widget in components)
         {
-            string category = widget.FactoryName;
+            string controlName = CanonicalControlName(widget.ClassName);
+            string category = CategoryOf(controlName);
+            bool userFacing = !IsGalleryInfrastructure(widget);
             sb.Append("            new global::Luxel.Gallery.GeneratedComponentStoryDescriptor(")
-                .Append(Lit(widget.TypeFq)).Append(", ").Append(Lit(category)).Append(", ")
-                .Append(Lit("Controls/" + category + "/Docs")).Append(", ")
-                .Append(Lit("Controls/" + category + "/Basic")).AppendLine("),");
+                .Append(Lit(widget.TypeFq)).Append(", ").Append(Lit(assemblyName)).Append(", ")
+                .Append(Lit(category)).Append(", ").Append(Lit(controlName)).Append(", ")
+                .Append(userFacing ? "true" : "false").AppendLine("),");
         }
         sb.AppendLine("        ];");
         sb.AppendLine();
@@ -519,144 +527,312 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         for (int index = 0; index < components.Count; index++)
         {
             WidgetModel widget = components[index];
-            string category = widget.FactoryName;
-            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Docs"))
+            string route = RoutePrefix(widget);
+            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Docs"))
                 .Append(", static _ => Docs_").Append(index).Append("(), Source: ")
                 .Append(Lit("Generated component docs for " + widget.TypeFq))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                 .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Docs));");
-            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Basic"))
+            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Basic"))
                 .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
-                .Append(Lit("Generated direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
-                .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget)))
+                .Append(Lit("Generated static direct typed factory for " + widget.TypeFq))
+                .Append(", ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>(), CapabilityNote: ").Append(Lit(CapabilityNote(widget, hasVisibleWidgetFixture)))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                 .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Basic));");
+            if (!IsGalleryInfrastructure(widget))
+                sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Playground"))
+                    .Append(", static ctx => Playground_").Append(index).Append("(ctx), Source: ")
+                    .Append(Lit("Generated editable direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
+                    .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget, hasVisibleWidgetFixture)))
+                    .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
+                    .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Playground));");
         }
         sb.AppendLine("        }");
         for (int index = 0; index < components.Count; index++)
         {
             WidgetModel widget = components[index];
-            List<FieldModel> args = RequiresFallback(widget) ? new List<FieldModel>() : StoryArgs(widget).ToList();
+            List<FieldModel> args = StoryArgs(widget).ToList();
             sb.AppendLine();
             sb.Append("        private static readonly global::Luxel.Gallery.StoryArgDefinition[] Args_").Append(index).AppendLine(" =");
             sb.AppendLine("        [");
             foreach (FieldModel field in args)
-                EmitStaticArgDefinition(sb, field);
+                EmitStaticArgDefinition(sb, widget, field);
             sb.AppendLine("        ];");
             sb.AppendLine();
             EmitGeneratedDocs(sb, widget, args, index);
             sb.AppendLine();
-            EmitGeneratedBasic(sb, widget, args, index, factoryDefault);
+            EmitGeneratedBasic(sb, widget, index, factoryDefault, hasVisibleWidgetFixture);
+            if (!IsGalleryInfrastructure(widget))
+            {
+                sb.AppendLine();
+                EmitGeneratedPlayground(sb, widget, args, index, factoryDefault, hasVisibleWidgetFixture);
+            }
+        }
+        if (components.Any(static widget => widget.Fields.Any(IsGridLengthCollection)))
+        {
+            sb.AppendLine();
+            sb.AppendLine("        private static global::Luxel.UI.GridLength[] ParseGridLengths(string value)");
+            sb.AppendLine("            => value.Split(new char[] { ',' }, global::System.StringSplitOptions.TrimEntries | global::System.StringSplitOptions.RemoveEmptyEntries)");
+            sb.AppendLine("                .Select(static item => item.Equals(\"auto\", global::System.StringComparison.OrdinalIgnoreCase)");
+            sb.AppendLine("                    ? global::Luxel.UI.GridLength.Auto");
+            sb.AppendLine("                    : item.EndsWith(\"px\", global::System.StringComparison.OrdinalIgnoreCase)");
+            sb.AppendLine("                        ? global::Luxel.UI.GridLength.Px(float.Parse(item.Substring(0, item.Length - 2), global::System.Globalization.CultureInfo.InvariantCulture))");
+            sb.AppendLine("                        : global::Luxel.UI.GridLength.Star(float.Parse(item.EndsWith(\"*\", global::System.StringComparison.Ordinal) ? item.Substring(0, item.Length - 1) : item, global::System.Globalization.CultureInfo.InvariantCulture)))");
+            sb.AppendLine("                .ToArray();");
         }
         sb.AppendLine("    }");
         sb.AppendLine("}");
     }
 
-    private static bool RequiresFallback(WidgetModel widget)
-        => widget.Fields.Any(field => field.Own && field.Kind == BindKind.Other && StoryFixture(field) is null);
+    private static bool IsGalleryInfrastructure(WidgetModel widget)
+        => widget.Namespace == "Luxel.Gallery.UI"
+            && widget.ClassName is "ApiTable" or "KnobsTable" or "TypeApiTable";
 
-    private static string? StoryFixture(FieldModel field)
+    private static string RoutePrefix(WidgetModel widget)
     {
-        if (field.Kind != BindKind.Other) return null;
-        const string signalPrefix = "global::Luxel.UI.Signal<";
-        if (field.TypeFq.StartsWith(signalPrefix, StringComparison.Ordinal) && field.TypeFq.EndsWith(">", StringComparison.Ordinal))
-        {
-            string valueType = field.TypeFq.Substring(signalPrefix.Length, field.TypeFq.Length - signalPrefix.Length - 1);
-            string? value = valueType switch
-            {
-                "bool" or "global::System.Boolean" => "false",
-                "int" or "global::System.Int32" => "0",
-                "float" or "global::System.Single" => "0f",
-                "double" or "global::System.Double" => "0d",
-                "uint" or "global::System.UInt32" => "0xffdbeafeu",
-                "string" or "global::System.String" => Lit("Sample"),
-                LengthType => "default(global::Luxel.UI.Length)",
-                _ => null,
-            };
-            return value is null ? null : "new " + field.TypeFq + "(" + value + ")";
-        }
-        if (field.TypeFq == "global::Luxel.UI.Widget")
-            return "new global::Luxel.Gallery.StoryCapabilityFallback(\"Child fixture\", \"Generated in-memory child widget.\")";
-        if (field.TypeFq is "string[]" or "global::System.String[]")
-            return "new string[] { \"One\", \"Two\", \"Three\" }";
+        string controlName = CanonicalControlName(widget.ClassName);
+        return IsGalleryInfrastructure(widget)
+            ? "Gallery/Infrastructure/" + controlName
+            : "Controls/" + CategoryOf(controlName) + "/" + controlName;
+    }
+
+    private static string CanonicalControlName(string className)
+        => className == "StackPanel" ? "Stack" : className;
+
+    private static string CategoryOf(string controlName) => controlName switch
+    {
+        "Box" or "Border" or "Center" or "Spacer" or "Stack" or "Grid" or "WrapPanel" or "Splitter" => "Layout",
+        "Button" or "CheckBox" or "Switch" or "Slider" or "SegmentedControl" or "RadioGroup" or "Select" or "ColorPicker" or "LengthField" => "Input",
+        "Text" or "TextField" or "SearchField" or "RichTextView" or "LinkText" => "Text",
+        "ListView" or "TreeView" or "NavigationView" or "Tabs" or "Accordion" or "DocumentTabs" or "AssetBrowser" or "ScrollViewer" => "Collections",
+        "Dialog" or "Toast" or "Drawer" or "Dropdown" or "Tooltip" or "MenuRow" or "MenuBar" or "Toolbar" => "Overlay",
+        "Icon" or "ImageView" or "ImageBlock" or "TableBlock" or "SurfaceView" or "Canvas2D" or "GpuView" or "DiagramBlock" or "MathBlockView" or "Sparkline" or "Spinner" or "ParticleView" => "Rendering",
+        "DockHost" or "NodeGraphView" or "PropertyGrid" or "SceneEditorView" or "SceneInspector" or "StatusBar" or "TextEditorView" => "Editor",
+        "ApiTable" or "KnobsTable" or "TypeApiTable" => "Infrastructure",
+        _ => "Editor",
+    };
+
+    private const string SignalPrefix = "global::Luxel.UI.Signal<";
+    private const string GridLengthArrayType = "global::Luxel.UI.GridLength[]";
+
+    private static bool TryGetSupportedSignalValueType(FieldModel field, out string valueType)
+    {
+        valueType = "";
+        if (!field.TypeFq.StartsWith(SignalPrefix, StringComparison.Ordinal) || !field.TypeFq.EndsWith(">", StringComparison.Ordinal))
+            return false;
+        string candidate = field.TypeFq.Substring(SignalPrefix.Length, field.TypeFq.Length - SignalPrefix.Length - 1);
+        if (candidate is not ("bool" or "global::System.Boolean" or "int" or "global::System.Int32"
+            or "float" or "global::System.Single" or "double" or "global::System.Double"
+            or "uint" or "global::System.UInt32" or "string" or "global::System.String" or LengthType))
+            return false;
+        valueType = candidate;
+        return true;
+    }
+
+    private static bool IsStringCollection(FieldModel field)
+        => field.TypeFq is "string[]" or "global::System.String[]"
+            or "global::System.Collections.Generic.IReadOnlyList<string>"
+            or "global::System.Collections.Generic.IReadOnlyList<global::System.String>";
+
+    private static bool IsGridLengthCollection(FieldModel field)
+        => field.TypeFq == GridLengthArrayType;
+
+    private static bool IsWidget(FieldModel field)
+        => field.TypeFq == "global::Luxel.UI.Widget";
+
+    private static bool IsWidgetCollection(FieldModel field)
+        => field.TypeFq == "global::Luxel.UI.Widget[]";
+
+    private static bool UsesPreset(FieldModel field)
+        => field.Kind == BindKind.Other && field.TypeFq != LengthType && !TryGetSupportedSignalValueType(field, out _)
+            && !IsStringCollection(field) && !IsGridLengthCollection(field);
+
+    private static string StoryArgType(FieldModel field)
+    {
+        if (field.TypeFq == LengthType) return field.TypeFq;
+        if (field.Kind == BindKind.Parsable) return "string";
+        if (TryGetSupportedSignalValueType(field, out string valueType)) return valueType;
+        if (field.Kind == BindKind.Other) return "string";
+        return field.TypeFq;
+    }
+
+    private static string StoryArgDefault(FieldModel field)
+    {
+        if (field.TypeFq == LengthType) return StoryDefault(field);
+        if (field.Kind == BindKind.Parsable) return "default(" + field.TypeFq + ").ToString() ?? string.Empty";
+        if (TryGetSupportedSignalValueType(field, out string valueType)) return StoryScalarDefault(field, valueType);
+        if (IsStringCollection(field)) return Lit("One, Two, Three");
+        if (IsGridLengthCollection(field)) return Lit("1*, 1*");
+        if (UsesPreset(field)) return Lit(IsWidget(field) || IsWidgetCollection(field) ? "Generated fixture" : "Component default");
+        return StoryDefault(field);
+    }
+
+    private static string StoryScalarDefault(FieldModel field, string type)
+    {
+        if (type == LengthType) return field.Name switch { "Width" => "(global::Luxel.UI.Length)240", "Height" => "(global::Luxel.UI.Length)96", _ => "default(global::Luxel.UI.Length)" };
+        if (type is "bool" or "global::System.Boolean") return field.Name.Contains("Vertical", StringComparison.OrdinalIgnoreCase) ? "true" : "false";
+        if (type is "int" or "global::System.Int32") return NameIs(field, "Max") ? "100" : IsDimension(field) ? "24" : "0";
+        if (type is "float" or "global::System.Single") return StoryNumberDefault(field, "f");
+        if (type is "double" or "global::System.Double") return StoryNumberDefault(field, "d");
+        if (type is "uint" or "global::System.UInt32") return field.Name.Contains("Foreground", StringComparison.OrdinalIgnoreCase) ? "0xff202020u" : "0xffdbeafeu";
+        return Lit(field.Name is "Text" or "Label" ? "Example" : "Sample");
+    }
+
+    private static string StoryNumberDefault(FieldModel field, string suffix)
+    {
+        if (NameIs(field, "Max")) return "1" + suffix;
+        if (NameIs(field, "Step")) return "0.1" + suffix;
+        if (field.Name.Contains("Opacity", StringComparison.OrdinalIgnoreCase) || field.Name.Contains("Scale", StringComparison.OrdinalIgnoreCase)) return "1" + suffix;
+        if (field.Name.Contains("Font", StringComparison.OrdinalIgnoreCase)) return "16" + suffix;
+        if (field.Name.Contains("Stroke", StringComparison.OrdinalIgnoreCase)) return "2" + suffix;
+        if (field.Name.Contains("ViewportHeight", StringComparison.OrdinalIgnoreCase)) return "180" + suffix;
+        if (field.Name.Contains("EditorHeight", StringComparison.OrdinalIgnoreCase)) return "240" + suffix;
+        if (field.Name.Contains("Height", StringComparison.OrdinalIgnoreCase)) return "180" + suffix;
+        if (field.Name.Contains("Width", StringComparison.OrdinalIgnoreCase)) return "320" + suffix;
+        if (field.Name.Contains("IconSize", StringComparison.OrdinalIgnoreCase)) return "24" + suffix;
+        if (field.Name.Contains("Size", StringComparison.OrdinalIgnoreCase)) return "32" + suffix;
+        return "0" + suffix;
+    }
+
+    private static string? StoryFixture(FieldModel field, bool hasVisibleWidgetFixture)
+    {
+        if (TryGetSupportedSignalValueType(field, out string valueType))
+            return "new " + field.TypeFq + "(" + StoryScalarDefault(field, valueType) + ")";
+        if (IsWidget(field)) return VisibleWidgetFixture(hasVisibleWidgetFixture, field.Name);
+        if (IsWidgetCollection(field)) return "new global::Luxel.UI.Widget[] { " + VisibleWidgetFixture(hasVisibleWidgetFixture, field.Name) + " }";
+        if (IsStringCollection(field)) return "new string[] { \"One\", \"Two\", \"Three\" }";
+        if (IsGridLengthCollection(field)) return "new global::Luxel.UI.GridLength[] { global::Luxel.UI.GridLength.Star(), global::Luxel.UI.GridLength.Star() }";
         return null;
     }
+
+    private static string VisibleWidgetFixture(bool hasVisibleWidgetFixture, string name)
+        => hasVisibleWidgetFixture
+            ? "global::Luxel.Controls.Kit.Text(\"Generated " + ParamName(name) + "\", 16f)"
+            : "new global::Luxel.Gallery.StoryCapabilityFallback(" + Lit(name + " fixture") + ", \"Generated in-memory child widget.\")";
 
     private static IEnumerable<FieldModel> StoryArgs(WidgetModel widget)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (FieldModel field in widget.Fields.OrderBy(static field => field.Own ? 0 : 1).ThenBy(static field => field.Seq))
-        {
-            if (!seen.Add(field.Name)) continue;
-            if (field.TypeFq == LengthType || field.Kind is BindKind.Color or BindKind.Int or BindKind.Float or BindKind.Double or BindKind.Bool or BindKind.String or BindKind.Text or BindKind.Enum)
-                yield return field;
-        }
+            if (seen.Add(field.Name)) yield return field;
     }
 
-    private static void EmitStaticArgDefinition(StringBuilder sb, FieldModel field)
+    private static void EmitStaticArgDefinition(StringBuilder sb, WidgetModel widget, FieldModel field)
     {
-        string defaultValue = StoryDefault(field);
-        sb.Append("            global::Luxel.Gallery.StoryArgDefinition.Create<").Append(field.TypeFq).Append(">(")
-            .Append(Lit(ParamName(field.Name))).Append(", ").Append(Lit(StoryTypeHint(field))).Append(", ").Append(defaultValue)
-            .Append(", description: ").Append(Lit(field.Summary.Length > 0 ? field.Summary : field.Own ? field.Name + " component parameter." : "Inherited layout parameter."));
+        string argType = StoryArgType(field);
+        string fallback = field.Summary.Length > 0 ? field.Summary : field.Own
+            ? field.Name + " コンポーネントパラメーター。"
+            : "継承されたレイアウトパラメーター。";
+        sb.Append("            global::Luxel.Gallery.StoryArgDefinition.Create<").Append(argType).Append(">(")
+            .Append(Lit(ParamName(field.Name))).Append(", ").Append(Lit(StoryTypeHint(field))).Append(", ").Append(StoryArgDefault(field))
+            .Append(", description: ").Append(ResolveExpression(XmlParamKey(widget, field), fallback));
+        AppendStoryRange(sb, field, staticSchema: true);
         if (field.Kind == BindKind.Enum)
         {
             string[] names = field.EnumHint.StartsWith("enum:", StringComparison.Ordinal) ? field.EnumHint.Substring(5).Split('|') : Array.Empty<string>();
             sb.Append(", options: new string[] { ").Append(string.Join(", ", names.Select(Lit))).Append(" }");
+        }
+        else if (UsesPreset(field))
+        {
+            string preset = IsWidget(field) || IsWidgetCollection(field) ? "Generated fixture" : "Component default";
+            sb.Append(", options: new string[] { ").Append(Lit(preset)).Append(" }");
         }
         sb.AppendLine("),");
     }
 
     private static void EmitGeneratedDocs(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index)
     {
-        string category = widget.FactoryName;
-        string summary = widget.DocSummary.Length > 0 ? widget.DocSummary : category + " is a production Luxel UI component.";
-        string own = string.Join(", ", widget.Fields.Where(static field => field.Own).Select(static field => "`" + field.Name + "`").DefaultIfEmpty("No component-specific parameters"));
-        string events = string.Join(", ", widget.Events.Where(static value => value.Own).Select(static value => "`" + value.Name + "`").DefaultIfEmpty("No declared events"));
+        string controlName = CanonicalControlName(widget.ClassName);
+        string summaryFallback = widget.DocSummary.Length > 0 ? widget.DocSummary : controlName + " は Luxel UI の production component です。";
+        string own = string.Join(", ", widget.Fields.Where(static field => field.Own).Select(static field => "`" + field.Name + "`").DefaultIfEmpty("固有パラメーターなし"));
+        string events = string.Join(", ", widget.Events.Where(static value => value.Own).Select(static value => "`" + value.Name + "`").DefaultIfEmpty("宣言イベントなし"));
         string exampleArgs = string.Join(", ", args.Where(static field => field.Own).Take(4).Select(field => ParamName(field.Name) + ": " + StoryDefault(field)));
         string example = widget.FactoryName + "(" + exampleArgs + ")";
-        string markdown = "# " + category + "\n\n" + summary + "\n\n```luxel-story\n0\n```\n\n## Implementation\n\n```csharp\n" + example + "\n```\n\n## Patterns and variants\n\n- Basic typed factory usage\n- Representative editable scalar args\n- Inherited layout args: width, height, alignment and transforms when supported\n- Deterministic browser fixture/fallback for capability inputs\n\n## Events, parameters and API\n\n**Events:** " + events + "\n\n**Component parameters:** " + own + "\n\nSee `ControlApiRegistry` / the generated API table for the complete inherited API.\n";
+        string prefix = "# " + controlName + "\n\n";
+        string suffix = "\n\n```luxel-story\n0\n```\n\n## 実装例\n\n```csharp\n" + example + "\n```\n\n## パターンとバリエーション\n\n- 型付きファクトリの基本利用\n- 編集可能な代表的 scalar args\n- 対応する継承レイアウト引数\n- capability 入力向けの決定的 fallback\n\n## イベント、パラメーター、API\n\n**イベント:** " + events + "\n\n**固有パラメーター:** " + own + "\n\n完全な継承 API は生成された API table を参照してください。\n";
         sb.Append("        private static global::Luxel.Gallery.StoryResult Docs_").Append(index).Append("() => global::Luxel.Gallery.StoryResult.FromMarkdown(")
-            .Append(Lit(markdown)).Append(", global::Luxel.Gallery.StoryReference.To(").Append(Lit("Controls/" + category + "/Basic")).AppendLine("));");
+            .Append(Lit(prefix)).Append(" + ").Append(ResolveExpression(XmlTypeKey(widget), summaryFallback)).Append(" + ").Append(Lit(suffix))
+            .Append(", global::Luxel.Gallery.StoryReference.To(").Append(Lit(RoutePrefix(widget) + "/Basic")).AppendLine("));");
     }
 
-    private static void EmitGeneratedBasic(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index, string factoryDefault)
+    private static void EmitGeneratedBasic(StringBuilder sb, WidgetModel widget, int index, string factoryDefault, bool hasVisibleWidgetFixture)
     {
         sb.Append("        private static global::Luxel.Gallery.StoryResult Basic_").Append(index).AppendLine("(global::Luxel.Gallery.StoryContext ctx)");
         sb.AppendLine("        {");
-        if (RequiresFallback(widget))
+        string factory = "global::" + widget.Namespace + "." + (widget.FactoryClass ?? factoryDefault);
+        sb.Append("            ").Append(widget.TypeFq).Append(" component = ").Append(factory).Append('.').Append(widget.FactoryName).Append('(');
+        var values = new List<string>();
+        foreach (FieldModel field in StoryArgs(widget).Where(static field => field.Own))
         {
-            string unsupported = string.Join(", ", widget.Fields.Where(field => field.Own && field.Kind == BindKind.Other && StoryFixture(field) is null).Select(field => field.Name));
-            sb.Append("            return new global::Luxel.Gallery.StoryCapabilityFallback(").Append(Lit(widget.FactoryName)).Append(", ")
-                .Append(Lit("Unsupported capability/constructor inputs use a deterministic fallback: " + unsupported + ".")).AppendLine(");");
-            sb.AppendLine("        }");
-            return;
+            if (field.Kind != BindKind.Other || field.TypeFq == LengthType)
+                values.Add(SafeName(ParamName(field.Name)) + ": " + StoryDefault(field));
+            else if (StoryFixture(field, hasVisibleWidgetFixture) is { } fixture)
+                values.Add(SafeName(ParamName(field.Name)) + ": " + fixture);
+        }
+        foreach (EventModel evt in widget.Events.Where(static value => value.Own))
+            values.Add(SafeName(ParamName(evt.Name)) + ": " + StoryEvent(evt, widget.FactoryName));
+        sb.Append(string.Join(", ", values)).AppendLine(");");
+        sb.AppendLine("            return component;");
+        sb.AppendLine("        }");
+    }
+
+    private static void EmitGeneratedPlayground(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index, string factoryDefault, bool hasVisibleWidgetFixture)
+    {
+        sb.Append("        private static global::Luxel.Gallery.StoryResult Playground_").Append(index).AppendLine("(global::Luxel.Gallery.StoryContext ctx)");
+        sb.AppendLine("        {");
+        for (int i = 0; i < args.Count; i++)
+        {
+            FieldModel field = args[i];
+            string argType = StoryArgType(field);
+            string fallback = field.Summary.Length > 0 ? field.Summary : field.Own
+                ? field.Name + " コンポーネントパラメーター。"
+                : "継承されたレイアウトパラメーター。";
+            sb.Append("            global::Luxel.UI.Signal<").Append(argType).Append("> arg").Append(i).Append(" = ctx.Arg<")
+                .Append(argType).Append(">(").Append(Lit(ParamName(field.Name))).Append(", ").Append(StoryArgDefault(field))
+                .Append(", new global::Luxel.Gallery.StoryArgOptions<").Append(argType).Append("> { Description = ")
+                .Append(ResolveExpression(XmlParamKey(widget, field), fallback));
+            AppendStoryRange(sb, field, staticSchema: false);
+            sb.AppendLine(" });");
         }
         for (int i = 0; i < args.Count; i++)
         {
             FieldModel field = args[i];
-            sb.Append("            global::Luxel.UI.Signal<").Append(field.TypeFq).Append("> arg").Append(i).Append(" = ctx.Arg<")
-                .Append(field.TypeFq).Append(">(").Append(Lit(ParamName(field.Name))).Append(", ").Append(StoryDefault(field))
-                .Append(", new global::Luxel.Gallery.StoryArgOptions<").Append(field.TypeFq).Append("> { Description = ")
-                .Append(Lit(field.Summary.Length > 0 ? field.Summary : field.Own ? field.Name + " component parameter." : "Inherited layout parameter."));
-            if (field.Kind == BindKind.Parsable && field.TypeFq != LengthType)
-                sb.Append(", Parser = static value => ").Append(field.TypeFq).Append(".Parse(global::Luxel.UI.WidgetDebugCodec.CoerceString(value), global::System.Globalization.CultureInfo.InvariantCulture)");
-            sb.AppendLine(" });");
+            if (TryGetSupportedSignalValueType(field, out _))
+                sb.Append("            ").Append(field.TypeFq).Append(" value").Append(i).Append(" = new(arg").Append(i).AppendLine(".Value);");
         }
         sb.AppendLine("            return new global::Luxel.Gallery.GeneratedComponentStoryPreview(() =>");
         sb.AppendLine("            {");
+        for (int i = 0; i < args.Count; i++)
+            if (TryGetSupportedSignalValueType(args[i], out _))
+                sb.Append("                value").Append(i).Append(".Value = arg").Append(i).AppendLine(".Value;");
         string factory = "global::" + widget.Namespace + "." + (widget.FactoryClass ?? factoryDefault);
         sb.Append("                ").Append(widget.TypeFq).Append(" component = ").Append(factory).Append('.').Append(widget.FactoryName).Append('(');
         var values = new List<string>();
-        for (int i = 0; i < args.Count; i++) values.Add(SafeName(ParamName(args[i].Name)) + ": arg" + i + ".Value");
-        foreach (FieldModel field in widget.Fields.Where(static field => field.Own && field.Kind == BindKind.Other))
-            if (StoryFixture(field) is { } fixture) values.Add(SafeName(ParamName(field.Name)) + ": " + fixture);
+        for (int i = 0; i < args.Count; i++)
+        {
+            FieldModel field = args[i];
+            string? value = PlaygroundValue(field, i, hasVisibleWidgetFixture);
+            if (value is not null) values.Add(SafeName(ParamName(field.Name)) + ": " + value);
+        }
         foreach (EventModel evt in widget.Events.Where(static value => value.Own))
             values.Add(SafeName(ParamName(evt.Name)) + ": " + StoryEvent(evt, widget.FactoryName));
         sb.Append(string.Join(", ", values)).AppendLine(");");
         sb.AppendLine("                return component;");
         sb.AppendLine("            });");
         sb.AppendLine("        }");
+    }
+
+    private static string? PlaygroundValue(FieldModel field, int index, bool hasVisibleWidgetFixture)
+    {
+        if (field.Kind == BindKind.Parsable && field.TypeFq != LengthType)
+            return field.TypeFq + ".Parse(arg" + index + ".Value, global::System.Globalization.CultureInfo.InvariantCulture)";
+        if (field.Kind != BindKind.Other || field.TypeFq == LengthType) return "arg" + index + ".Value";
+        if (TryGetSupportedSignalValueType(field, out _)) return "value" + index;
+        if (IsStringCollection(field))
+            return "arg" + index + ".Value.Split(new char[] { ',' }, global::System.StringSplitOptions.TrimEntries | global::System.StringSplitOptions.RemoveEmptyEntries)";
+        if (IsGridLengthCollection(field)) return "ParseGridLengths(arg" + index + ".Value)";
+        if (IsWidget(field) || IsWidgetCollection(field)) return StoryFixture(field, hasVisibleWidgetFixture);
+        return null;
     }
 
     private static string StoryEvent(EventModel evt, string category)
@@ -670,12 +846,29 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
     {
         if (field.TypeFq == LengthType) return field.Name switch { "Width" => "(global::Luxel.UI.Length)240", "Height" => "(global::Luxel.UI.Length)96", _ => "default(global::Luxel.UI.Length)" };
         if (field.Kind == BindKind.Color) return field.Name.Contains("Foreground", StringComparison.OrdinalIgnoreCase) ? "0xff202020u" : "0xffdbeafeu";
-        if (field.Kind == BindKind.Int) return field.Name.Contains("Selected", StringComparison.OrdinalIgnoreCase) ? "0" : "1";
+        if (field.Kind == BindKind.Int)
+        {
+            if (NameIs(field, "Min") || field.Name.Contains("Selected", StringComparison.OrdinalIgnoreCase)) return "0";
+            if (NameIs(field, "Max")) return "100";
+            if (IsDimension(field)) return "24";
+            return "1";
+        }
         if (field.Kind is BindKind.Float or BindKind.Double)
         {
             string suffix = field.Kind == BindKind.Float ? "f" : "d";
+            if (NameIs(field, "Min")) return "0" + suffix;
+            if (NameIs(field, "Max")) return "1" + suffix;
+            if (NameIs(field, "Step")) return "0.1" + suffix;
             if (field.Name.Contains("Opacity", StringComparison.OrdinalIgnoreCase) || field.Name.Contains("Scale", StringComparison.OrdinalIgnoreCase)) return "1" + suffix;
             if (field.Name.Contains("Font", StringComparison.OrdinalIgnoreCase)) return "16" + suffix;
+            if (field.Name.Contains("Stroke", StringComparison.OrdinalIgnoreCase)) return "2" + suffix;
+            if (field.Name.Contains("LineHeight", StringComparison.OrdinalIgnoreCase)) return "1.2" + suffix;
+            if (field.Name.Contains("ViewportHeight", StringComparison.OrdinalIgnoreCase)) return "180" + suffix;
+            if (field.Name.Contains("EditorHeight", StringComparison.OrdinalIgnoreCase)) return "240" + suffix;
+            if (field.Name.Contains("Height", StringComparison.OrdinalIgnoreCase)) return "180" + suffix;
+            if (field.Name.Contains("Width", StringComparison.OrdinalIgnoreCase)) return "320" + suffix;
+            if (field.Name.Contains("IconSize", StringComparison.OrdinalIgnoreCase)) return "24" + suffix;
+            if (field.Name.Contains("Size", StringComparison.OrdinalIgnoreCase)) return "32" + suffix;
             return "0" + suffix;
         }
         if (field.Kind == BindKind.Bool) return field.Name.Contains("Vertical", StringComparison.OrdinalIgnoreCase) ? "true" : "false";
@@ -688,20 +881,70 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         return "default(" + field.TypeFq + ")";
     }
 
-    private static string StoryTypeHint(FieldModel field) => field.TypeFq == LengthType ? "length" : field.Kind switch
+    private static void AppendStoryRange(StringBuilder sb, FieldModel field, bool staticSchema)
     {
-        BindKind.Color => "color", BindKind.Int => "int", BindKind.Float or BindKind.Double => "float",
-        BindKind.Bool => "bool", BindKind.Enum => field.EnumHint, _ => "string",
-    };
+        if (field.Kind is not (BindKind.Int or BindKind.Float or BindKind.Double)) return;
 
-    private static string CapabilityNote(WidgetModel widget)
+        (string Min, string Max, string Step)? range = StoryRange(field);
+        if (range is not { } value) return;
+        if (staticSchema)
+            sb.Append(", min: ").Append(value.Min).Append(", max: ").Append(value.Max).Append(", step: ").Append(value.Step);
+        else
+            sb.Append(", Min = ").Append(value.Min).Append(", Max = ").Append(value.Max).Append(", Step = ").Append(value.Step);
+    }
+
+    private static (string Min, string Max, string Step)? StoryRange(FieldModel field)
     {
-        string[] unsupported = widget.Fields.Where(static field => field.Own && field.Kind == BindKind.Other).Select(static field => field.Name).ToArray();
-        if (RequiresFallback(widget))
-            return "Deterministic explanatory fallback for unsupported capability inputs: " + string.Join(", ", unsupported.Where(name => widget.Fields.Any(field => field.Name == name && StoryFixture(field) is null))) + ".";
-        return unsupported.Length == 0
+        if (field.Name.Contains("Opacity", StringComparison.OrdinalIgnoreCase)) return ("0d", "1d", "0.05d");
+        if (field.Name.Contains("Scale", StringComparison.OrdinalIgnoreCase)) return ("0.1d", "4d", "0.1d");
+        if (NameIs(field, "Min") || NameIs(field, "Max")) return ("-100d", "100d", field.Kind == BindKind.Int ? "1d" : "0.1d");
+        if (NameIs(field, "Step")) return ("0.01d", "100d", "0.01d");
+        if (field.Name.Contains("Stroke", StringComparison.OrdinalIgnoreCase)) return ("0.5d", "16d", "0.5d");
+        if (field.Name.Contains("Font", StringComparison.OrdinalIgnoreCase)) return ("8d", "96d", "1d");
+        if (field.Name.Contains("LineHeight", StringComparison.OrdinalIgnoreCase)) return ("0.5d", "3d", "0.1d");
+        if (IsDimension(field)) return ("1d", "1024d", "1d");
+        return null;
+    }
+
+    private static bool NameIs(FieldModel field, string name)
+        => field.Name.Equals(name, StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDimension(FieldModel field)
+        => field.Name.Contains("Width", StringComparison.OrdinalIgnoreCase)
+            || field.Name.Contains("Height", StringComparison.OrdinalIgnoreCase)
+            || field.Name.Contains("Size", StringComparison.OrdinalIgnoreCase)
+            || field.Name.Contains("Viewport", StringComparison.OrdinalIgnoreCase);
+
+    private static string StoryTypeHint(FieldModel field)
+    {
+        if (TryGetSupportedSignalValueType(field, out string signalType))
+        {
+            if (signalType == LengthType) return "length";
+            if (signalType is "uint" or "global::System.UInt32") return "color";
+            if (signalType is "int" or "global::System.Int32") return "int";
+            if (signalType is "float" or "global::System.Single" or "double" or "global::System.Double") return "float";
+            if (signalType is "bool" or "global::System.Boolean") return "bool";
+            return "string";
+        }
+        if (UsesPreset(field)) return "preset";
+        return field.TypeFq == LengthType ? "length" : field.Kind switch
+        {
+            BindKind.Color => "color", BindKind.Int => "int", BindKind.Float or BindKind.Double => "float",
+            BindKind.Bool => "bool", BindKind.Enum => field.EnumHint, _ => "string",
+        };
+    }
+
+    private static string CapabilityNote(WidgetModel widget, bool hasVisibleWidgetFixture)
+    {
+        string[] fixtures = widget.Fields.Where(static field => field.Own && field.Kind == BindKind.Other && !UsesPreset(field))
+            .Select(static field => field.Name).ToArray();
+        string[] presets = widget.Fields.Where(static field => field.Own && UsesPreset(field))
+            .Select(static field => field.Name).ToArray();
+        if (presets.Length > 0)
+            return "Direct generated factory with per-parameter component-default presets where adapters are required: " + string.Join(", ", presets) + ".";
+        return fixtures.Length == 0
             ? "Direct generated factory with browser-safe scalar args and generated event logging."
-            : "Direct generated factory with deterministic in-memory fixtures for complex inputs: " + string.Join(", ", unsupported) + ".";
+            : "Direct generated factory with deterministic in-memory fixtures for complex inputs: " + string.Join(", ", fixtures) + ".";
     }
 
     /// <summary>[UiComponent] 毎に ControlApiRegistry.Register を module initializer で焼き込む。
@@ -722,8 +965,9 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine("        {");
         foreach (WidgetModel w in comps)
         {
-            sb.Append("            global::Luxel.UI.ControlApiRegistry.Register(new global::Luxel.UI.ControlApi(")
-              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.DocSummary))
+            sb.Append("            global::Luxel.UI.ControlApiRegistry.RegisterLocalized(new global::Luxel.UI.ControlApi(")
+              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(CanonicalControlName(w.ClassName))).Append(", ")
+              .Append(ResolveExpression(XmlTypeKey(w), w.DocSummary))
               .AppendLine(", new global::Luxel.UI.ApiMember[] {");
             foreach (EventModel e in w.Events)
             {
@@ -731,12 +975,12 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
                     ? "UiEvent"
                     : "UiEvent<" + string.Join(", ", e.ArgTypesFq.Select(ShortType)) + ">";
                 sb.Append("                new(").Append(Lit(e.Name)).Append(", ").Append(Lit(type))
-                  .Append(", \"event\", ").Append(Lit(e.Summary))
+                  .Append(", \"event\", ").Append(ResolveExpression(XmlEventKey(w, e), e.Summary))
                   .Append(", false, ").Append(e.Own ? "false" : "true").AppendLine("),");
             }
             foreach (FieldModel f in w.Fields.OrderBy(static f => f.Own ? 0 : 1))
                 sb.Append("                new(").Append(Lit(f.Name)).Append(", ").Append(Lit(ShortType(f.TypeFq)))
-                  .Append(", \"param\", ").Append(Lit(f.Summary)).Append(", ")
+                  .Append(", \"param\", ").Append(ResolveExpression(XmlParamKey(w, f), f.Summary)).Append(", ")
                   .Append(f.Stateable ? "true" : "false").Append(", ").Append(f.Own ? "false" : "true").AppendLine("),");
             sb.AppendLine("            }));");
         }
@@ -744,6 +988,21 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine("    }");
         sb.AppendLine("}");
     }
+
+    private static string XmlTypeKey(WidgetModel widget)
+        => "xml:T:" + StripGlobal(widget.TypeFq);
+
+    private static string XmlParamKey(WidgetModel widget, FieldModel field)
+        => "xml:P:" + StripGlobal(widget.TypeFq) + "." + field.Name;
+
+    private static string XmlEventKey(WidgetModel widget, EventModel evt)
+        => "xml:E:" + StripGlobal(widget.TypeFq) + "." + evt.Name;
+
+    private static string StripGlobal(string typeName)
+        => typeName.StartsWith("global::", StringComparison.Ordinal) ? typeName.Substring(8) : typeName;
+
+    private static string ResolveExpression(string key, string fallback)
+        => "global::Luxel.Gallery.GalleryXmlDocText.Resolve(" + Lit(key) + ", " + Lit(fallback) + ")";
 
     private static string Lit(string s) => SymbolDisplay.FormatLiteral(s, true);
 

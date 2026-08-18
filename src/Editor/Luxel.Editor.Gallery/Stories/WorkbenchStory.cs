@@ -45,10 +45,10 @@ public static class WorkbenchStory
         }
     }
 
-    [Story]
+    [Story(Path = "Controls/Collections/DocumentTabs/Basic")]
     public static StoryResult DocumentTabsBasic(StoryContext ctx)
     {
-        var dirty = ctx.Signal("dirty", true);
+        var dirty = new Signal<bool>(true);
         var demo = new TabsDemo(dirty);
 
         ctx.Play(async d =>
@@ -67,10 +67,7 @@ public static class WorkbenchStory
             await d.Snap("reordered");
         });
 
-        return VStack(10)[
-            Heading("DocumentTabs — ダーティ ● / × 閉じ / D&D 並べ替え"),
-            Muted("タブをドラッグすると並べ替え。readme.md はダーティ (●)。"),
-            demo];
+        return demo;
     }
 
     // ---- DockHost (DockTree を描く) ----
@@ -79,10 +76,10 @@ public static class WorkbenchStory
         Border(background: color, rounded: 4f, padding: new Thickness(10), hAlign: Align.Stretch, vAlign: Align.Stretch)[
             Muted(label)];
 
-    [Story]
+    [Story(Path = "Controls/Editor/DockHost/Basic")]
     public static StoryResult DockHostBasic(StoryContext ctx)
     {
-        var dirty = ctx.Signal("dirty", true);
+        var dirty = new Signal<bool>(true);
         var tree = new Signal<DockTree>(DockTree.Single("readme", "main", "graph"));
         DockItem Resolve(string id) => id switch
         {
@@ -120,7 +117,7 @@ public static class WorkbenchStory
         return host;
     }
 
-    [Story]
+    [Story(Path = "Controls/Editor/DockHost/Examples/Floating")]
     public static StoryResult DockHostFloating(StoryContext ctx)
     {
         // "graph" を最初から窓内フロートにしたレイアウト
@@ -186,7 +183,7 @@ public static class WorkbenchStory
         [PropertyGroup("配置")] public string Layer { get; set; } = "front";
     }
 
-    [Story]
+    [Story(Path = "Controls/Editor/PropertyGrid/Basic")]
     public static StoryResult PropertyGridBasic(StoryContext ctx)
     {
         var cfg = new ParticleConfig();
@@ -210,7 +207,7 @@ public static class WorkbenchStory
 
     // ---- AssetBrowser (IFileStorage × TreeView) ----
 
-    [Story]
+    [Story(Path = "Controls/Collections/AssetBrowser/Basic")]
     public static StoryResult AssetBrowserBasic(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();
@@ -240,7 +237,7 @@ public static class WorkbenchStory
 
     // ---- StatusBar ----
 
-    [Story]
+    [Story(Path = "Controls/Editor/StatusBar/Basic")]
     public static StoryResult StatusBarBasic(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());

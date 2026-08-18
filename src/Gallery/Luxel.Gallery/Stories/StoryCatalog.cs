@@ -146,10 +146,12 @@ public sealed class StoryCatalogBuilder
                 throw new InvalidOperationException(
                     $"Story '{story.Path}' attempted to replace a fallback for another production component.");
             // The authored implementation replaces only the renderer/source. Canonical production identity
-            // and the generated static schema remain authoritative for URLs/manifests.
+            // remains authoritative; Playground inherits the generated schema while Basic is always args-free.
             story = story with
             {
-                ArgDefinitions = story.ArgDefinitions ?? generated.ArgDefinitions,
+                ArgDefinitions = story.Kind == StoryKind.Basic
+                    ? Array.Empty<StoryArgDefinition>()
+                    : story.ArgDefinitions ?? generated.ArgDefinitions,
                 CapabilityNote = story.CapabilityNote ?? generated.CapabilityNote,
                 ProductionComponent = generated.ProductionComponent,
                 Ownership = generated.Ownership,

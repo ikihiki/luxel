@@ -54,7 +54,7 @@ public class MarkdownDecorationsTests
         Assert.Equal("  • ", nested.OfKind<LinePrefixDecoration>().Single().Text);
         var ordered = MarkdownDecorations.Build("1. first", T, hideMarkers: true);
         Assert.Equal("1. ", ordered.OfKind<LinePrefixDecoration>().Single().Text);
-        Assert.True(ordered.OfKind<MarkDecoration>().Any(m => m is { From: 0, To: 3, Hidden: true }));  // "1. " 畳み
+        Assert.Contains(ordered.OfKind<MarkDecoration>(), m => m is { From: 0, To: 3, Hidden: true });  // "1. " 畳み
     }
 
     [Fact]
@@ -404,9 +404,9 @@ public class MarkdownDecorationsTests
     {
         // reveal した箇条書き行は "- " を raw (淡色) で見せ、bullet prefix は出さない
         var set = MarkdownDecorations.Build("- a\n- b", T, hideMarkers: true, reveal: pos => pos < 4);   // 行0 のみ
-        Assert.Empty(set.OfKind<LinePrefixDecoration>().Where(p => p.At == 0));   // 行0 は bullet なし
-        Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);                       // 行0 "- " は raw
-        Assert.Single(set.OfKind<LinePrefixDecoration>().Where(p => p.At == 4));   // 行1 は bullet (•)
+        Assert.DoesNotContain(set.OfKind<LinePrefixDecoration>(), p => p.At == 0);   // 行0 は bullet なし
+        Assert.Equal(T.TextMuted, At(set, 0, 2).Foreground);                         // 行0 "- " は raw
+        Assert.Single(set.OfKind<LinePrefixDecoration>(), p => p.At == 4);           // 行1 は bullet (•)
     }
 
     [Fact]

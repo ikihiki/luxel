@@ -88,6 +88,18 @@ class ArchitectureFixtureTests(unittest.TestCase):
         app = graph[(fixture.root / "src/App/App.csproj").resolve()]
         self.assertEqual("Analyzer", app.references[0].kind)
 
+    def test_rejects_project_reference_custom_build_flavor(self) -> None:
+        fixture = self.fixture({
+            "src/App/App.csproj": project(references='''
+    <ProjectReference Include="../Library/Library.csproj"
+                      AdditionalProperties="LuxelBrowserWasm=true" />'''),
+            "src/Library/Library.csproj": project(),
+        })
+        result = fixture.run("check-project-dependencies.py")
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("unsafe custom build flavor", result.stderr)
+        self.assertIn("LuxelBrowserWasm=true", result.stderr)
+
     def test_accepts_nested_managed_test_with_explicit_metadata(self) -> None:
         fixture = self.fixture({
             "tests/Audio/Luxel.Audio.Tests/Luxel.Audio.Tests.csproj": project(TEST_METADATA),

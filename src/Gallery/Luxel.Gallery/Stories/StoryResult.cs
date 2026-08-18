@@ -100,6 +100,20 @@ public sealed class StoryArgs
     }
 }
 
+/// <summary>Editor used by Gallery hosts for a story arg. <see cref="Auto"/> preserves legacy type-hint inference.</summary>
+public enum StoryArgEditorKind
+{
+    Auto,
+    Text,
+    Boolean,
+    Number,
+    Color,
+    Enum,
+    Length,
+    Json,
+    Preset,
+}
+
 public sealed record StoryArgDefinition(
     string Name,
     string Type,
@@ -109,13 +123,37 @@ public sealed record StoryArgDefinition(
     double? Min = null,
     double? Max = null,
     double? Step = null,
-    IReadOnlyList<string>? Options = null)
+    IReadOnlyList<string>? Options = null,
+    StoryArgEditorKind Editor = StoryArgEditorKind.Auto)
 {
+    /// <summary>Resolved editor, including legacy schemas that only provide a type string.</summary>
+    public StoryArgEditorKind EditorKind => ResolveEditor(Type, Options, Editor);
+
     /// <summary>Creates a canonical static schema entry without building the story.</summary>
     public static StoryArgDefinition Create<T>(string name, string type, T defaultValue,
         string? description = null, int order = 1000, double? min = null, double? max = null,
-        double? step = null, IReadOnlyList<string>? options = null)
-        => new(name, type, StoryArgCodec.Serialize(defaultValue), description, order, min, max, step, options);
+        double? step = null, IReadOnlyList<string>? options = null,
+        StoryArgEditorKind editor = StoryArgEditorKind.Auto)
+        => new(name, type, StoryArgCodec.Serialize(defaultValue), description, order, min, max, step, options, editor);
+
+    internal static StoryArgEditorKind ResolveEditor(string type, IReadOnlyList<string>? options,
+        StoryArgEditorKind editor = StoryArgEditorKind.Auto)
+    {
+        if (editor != StoryArgEditorKind.Auto) return editor;
+        if (options is { Count: > 0 }) return type.StartsWith("enum:", StringComparison.Ordinal)
+            ? StoryArgEditorKind.Enum : StoryArgEditorKind.Preset;
+        if (type.StartsWith("enum:", StringComparison.Ordinal)) return StoryArgEditorKind.Enum;
+        if (type.Equals("color", StringComparison.OrdinalIgnoreCase)) return StoryArgEditorKind.Color;
+        if (type.Equals("length", StringComparison.OrdinalIgnoreCase)) return StoryArgEditorKind.Length;
+        if (type is "bool" or "boolean" or "System.Boolean") return StoryArgEditorKind.Boolean;
+        return type.ToLowerInvariant() switch
+        {
+            "byte" or "sbyte" or "short" or "ushort" or "int" or "uint" or "long" or "ulong" or
+            "float" or "double" or "decimal" or "system.int32" or "system.int64" or "system.single" or
+            "system.double" or "system.decimal" => StoryArgEditorKind.Number,
+            _ => StoryArgEditorKind.Text,
+        };
+    }
 }
 
 public sealed class StoryArgOptions<T>
@@ -125,7 +163,9 @@ public sealed class StoryArgOptions<T>
     public double? Min { get; init; }
     public double? Max { get; init; }
     public double? Step { get; init; }
-    /// <summary>Optional compile-time generated parser for safe IParsable values.</summary>
+    public IReadOnlyList<string>? Options { get; init; }
+    public StoryArgEditorKind Editor { get; init; } = StoryArgEditorKind.Auto;
+    /// <summary>Optional compile-time generated parser for safe IParsable or JSON values.</summary>
     public Func<JsonElement, T>? Parser { get; init; }
 }
 
@@ -141,6 +181,7 @@ public static class StoryArgCodec
         return boxed switch
         {
             null => ParseElement("null"),
+            JsonElement element => element.Clone(),
             Length length => StringElement(length.ToString()),
             Enum enumeration => StringElement(enumeration.ToString()),
             uint color => StringElement(WidgetDebugCodec.FormatColor(color)),

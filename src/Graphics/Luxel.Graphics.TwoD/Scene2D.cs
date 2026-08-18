@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace Luxel.Graphics.TwoD;
 
@@ -241,7 +241,7 @@ public sealed class Scene2D
             x - r.PivotX * scale, y - r.PivotY * scale, r.W * scale, r.H * scale);
     }
 
-    /// <summary>アニメーションの現フレーム (<see cref="SpriteAnimation.FrameName"/>) を描く (<see cref="DrawSprite"/> の糖衣)。</summary>
+    /// <summary>アニメーションの現フレーム (<see cref="SpriteAnimation.FrameName"/>) を描く (<c>DrawSprite</c> の糖衣)。</summary>
     public Scene2D DrawSprite(SpriteAtlas atlas, SpriteAnimation anim, float x, float y, float scale = 1f)
         => DrawSprite(atlas, anim.FrameName, x, y, scale);
 

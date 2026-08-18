@@ -20,7 +20,7 @@ public interface IAudioStream : IDisposable
 }
 
 /// <summary>内側のストリームを終端で巻き戻して繋ぐループ再生ラッパ。
-/// <see cref="Read"/> は (内側が空でない限り) 常に <paramref name="dst"/> を満たす — 継ぎ目のない BGM ループ。</summary>
+/// <see cref="Read"/> は (内側が空でない限り) 常に渡された出力バッファを満たす — 継ぎ目のない BGM ループ。</summary>
 public sealed class LoopingStream(IAudioStream inner) : IAudioStream
 {
     public int SampleRate => inner.SampleRate;

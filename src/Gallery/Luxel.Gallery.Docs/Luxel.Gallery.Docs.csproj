@@ -13,6 +13,7 @@
     <ProjectReference Include="../Luxel.Gallery/Luxel.Gallery.csproj" />
     <ProjectReference Include="../Luxel.Gallery.DocKit/Luxel.Gallery.DocKit.csproj" />
     <ProjectReference Include="../Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />
+    <ProjectReference Include="../../Editor/Luxel.Editor.UI/Luxel.Editor.UI.csproj" />
     <ProjectReference Include="../../UI/Luxel.Controls/Luxel.Controls.csproj" />
     <ProjectReference Include="../../Graphics/Luxel.Typography/Luxel.Typography.csproj" />
     <ProjectReference Include="../../UI/Luxel.UI/Luxel.UI.csproj" />

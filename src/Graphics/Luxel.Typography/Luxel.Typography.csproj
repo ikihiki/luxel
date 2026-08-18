@@ -2,8 +2,11 @@
 
   <ItemGroup>
     <PackageReference Include="HarfBuzzSharp" Version="14.2.0" />
+    <!-- Keep the project graph identical for Browser and Native consumers. Runtime asset
+         selection prevents Linux native assets from entering browser-wasm output, so a
+         custom MSBuild project flavor is unnecessary and would race on shared bin/obj paths. -->
     <PackageReference Include="HarfBuzzSharp.NativeAssets.Linux" Version="14.2.0"
-                      Condition="$([MSBuild]::IsOSPlatform('Linux')) and '$(LuxelBrowserWasm)' != 'true'" />
+                      Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
   </ItemGroup>
 
   <PropertyGroup>

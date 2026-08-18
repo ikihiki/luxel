@@ -11,7 +11,7 @@ namespace Luxel.Gallery.Stories;
 /// <summary>TextEditorView — テキストエディタ新スタック (ADR-0006 / ToDo 22) のビュー。
 /// 編集意味論・座標写像・装飾は canvas 非依存の Luxel.Document が持ち、この widget は入力を Transaction にして
 /// ジオメトリの矩形を塗るだけ。折返し・プロポーショナル・マルチカーソルはジオメトリ由来で最初から正しい。</summary>
-[StoryMeta("Controls/TextEditorView")]
+[StoryMeta("Controls/Editor/TextEditorView")]
 public static class TextEditorViewStory
 {
     [Story]
@@ -66,7 +66,7 @@ public static class TextEditorViewStory
             "int broken = ;");
         TextEditorView ed = TextEditorView(code, editorHeight: 260f, editorWidth: 560f);
         ed.ShowLineNumbers = true;
-        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        (_, _, _, VectorFont? mono) = EditorFaces.Value;
         ed.EditorFont = mono;
 
         Func<Theme> theme = () => UiTheme.T;
@@ -97,7 +97,7 @@ public static class TextEditorViewStory
         Signal<string> code = ctx.Signal("code", "int foo = 1;\nint bar = foo + foo;\nreturn foo * bar;");
         TextEditorView ed = TextEditorView(code, editorHeight: 190f, editorWidth: 520f);
         ed.ShowLineNumbers = true;
-        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        (_, _, _, VectorFont? mono) = EditorFaces.Value;
         ed.EditorFont = mono;
         ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));
 
@@ -165,7 +165,7 @@ public static class TextEditorViewStory
     {
         Signal<string> code = ctx.Signal("code", "0.8 bd sd hh");     // "0.8"[0,3) bd[4,6) sd[7,9) hh[10,12)
         TextEditorView ed = TextEditorView(code, editorHeight: 90f, editorWidth: 420f);
-        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        (_, _, _, VectorFont? mono) = EditorFaces.Value;
         ed.EditorFont = mono;
 
         // 行内スライダ: 数値 "0.8" を置換 widget に (Strudel の「行内 UI コントロール」要件)
@@ -582,7 +582,7 @@ public static class TextEditorViewStory
         Signal<string> code = ctx.Signal("code", "foo = 1;\nfoo = 2;\nfoo = 3;");
         TextEditorView ed = TextEditorView(code, editorHeight: 170f, editorWidth: 460f);
         ed.ShowLineNumbers = true;
-        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        (_, _, _, VectorFont? mono) = EditorFaces.Value;
         ed.EditorFont = mono;
 
         ctx.Play("ctrl-d", async d =>
@@ -638,7 +638,7 @@ public static class TextEditorViewStory
         Signal<string> code = ctx.Signal("code", "var s = \"hi\";\ns.");
         TextEditorView ed = TextEditorView(code, editorHeight: 240f, editorWidth: 560f);
         ed.ShowLineNumbers = true;
-        (_, _, _, VectorFont mono) = EditorFaces.Value;
+        (_, _, _, VectorFont? mono) = EditorFaces.Value;
         ed.EditorFont = mono;
         ed.LanguageService = lang;
         ed.Providers.Add(new SyntaxHighlightProvider(Luxel.Highlight.TextMateHighlighter.Instance, "csharp", () => UiTheme.T));

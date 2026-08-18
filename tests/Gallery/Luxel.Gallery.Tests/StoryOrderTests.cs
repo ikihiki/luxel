@@ -69,13 +69,13 @@ public class StoryOrderTests
     }
 
     [Theory]
-    [InlineData("Controls/Button/Docs", StoryKind.Docs)]
-    [InlineData("Controls/Button/Basic", StoryKind.Basic)]
-    [InlineData("Controls/Button/Playground", StoryKind.Playground)]
-    [InlineData("Controls/Button/Examples/Utilities", StoryKind.Example)]
-    [InlineData("Controls/Button/States/Disabled", StoryKind.State)]
-    [InlineData("Controls/Button/Accessibility/Keyboard", StoryKind.AccessibilityFixture)]
-    [InlineData("Controls/Button/Test/Stress", StoryKind.TestFixture)]
+    [InlineData("Controls/Input/Button/Docs", StoryKind.Docs)]
+    [InlineData("Controls/Input/Button/Basic", StoryKind.Basic)]
+    [InlineData("Controls/Input/Button/Playground", StoryKind.Playground)]
+    [InlineData("Controls/Input/Button/Examples/Utilities", StoryKind.Example)]
+    [InlineData("Controls/Input/Button/States/Disabled", StoryKind.State)]
+    [InlineData("Controls/Input/Button/Accessibility/Keyboard", StoryKind.AccessibilityFixture)]
+    [InlineData("Controls/Input/Button/Test/Stress", StoryKind.TestFixture)]
     [InlineData("Learn/Framework/Overview", StoryKind.Unspecified)]
     public void CatalogBuilder_InfersCanonicalStoryKind(string path, StoryKind expected)
     {
@@ -86,7 +86,7 @@ public class StoryOrderTests
     [Fact]
     public void StoryRegistry_InfersCanonicalStoryKind()
     {
-        const string path = "Controls/KindInferenceProbe/States/Selected";
+        const string path = "Controls/Input/KindInferenceProbe/States/Selected";
         StoryRegistry.Register(S(path));
 
         Assert.Equal(StoryKind.State, Assert.Single(StoryRegistry.All, story => story.Path == path).Kind);
@@ -96,14 +96,14 @@ public class StoryOrderTests
     public void CatalogBuilder_PreservesExplicitStoryKind()
     {
         StoryInfo story = Assert.Single(new StoryCatalogBuilder()
-            .Add(S("Controls/Button/Examples/Recipe") with { Kind = StoryKind.TestFixture })
+            .Add(S("Controls/Input/Button/Examples/Recipe") with { Kind = StoryKind.TestFixture })
             .Build().All);
 
         Assert.Equal(StoryKind.TestFixture, story.Kind);
     }
 
     [Fact]
-    public void UiCatalog_HasOneCanonicalDocsAndBasicEntryPerProductionComponent()
+    public void UiCatalog_HasCanonicalDocsBasicAndUserFacingPlaygroundEntriesPerProductionComponent()
     {
         StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
 
@@ -115,7 +115,9 @@ public class StoryOrderTests
             .Where(path =>
             {
                 string[] segments = path.Split('/');
-                return segments.Length < 3 || segments[2] is not ("Docs" or "Basic" or "Playground" or "Examples" or "States" or "Accessibility" or "Test");
+                return segments.Length < 4
+                    || segments[1] is not ("Layout" or "Input" or "Text" or "Collections" or "Overlay" or "Rendering" or "Editor")
+                    || segments[3] is not ("Docs" or "Basic" or "Playground" or "Examples" or "States" or "Accessibility" or "Test");
             })
             .ToArray();
         Assert.True(invalidControlPaths.Length == 0,
@@ -127,6 +129,15 @@ public class StoryOrderTests
             Assert.Single(catalog.All, story => story.Path == component.BasicPath);
             Assert.Equal(StoryKind.Docs, catalog.Find(component.DocsPath)!.Kind);
             Assert.Equal(StoryKind.Basic, catalog.Find(component.BasicPath)!.Kind);
+            if (component.IsUserFacing)
+            {
+                Assert.Single(catalog.All, story => story.Path == component.PlaygroundPath);
+                Assert.Equal(StoryKind.Playground, catalog.Find(component.PlaygroundPath)!.Kind);
+            }
+            else
+            {
+                Assert.Null(catalog.Find(component.PlaygroundPath));
+            }
         }
     }
 
@@ -134,14 +145,14 @@ public class StoryOrderTests
     public void KitDocsLinksUseCanonicalComponentFirstPaths()
     {
         StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
-        StoryInfo docs = Assert.IsType<StoryInfo>(catalog.Find("Controls/Kit/Docs"));
+        StoryInfo docs = Assert.IsType<StoryInfo>(catalog.Find("Controls/Layout/Kit/Docs"));
         using var context = new StoryContext();
 
         StoryResult result = docs.Build(context);
 
-        Assert.Contains("story:Controls/Kit/Examples/Badges", result.Markdown, StringComparison.Ordinal);
-        Assert.Contains("story:Controls/Kit/Examples/Alert", result.Markdown, StringComparison.Ordinal);
-        Assert.Contains("story:Controls/Kit/Examples/Typography", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("story:Controls/Layout/Kit/Examples/Badges", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("story:Controls/Layout/Kit/Examples/Alert", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains("story:Controls/Layout/Kit/Examples/Typography", result.Markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("story:Controls/Badges", result.Markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("story:Controls/AlertStory", result.Markdown, StringComparison.Ordinal);
     }

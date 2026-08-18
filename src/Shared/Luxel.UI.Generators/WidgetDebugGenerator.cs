@@ -349,7 +349,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                     if (own) declaresOwn = true;
                     (BindKind pKind, string pHint) = Classify(pt.TypeArguments[0]);
                     fields.Add(new FieldModel(prop.Name, pKind, true,
-                        pt.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), pHint, pStateable,
+                        pt.TypeArguments[0].ToDisplayString(TypeFmt), pHint, pStateable,
                         own, ExtractSummary(prop.GetDocumentationCommentXml(cancellationToken: ct)), "", seq++));
                     continue;
                 }
@@ -375,7 +375,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                     if (pvt.Arity != 1 || pvt.Name != "Bindable") { seenNames.Remove(propName); continue; }
                     (BindKind pvKind, string pvHint) = Classify(pvt.TypeArguments[0]);
                     fields.Add(new FieldModel(propName, pvKind, true,
-                        pvt.TypeArguments[0].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), pvHint, pvStateable,
+                        pvt.TypeArguments[0].ToDisplayString(TypeFmt), pvHint, pvStateable,
                         own, summary, f.Name, seq++));
                     continue;
                 }
@@ -390,7 +390,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                     if (own) declaresOwn = true;
                     var args = new string[et.Arity];
                     for (int i = 0; i < et.Arity; i++)
-                        args[i] = et.TypeArguments[i].ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                        args[i] = et.TypeArguments[i].ToDisplayString(TypeFmt);
                     events.Add(new EventModel(f.Name, args, own,
                         ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct)), seq++));
                     continue;
@@ -414,7 +414,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                 ITypeSymbol arg = nt.TypeArguments[0];
                 (BindKind kind, string enumHint) = Classify(arg);
                 fields.Add(new FieldModel(f.Name, kind, f.IsReadOnly,
-                    arg.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat), enumHint, stateable,
+                    arg.ToDisplayString(TypeFmt), enumHint, stateable,
                     own, ExtractSummary(f.GetDocumentationCommentXml(cancellationToken: ct)), "", seq++));
             }
         }
@@ -550,7 +550,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
 
         // Gallery-neutral component metadata is emitted into production assemblies. Gallery-side
         // generators consume these assembly attributes from referenced production assemblies.
-        EmitComponentMetadata(sb, list, factoryDefault);
+        EmitComponentMetadata(sb, list, assemblyName, factoryDefault);
 
         // ---- (1) SetProp + デバッグ焼き込み (partial override) ----
         foreach (WidgetModel w in list)
@@ -581,25 +581,26 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                        .ThenBy(static kv => kv.Key.Factory, StringComparer.Ordinal))
             EmitFactoryClass(sb, g.Key.Ns, g.Key.Factory, g.Value);
 
-        // ---- (3) ControlApi 登録 (docs の ApiTable 用 — /// コメントごと焼き込み) ----
+        // Raw XML summaries remain available outside Gallery. Gallery-side generated registration
+        // replaces these entries with localized values through RegisterLocalized.
         EmitControlApi(sb, list, assemblyName);
 
         spc.AddSource("LuxelUiComponents.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 
-    private static void EmitComponentMetadata(StringBuilder sb, List<WidgetModel> list, string factoryDefault)
+    private static void EmitComponentMetadata(StringBuilder sb, List<WidgetModel> list, string assemblyName, string factoryDefault)
     {
         foreach (WidgetModel w in list.Where(static value => value.IsComponent).OrderBy(static value => value.FactoryName, StringComparer.Ordinal))
         {
             string factoryClass = w.FactoryClass ?? factoryDefault;
             sb.Append("[assembly: global::Luxel.UI.GeneratedComponentMetadata(typeof(").Append(w.TypeFq).Append("), ")
-              .Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.Namespace)).Append(", ")
+              .Append(Lit(assemblyName)).Append(", ").Append(Lit(w.ClassName)).Append(", ").Append(Lit(w.Namespace)).Append(", ")
               .Append(Lit(factoryClass)).Append(", ").Append(Lit(w.FactoryName)).Append(", ")
               .Append(Lit(w.DocSummary)).AppendLine(")] ");
             foreach (FieldModel f in w.Fields)
             {
                 sb.Append("[assembly: global::Luxel.UI.GeneratedComponentParameterMetadata(typeof(").Append(w.TypeFq)
-                  .Append("), ").Append(Lit(f.Name)).Append(", typeof(").Append(f.TypeFq).Append("), ")
+                  .Append("), ").Append(Lit(f.Name)).Append(", typeof(").Append(RuntimeType(f.TypeFq)).Append("), ")
                   .Append(Lit(f.Kind.ToString())).Append(", ").Append(Lit(f.EnumHint)).Append(", ")
                   .Append(f.Own ? "true" : "false").Append(", ").Append(Lit(f.Summary)).Append(", ")
                   .Append(f.Seq).AppendLine(")] ");
@@ -608,7 +609,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
             {
                 sb.Append("[assembly: global::Luxel.UI.GeneratedComponentEventMetadata(typeof(").Append(w.TypeFq)
                   .Append("), ").Append(Lit(e.Name)).Append(", new global::System.Type[] { ")
-                  .Append(string.Join(", ", e.ArgTypesFq.Select(static type => "typeof(" + type + ")")))
+                  .Append(string.Join(", ", e.ArgTypesFq.Select(static type => "typeof(" + RuntimeType(type) + ")")))
                   .Append(" }, ").Append(e.Own ? "true" : "false").Append(", ").Append(Lit(e.Summary))
                   .Append(", ").Append(e.Seq).AppendLine(")] ");
             }
@@ -633,7 +634,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         foreach (WidgetModel w in comps)
         {
             sb.Append("            global::Luxel.UI.ControlApiRegistry.Register(new global::Luxel.UI.ControlApi(")
-              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(w.FactoryName)).Append(", ").Append(Lit(w.DocSummary))
+              .Append(Lit(w.Namespace)).Append(", ").Append(Lit(w.ClassName == "StackPanel" ? "Stack" : w.ClassName)).Append(", ").Append(Lit(w.DocSummary))
               .AppendLine(", new global::Luxel.UI.ApiMember[] {");
             foreach (EventModel e in w.Events)
             {
@@ -896,7 +897,7 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
                 : f.TypeFq == LengthType
                 ? LengthType
                 : f.Kind == BindKind.Other && f.EnumHint != "vt"
-                ? f.TypeFq + "?"
+                ? OptionalReferenceType(f.TypeFq)
                 : "global::Luxel.UI.Bindable<" + f.TypeFq + ">?";
             paramDecls.Add(paramType + " " + SafeName(ParamName(f.Name))
                 + (f.TypeFq == LengthType ? " = default" : " = null"));
@@ -948,6 +949,12 @@ public sealed class WidgetDebugGenerator : IIncrementalGenerator
         => e.ArgTypesFq.Length == 0
             ? "global::System.Action"
             : "global::System.Action<" + string.Join(", ", e.ArgTypesFq) + ">";
+
+    private static string RuntimeType(string type)
+        => type.EndsWith("?", StringComparison.Ordinal) ? type.Substring(0, type.Length - 1) : type;
+
+    private static string OptionalReferenceType(string type)
+        => type.EndsWith("?", StringComparison.Ordinal) ? type : type + "?";
 
     private static string ParamName(string field) => char.ToLowerInvariant(field[0]) + field.Substring(1);
 

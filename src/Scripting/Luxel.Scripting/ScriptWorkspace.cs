@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Completion;
 using Microsoft.CodeAnalysis.Host.Mef;
@@ -28,6 +28,8 @@ public sealed class ScriptWorkspace : IDisposable
     private readonly CompletionService _completion;
     private readonly QuickInfoService _quickInfo;
 
+    /// <param name="references">診断と補完で参照できるアセンブリ。</param>
+    /// <param name="usings">スクリプトへ既定で導入する名前空間。</param>
     /// <param name="hostObjectType">スクリプト globals の型 (null = object)。指定すると
     /// その public メンバー (例: BehaviourGlobals.Update) が診断/補完で解決される —
     /// エディタが実行時と同じ言語風景を見るための口 (ToDo 27 GE-5)。</param>

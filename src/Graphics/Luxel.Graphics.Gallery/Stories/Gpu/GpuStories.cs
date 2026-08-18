@@ -68,7 +68,7 @@ public static class GpuStories
         ResourceHandle<GpuPipeline> pipeline = resources.CreateGraphicsPipeline(
             "textured.pipeline",
             GpuShaderCode.Load("textured"),
-            GpuRasterDesc.Default(GpuFormat.Rgba8Unorm));
+            new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm)));
         WaitFor(texture);
         WaitFor(sampler);
         WaitFor(pipeline);
@@ -86,6 +86,9 @@ public static class GpuStories
                 using GpuCommandBuffer command = device.MainQueue.StartCommandRecording();
                 command.BeginRendering(surface.ColorTarget, null, 0, 0, 0, 1)
                     .SetGraphicsPipeline(pipeline.Value)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default)
+                .SetBlendState(GpuBlendState.None)
                     .SetRootArguments(args)
                     .Draw(3)
                     .EndRendering();

@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls")]
 public static class DisplayControlStories
 {
-    [Story(Path = "Controls/ImageView/Basic")]
+    [Story(Path = "Controls/Rendering/ImageView/Basic")]
     public static StoryResult ImageViewBasic()
     {
         // CPU の RGBA を SetPixels — 実体化前でも可 (pending 保持)。表示は widget サイズへ nearest 拡縮
@@ -28,13 +28,13 @@ public static class DisplayControlStories
             }
         }
         view.SetPixels(w, h, px);
-        return Frame(view);
+        return view;
     }
 
     private const string SampleImage = "src/Gallery/Luxel.Gallery/assets/sample-sparkline.png";
     private static Luxel.Resources.ResourceHandle<Luxel.Resources.CpuImage>? _imagePreload;
 
-    [Story(Path = "Controls/ImageBlock/Basic")]
+    [Story(Path = "Controls/Rendering/ImageBlock/Basic")]
     public static StoryResult ImageBlockBasic(StoryContext ctx)
     {
         // snap (1 フレーム描画) の決定性のため画像を同期 preload — 実アプリでは不要
@@ -42,10 +42,10 @@ public static class DisplayControlStories
         _imagePreload ??= ctx.Resources.Load<Luxel.Resources.CpuImage>(SampleImage);
         try { _imagePreload.Ready.Wait(3000); } catch { /* 失敗時はプレースホルダ表示のまま */ }
         ctx.Play(static d => d.Snap());
-        return Frame(ImageBlock(new ImagePayload(SampleImage, "サンプル画像"), ctx.Resources, 360));
+        return ImageBlock(new ImagePayload(SampleImage, "サンプル画像"), ctx.Resources, 360);
     }
 
-    [Story(Path = "Controls/TableBlock/Basic")]
+    [Story(Path = "Controls/Rendering/TableBlock/Basic")]
     public static StoryResult TableBlockBasic(StoryContext ctx)
     {
         // GFM pipe table のブロック widget。セルをクリックして直接編集、Tab/Enter で移動、
@@ -58,11 +58,11 @@ public static class DisplayControlStories
                 ["gamma", "3", "最後の行"],
             ],
             [TableAlign.Left, TableAlign.Right, TableAlign.Left]);
-        return Frame(TableBlock(payload, 420,
-            p => ctx.Log($"commit: {p.Rows.Count} 行")));
+        return TableBlock(payload, 420,
+            p => ctx.Log($"commit: {p.Rows.Count} 行"));
     }
 
-    [Story(Path = "Controls/SurfaceView/Basic")]
+    [Story(Path = "Controls/Rendering/SurfaceView/Basic")]
     public static StoryResult SurfaceViewBasic(StoryContext ctx)
     {
         // iframe 相当の埋め込みサーフェス — 子 RetainedCanvas + 子 UiHost + 専用 framebuffer。
@@ -75,6 +75,6 @@ public static class DisplayControlStories
                 Heading("子 UiHost", 2),
                 Label("この矩形の中は独立した UI ツリー"),
                 HStack(8)[Switch(on), Button(_ => ctx.Log("child click"), "子のボタン")]]]);
-        return Frame(surface);
+        return surface;
     }
 }

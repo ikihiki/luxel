@@ -11,10 +11,10 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls")]
 public static class TextControlStories
 {
-    [Story(Path = "Controls/TextField/Basic")]
+    [Story(Path = "Controls/Text/TextField/Basic")]
     public static StoryResult TextFieldBasic(StoryContext ctx)
     {
-        Signal<string> text = ctx.Signal("text", "Hello");
+        Signal<string> text = new("Hello");
         TextField tf = TextField(text, placeholder: "Type here...");
         // play: クリックでフォーカス → 入力 → signal 反映 → 入力後の絵 (E2E の対話ショーケース)
         ctx.Play(async d =>
@@ -25,17 +25,23 @@ public static class TextControlStories
             await d.Expect(() => text.Value == "Hello Luxel", "入力が signal へ反映される");
             await d.Snap("typed");
         });
-        return Frame(tf);
+        return tf;
     }
 
-    [Story(Path = "Controls/TextField/Playground")]
+    public static IReadOnlyList<StoryArgDefinition> TextFieldPlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("value", "string", "Editable text", "Current text value."),
+    ];
+
+    [Story(Path = "Controls/Text/TextField/Examples/Interactive", Args = nameof(TextFieldPlaygroundArgs))]
     public static StoryResult TextFieldPlayground(StoryContext ctx)
     {
-        Signal<string> value = ctx.Signal("value", "Editable text");
-        return Frame(VStack(8)[TextField(value, placeholder: "Type here..."), Muted($"value: {value}")]);
+        Signal<string> value = ctx.Arg("value", "Editable text",
+            new StoryArgOptions<string> { Description = "Current text value." });
+        return TextField(value, placeholder: "Type here...");
     }
 
-    [Story(Path = "Controls/TextField/Examples/Slots")]
+    [Story(Path = "Controls/Text/TextField/Examples/Slots")]
     public static StoryResult TextFieldSlots(StoryContext ctx) => Frame(
         TextField(ctx.Signal("value", "Search"), placeholder: "Search...")
         [
@@ -43,7 +49,7 @@ public static class TextControlStories
             TextFieldSlot.Trailing(() => Text("⌘K", 11, color: Tw.Slate500))
         ]);
 
-    [Story(Path = "Controls/TextField/States/Focused")]
+    [Story(Path = "Controls/Text/TextField/States/Focused")]
     public static StoryResult TextFieldFocused(StoryContext ctx)
     {
         TextField field = TextField(ctx.Signal("value", "Focused"));
@@ -51,7 +57,7 @@ public static class TextControlStories
         return Frame(field);
     }
 
-    [Story(Path = "Controls/TextField/States/Invalid")]
+    [Story(Path = "Controls/Text/TextField/States/Invalid")]
     public static StoryResult TextFieldInvalid(StoryContext ctx)
     {
         TextField field = TextField(ctx.Signal("value", "invalid"), utilities: [U.Background(0x20EF4444)]);
@@ -59,15 +65,15 @@ public static class TextControlStories
         return Frame(VStack(5)[field, Text("Enter digits only", 12, color: Tw.Red500)]);
     }
 
-    [Story(Path = "Controls/SearchField/Basic")]
+    [Story(Path = "Controls/Text/SearchField/Basic")]
     public static StoryResult SearchFieldBasic(StoryContext ctx)
     {
         // CompositeControl の見本: タイプで候補が絞り込まれ (構造状態 → Rebuild)、行クリックで確定
         string[] langs = ["C#", "C++", "Rust", "Go", "TypeScript", "Python", "Ruby", "Swift", "Kotlin", "Zig"];
-        return Frame(SearchField(ctx.Signal("query", ""), langs));
+        return SearchField(new Signal<string>(""), langs);
     }
 
-    [Story(Path = "Controls/Text/Examples/EllipsisVerticalAlignment")]
+    [Story(Path = "Controls/Text/Text/Examples/EllipsisVerticalAlignment")]
     public static StoryResult TextEllipsisVAlign()
     {
         const string lng = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn evenings.";
@@ -83,7 +89,7 @@ public static class TextControlStories
                 verticalAlign: TextVAlign.Bottom, textAlign: Luxel.Typography.TextAlign.Right))]);
     }
 
-    [Story(Path = "Controls/RichText/Basic")]
+    [Story(Path = "Controls/Text/RichTextView/Basic")]
     public static StoryResult RichTextBasic()
     {
         var spans = new[]
@@ -97,11 +103,10 @@ public static class TextControlStories
         };
         RichTextView rtv = RichTextView(spans, wrap: Luxel.Typography.TextWrap.Word);
         rtv.Fonts = JpFallback.Value;
-        return Frame(Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 6,
-                            padding: new Thickness(10), width: 380)[rtv]);
+        return rtv;
     }
 
-    [Story(Path = "Controls/Text/Examples/Multiline")]
+    [Story(Path = "Controls/Text/Text/Examples/Multiline")]
     public static StoryResult TextMultiline()
     {
         const string en = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn.";
@@ -115,7 +120,7 @@ public static class TextControlStories
             Case("Justify (末行は左)", Text(en + " " + en, 13, wrap: Luxel.Typography.TextWrap.Word, textAlign: Luxel.Typography.TextAlign.Justify))]);
     }
 
-    [Story(Path = "Controls/Text/Examples/Styles")]
+    [Story(Path = "Controls/Text/Text/Examples/Styles")]
     public static StoryResult TextStyles(StoryContext ctx) => ctx.Snap(Frame(VStack(6)[
         Text("Large 28px", 28, color: Bind.From(() => UiTheme.T.Text)),
         Text("Body 16px", 16, color: Bind.From(() => UiTheme.T.Text)),
@@ -123,7 +128,7 @@ public static class TextControlStories
         Text("Tailwind colored", 16, color: Tw.Blue500),
         Text("Half opacity", 16, color: Bind.From(() => UiTheme.T.Text), opacity: 0.5f)]));
 
-    [Story(Path = "Controls/Text/Examples/Japanese")]
+    [Story(Path = "Controls/Text/Text/Examples/Japanese")]
     public static StoryResult Japanese(StoryContext ctx)
     {
         // 同梱フォント (BIZ UDGothic / UDEV Gothic) で日本語が出ることを 1 画面で確認する:

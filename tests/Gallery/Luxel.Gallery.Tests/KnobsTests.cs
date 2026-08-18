@@ -1,4 +1,5 @@
-﻿using Luxel.UI;
+using System.Text.Json;
+using Luxel.UI;
 using Xunit;
 using Luxel.Gallery;
 
@@ -85,5 +86,51 @@ public class KnobsTests
         Assert.Equal(w.Value, round);
         k.SetText("junk");                    // 不正値は無視
         Assert.Equal(new Length(50, LengthUnit.Percent), w.Value);
+    }
+
+    [Fact]
+    public void JsonKnob_UsesCanonicalJsonWireValue_AndIgnoresInvalidText()
+    {
+        var ctx = new StoryContext(args: StoryArgs.Parse("{\"config\":{\"enabled\":true,\"count\":2}}"));
+        using JsonDocument document = JsonDocument.Parse("{\"enabled\":false,\"count\":0}");
+        Signal<JsonElement> value = ctx.Arg("config", document.RootElement.Clone(), new StoryArgOptions<JsonElement>
+        {
+            Editor = StoryArgEditorKind.Json,
+        });
+        StoryKnob knob = Assert.Single(ctx.Knobs);
+
+        Assert.Equal(StoryArgEditorKind.Json, knob.Editor);
+        Assert.Equal("{\"enabled\":true,\"count\":2}", knob.Value);
+
+        knob.SetText("{\"enabled\":false,\"count\":3}");
+        Assert.False(value.Value.GetProperty("enabled").GetBoolean());
+        Assert.Equal(3, value.Value.GetProperty("count").GetInt32());
+        knob.SetText("{");
+        Assert.Equal(3, value.Value.GetProperty("count").GetInt32());
+    }
+
+    [Fact]
+    public void ExplicitEditorOverridesLegacyTypeDispatch()
+    {
+        var ctx = new StoryContext();
+        Signal<string> value = ctx.Arg("mode", "1", new StoryArgOptions<string>
+        {
+            Editor = StoryArgEditorKind.Preset,
+            Options = ["1", "2"],
+            Min = 0,
+            Max = 3,
+            Step = 1,
+        });
+        StoryKnob knob = Assert.Single(ctx.Knobs);
+
+        Assert.Equal("string", knob.Type);
+        Assert.Equal(StoryArgEditorKind.Preset, knob.Editor);
+        Assert.Equal(["1", "2"], knob.Options);
+        Assert.Equal(0, knob.Min);
+        Assert.Equal(3, knob.Max);
+        Assert.Equal(1, knob.Step);
+
+        knob.SetText("2");
+        Assert.Equal("2", value.Value);
     }
 }

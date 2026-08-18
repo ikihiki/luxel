@@ -85,14 +85,15 @@ public sealed unsafe class D3D12Backend : IGpuBackend
     private void Initialize(bool enableDebug)
     {
         // 注: Agility SDK のローカルランタイムは Windows 開発者モードが必要なため使わない (OS ランタイムを使用)。
-        if (enableDebug && D3D12GetDebugInterface(out ID3D12Debug debug).Success)
+        if (enableDebug && D3D12GetDebugInterface(out ID3D12Debug? debug).Success && debug is not null)
         {
             debug.EnableDebugLayer();
             debug.Dispose();
         }
 
         // DXGI のデバッグフラグは Graphics Tools 未導入だと INVALID_CALL になるため使わない。
-        CreateDXGIFactory2(false, out _factory).CheckError();
+        CreateDXGIFactory2(false, out IDXGIFactory4? factory).CheckError();
+        _factory = factory ?? throw new InvalidOperationException("DXGI factory を作成できませんでした。");
 
         for (uint i = 0; _factory.EnumAdapters1(i, out IDXGIAdapter1 adapter).Success; i++)
         {

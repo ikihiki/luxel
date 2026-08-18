@@ -1,4 +1,4 @@
-﻿using Luxel.Audio;
+using Luxel.Audio;
 using Luxel.Audio.Sequencing;
 using Luxel.Strudel;
 
@@ -228,7 +228,7 @@ public class StrudelAudioTests
         for (int i = 0; i < 5; i++) sched.RenderWindow();    // 後半
 
         Assert.Equal(["bd", "bd", "hh", "hh"],
-            sink.Events.Select(e => e.Controls.Instrument).ToArray());
+            sink.Events.Select(e => e.Controls.Instrument!).ToArray());
     }
 
     [Fact]

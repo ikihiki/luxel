@@ -45,7 +45,6 @@ public sealed class RangeRealtimeScene : IGameScene
     private RangeAudio? _audio;
     private OrbitCamera _cam = new(new Vector3(0, 0.8f, -6f), yaw: 0f, pitch: 0.40f, distance: 18f,
         fovYRadians: MathF.PI / 3.4f, aspect: (float)Width / Height);
-    private float _fireTimer = 0.4f;
 
     private GpuBuffer? _fb, _vb, _terrainVb, _terrainIb, _terrainInst;
     private int _terrainIdxCount;
@@ -190,13 +189,22 @@ public sealed class RangeRealtimeScene : IGameScene
           {
               p.Cmd.BeginRendering(_target!, _depth!, 0.05f, 0.06f, 0.09f, 1f, 1f)
                    .SetGraphicsPipeline(_pbrPipe!)
+                   .SetRasterizerState(GpuRasterizerState.Default)
+                   .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                   .SetBlendState(GpuBlendState.None)
                    .SetRootArguments(new PbrArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hTV), IndexBufIndex = p.BindlessIndex(hTI), InstanceBufIndex = p.BindlessIndex(hTInst), InstanceStart = 0 })
                    .Draw((uint)_terrainIdxCount, 1);
               p.Cmd.SetGraphicsPipeline(_cubePipe!)
+                   .SetRasterizerState(GpuRasterizerState.Default)
+                   .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                   .SetBlendState(GpuBlendState.None)
                    .SetRootArguments(new DrawArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hV), InstanceBufIndex = p.BindlessIndex(hInst) })
                    .Draw((uint)Luxel.Assets.CubeMesh.VertexCount, (uint)_extractor.InstanceCount);
               if (drawFox)
                   p.Cmd.SetGraphicsPipeline(_skinPipe!)
+                       .SetRasterizerState(GpuRasterizerState.Default)
+                       .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                       .SetBlendState(GpuBlendState.None)
                        .SetRootArguments(new SkinnedArgs { ViewProj = vpT, VertexBufIndex = p.BindlessIndex(hFV), IndexBufIndex = p.BindlessIndex(hFI), InstanceBufIndex = p.BindlessIndex(hFInst), JointBufIndex = p.BindlessIndex(hFJoint), InstanceStart = 0 })
                        .Draw((uint)_foxPrim!.IndexCount, 1);
               _hitBurst?.Draw(p.Cmd, viewProj, billRight, billUp);   // 命中パーティクル (ビルボード)
@@ -241,10 +249,10 @@ public sealed class RangeRealtimeScene : IGameScene
         _target = _device.CreateRenderTarget(Width, Height, GpuFormat.Rgba8Unorm);
         _depth = _device.CreateDepthTarget(Width, Height);
         _fb = _device.Malloc((ulong)Width * Height * 4, GpuMemoryKind.HostMapped);
-        var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-        raster.DepthTest = true; raster.DepthWrite = true;
-        _cubePipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), raster);
-        _pbrPipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), raster);
+        var pipelineDesc = new GpuGraphicsPipelineDesc(
+            new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
+        _cubePipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("cube_forward"), pipelineDesc);
+        _pbrPipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_lite"), pipelineDesc);
 
         _extractor = new Render3DExtractSystem(_game.Sim.World, _device);
         TransformPropagateSystem.Run(_game.Sim.World);
@@ -288,11 +296,11 @@ public sealed class RangeRealtimeScene : IGameScene
         PoseFox(0f, out Matrix4x4[] jointMats);
         if (_foxPrim is null) { _foxWorld = null; _foxAssets = null; return; }
 
-        var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-        raster.DepthTest = true; raster.DepthWrite = true;
+        var pipelineDesc = new GpuGraphicsPipelineDesc(
+            new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
         _foxJoints = new RenderBuffer<Matrix4x4>(_device, Math.Max(1, jointMats.Length), "foxJoints");
         _foxInst = _device.Malloc((ulong)SceneInstanceData.Stride, GpuMemoryKind.HostMapped);
-        _skinPipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"), raster);
+        _skinPipe = _device.CreateGraphicsPipeline(GpuShaderCode.Load("scene_pbr_skinned"), pipelineDesc);
         UploadFox();
     }
 
@@ -306,7 +314,7 @@ public sealed class RangeRealtimeScene : IGameScene
             (ref AssetMeshRef mr, ref AssetSkinRef _, ref JointMatrices jm, Friflo.Engine.ECS.Entity _) =>
             {
                 AssetPrimitive p = mr.Mesh.Primitives[0];
-                if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) && gpu.HasSkinning) { _foxPrim = gpu; mats = jm.Matrices; }
+                if (_foxAssets!.Primitives.TryGetValue(p, out ScenePrimitiveGpu? gpu) && gpu is { HasSkinning: true }) { _foxPrim = gpu; mats = jm.Matrices; }
             });
         jointMats = mats;
     }

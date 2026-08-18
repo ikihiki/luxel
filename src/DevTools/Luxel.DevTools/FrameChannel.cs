@@ -7,7 +7,7 @@ namespace Luxel.DevTools;
 ///
 /// <para><see cref="LatestSlot{T}"/> は発行のたびに新しい <c>byte[]</c> を確保して swap するため、
 /// 720p/60fps では約 220MB/s の GC 割り当てをゲームの main スレッドに載せてしまう。本チャネルは
-/// 代わりに <paramref name="slots"/> 枚のリングバッファを使い回し、書き手側の定常割り当てをゼロにする。</para>
+/// 代わりにコンストラクタで指定した枚数のリングバッファを使い回し、書き手側の定常割り当てをゼロにする。</para>
 ///
 /// <list type="bullet">
 /// <item><b>書き手</b> (ゲーム main スレッド、<c>EmitFrame</c> 経由): <see cref="Publish"/> が次スロットへ

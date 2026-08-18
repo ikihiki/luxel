@@ -82,7 +82,7 @@ public sealed class RangeAudio : IDisposable
         _bgm.Volume.Value = 0.6f;
     }
 
-    /// <summary>設定の音量をバスに反映 (呼んだ時点の値。継続追従は <see cref="Tick"/>)。</summary>
+    /// <summary>設定の音量をバスに反映 (呼んだ時点の値。継続追従は <c>Tick</c>)。</summary>
     public void BindSettings(RangeSettings s)
     {
         Master.Volume.Value = s.MasterVolume.Value;

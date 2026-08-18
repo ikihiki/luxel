@@ -18,14 +18,17 @@ public static class ParticlesGalleryProject
         using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_Particles_UI.Register(categoryBuilder);
+        ParticleViewDocs.Register(categoryBuilder, ProductionComponents);
 
         var authoredBuilder = new StoryCatalogBuilder();
         Luxel.Gallery.Generated.StoryRegistration_Luxel_Particles_Gallery.Register(authoredBuilder);
         foreach (StoryInfo story in authoredBuilder.Build().All)
             categoryBuilder.Add(story, replaceGenerated: true);
 
-        foreach (StoryInfo story in categoryBuilder.Build().All)
+        StoryCatalog catalog = categoryBuilder.Build();
+        foreach (StoryInfo story in catalog.All)
             builder.Add(story, replaceGenerated: true);
+        ControlStoryAliases.Add(builder, catalog, ProductionComponents);
     }
 
     public static StoryCatalog CreateCatalog()

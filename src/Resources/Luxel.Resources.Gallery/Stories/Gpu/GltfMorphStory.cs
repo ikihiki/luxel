@@ -172,10 +172,9 @@ public static class GltfMorphStories
             _weights.FlushImmediate();
 
             _depth = Track(Device.CreateDepthTarget(W, H));
-            var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-            raster.DepthTest = true;
-            raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_morph"), raster));
+            var pipelineDesc = new GpuGraphicsPipelineDesc(
+                new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
+            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_morph"), pipelineDesc));
         }
 
         protected override void OnRender(float time)
@@ -198,6 +197,9 @@ public static class GltfMorphStories
                 bool indexed = _prim.IndexCount > 0;
                 ctx.Cmd.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
                        .SetGraphicsPipeline(_pipeline)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                .SetBlendState(GpuBlendState.None)
                        .SetRootArguments(new MorphDrawArgs
                        {
                            ViewProj = Matrix4x4.Transpose(viewProj),

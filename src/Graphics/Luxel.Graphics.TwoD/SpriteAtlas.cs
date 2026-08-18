@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace Luxel.Graphics.TwoD;
 
 /// <summary>アトラス内の 1 スプライト: ソーステクスチャ上の px 矩形 + ピボット(px, スプライト左上基準)。
-/// ピボットは描画基準点 — <see cref="Scene2D.DrawSprite"/> は指定ワールド座標にこの点を合わせる
+/// ピボットは描画基準点 — <c>Scene2D.DrawSprite</c> は指定ワールド座標にこの点を合わせる
 /// (足元 = (w/2, h) 等、キャラの接地点合わせに使う)。</summary>
 public readonly record struct SpriteRect(int X, int Y, int W, int H, float PivotX, float PivotY)
 {

@@ -62,7 +62,7 @@ public static class EcsCubesStories
             _extractor = new Render3DExtractSystem(_world, device);
             _extractor.Extract();
             _depth = device.CreateDepthTarget(Width, Height);
-            _pipeline = device.CreateGraphicsPipeline(CubeShader(), DepthOn(GpuFormat.Rgba8Unorm));
+            _pipeline = device.CreateGraphicsPipeline(CubeShader(), new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float)));
         }
 
         internal GpuViewRenderResult Render(GpuDevice device, GpuViewSurface surface, float time)
@@ -87,6 +87,9 @@ public static class EcsCubesStories
                     };
                     pass.Cmd.BeginRendering(surface.ColorTarget, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
                         .SetGraphicsPipeline(_pipeline)
+                        .SetRasterizerState(GpuRasterizerState.Default)
+                        .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                        .SetBlendState(GpuBlendState.None)
                         .SetRootArguments(args)
                         .Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
                         .EndRendering();
@@ -157,13 +160,6 @@ public static class EcsCubesStories
         return view * projection;
     }
 
-    private static GpuRasterDesc DepthOn(GpuFormat format)
-    {
-        GpuRasterDesc raster = GpuRasterDesc.Default(format);
-        raster.DepthTest = true;
-        raster.DepthWrite = true;
-        return raster;
-    }
 
     private static GpuShaderCode CubeShader() => new()
     {

@@ -12,7 +12,7 @@ namespace Luxel.Gallery.Stories;
 /// 編集意味論・座標写像・装飾・幾何は canvas 非依存の Luxel.NodeGraph が持ち、この widget は入力を Transaction にして
 /// ジオメトリのベジェ/矩形を塗るだけ (テキスト新スタックの TextEditorView と同じ薄さ)。pan/zoom は world コンテナの
 /// Affine2D 変換なのでヒットテストが自動追従する。</summary>
-[StoryMeta("Controls/NodeGraphView")]
+[StoryMeta("Controls/Editor/NodeGraphView")]
 public static class NodeGraphViewStory
 {
     // Input → Process → Output の 3 ノード + 2 辺

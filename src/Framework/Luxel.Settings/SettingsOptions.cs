@@ -1,4 +1,4 @@
-﻿using Luxel.UI;
+using Luxel.UI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -65,7 +65,7 @@ public static class SettingsServiceCollectionExtensions
     /// <summary>
     /// 設定セクション <paramref name="key"/> を POCO <typeparamref name="T"/> に束ね、
     /// <see cref="IOptions{T}"/> / <see cref="IOptionsMonitor{T}"/> と、書き込み用の <see cref="Signal{T}"/> を DI に登録する。
-    /// 事前に <see cref="AddLuxelSettings"/> で <see cref="SettingsStore"/> を登録しておくこと。
+    /// 事前に <c>AddLuxelSettings</c> で <see cref="SettingsStore"/> を登録しておくこと。
     /// </summary>
     public static IServiceCollection AddSettingsOptions<T>(
         this IServiceCollection services, string key, T? fallback = null) where T : class, new()

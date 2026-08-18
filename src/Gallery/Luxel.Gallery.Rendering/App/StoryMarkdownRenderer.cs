@@ -72,7 +72,7 @@ public static class StoryMarkdownRenderer
         context.SuppressPlays = true;
         try
         {
-            StoryResult result = story.Build(context);
+            StoryResult result = global::Luxel.Gallery.UI.StoryPresentation.Build(story, context);
             Widget body = result.Kind == StoryResultKind.Widget && result.Widget is not null
                 ? result.Widget
                 : Build(story, context, result, fill: false);

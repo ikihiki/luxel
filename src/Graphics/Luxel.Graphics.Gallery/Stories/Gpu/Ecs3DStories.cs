@@ -136,13 +136,8 @@ public static class Ecs3DStories
         return view * proj;
     }
 
-    private static GpuRasterDesc DepthOn(GpuFormat format)
-    {
-        var raster = GpuRasterDesc.Default(format);
-        raster.DepthTest = true;
-        raster.DepthWrite = true;
-        return raster;
-    }
+    private static GpuGraphicsPipelineDesc DepthOn(GpuFormat format)
+        => new(new GpuAttachmentLayout(format, GpuFormat.D32Float));
 
     /// <summary>3D forward → base バッファへコピー → BlurH/BlurV (transient) → BloomCombine。</summary>
     private sealed class Bloom3DScene(Signal<float> intensity) : GpuSceneBase
@@ -193,6 +188,9 @@ public static class Ecs3DStories
                   };
                   ctx.Cmd.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
                          .SetGraphicsPipeline(_pl3d)
+                         .SetRasterizerState(GpuRasterizerState.Default)
+                         .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                         .SetBlendState(GpuBlendState.None)
                          .SetRootArguments(args)
                          .Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
                          .EndRendering()
@@ -340,10 +338,16 @@ public static class Ecs3DStories
                   ctx.Cmd.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
                          // UI quad 先 (背景)、深度書込で後ろに沈める
                          .SetGraphicsPipeline(_plQuad)
+                         .SetRasterizerState(GpuRasterizerState.Default)
+                         .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                         .SetBlendState(GpuBlendState.None)
                          .SetRootArguments(quadArgs)
                          .Draw((uint)UiQuadMesh.VertexCount, 1)
                          // キューブ群を前景
                          .SetGraphicsPipeline(_plCube)
+                         .SetRasterizerState(GpuRasterizerState.Default)
+                         .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                         .SetBlendState(GpuBlendState.None)
                          .SetRootArguments(cubeArgs)
                          .Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
                          .EndRendering()
@@ -441,6 +445,9 @@ public static class Ecs3DStories
                   };
                   ctx.Cmd.BeginRendering(_shadowRt, _shadowDepth, 1f, 0, 0, 0, 1f)
                          .SetGraphicsPipeline(_plShadow)
+                         .SetRasterizerState(GpuRasterizerState.Default)
+                         .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                         .SetBlendState(GpuBlendState.None)
                          .SetRootArguments(args)
                          .Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
                          .EndRendering()
@@ -465,6 +472,9 @@ public static class Ecs3DStories
                   };
                   ctx.Cmd.BeginRendering(Target, _mainDepth, 0.10f, 0.12f, 0.18f, 1f, 1f)
                          .SetGraphicsPipeline(_plMain)
+                         .SetRasterizerState(GpuRasterizerState.Default)
+                         .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                         .SetBlendState(GpuBlendState.None)
                          .SetRootArguments(args)
                          .Draw((uint)CubeMesh.VertexCount, (uint)_extractor.InstanceCount)
                          .EndRendering()

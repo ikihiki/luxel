@@ -10,7 +10,7 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls/Knobs")]
 public static class KnobStories
 {
-    [Story(Path = "Controls/Knobs/Examples/Kinds")]
+    [Story(Path = "Gallery/Infrastructure/Knobs/Examples/Kinds")]
     public static StoryResult Kinds(StoryContext ctx)
     {
         Signal<bool> visible = ctx.Signal("visible", true, "チップの表示 (false で淡色化)");

@@ -15,6 +15,8 @@ internal sealed class TriangleRenderer : IDisposable
     private readonly GpuTexture _texture;
     private readonly GpuSampler _sampler;
     private readonly GpuPipeline _pipeline;
+    private readonly GpuRasterizerState _rasterizerState;
+    private readonly GpuDepthStencilState _depthStencilState;
     private readonly GpuPipeline _postPipeline;
     private readonly uint _indexCount;
     private GpuTexture? _target;
@@ -56,14 +58,16 @@ internal sealed class TriangleRenderer : IDisposable
         _texture = device.CreateTexture(4, 4, CreateCheckerboard());
         _sampler = device.CreateSampler(GpuSamplerFilter.Linear, GpuSamplerAddress.Repeat);
 
-        GpuRasterDesc raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-        raster.DepthTest = UsesDepth(stage);
-        raster.DepthWrite = UsesDepth(stage);
-        raster.CullMode = stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
-            ? GpuCullMode.Back : GpuCullMode.None;
-        raster.FrontFace = GpuFrontFace.CounterClockwise;
+        bool usesDepth = UsesDepth(stage);
+        _rasterizerState = new GpuRasterizerState(
+            stage is TutorialStage.Lighting or TutorialStage.Graph or TutorialStage.PostProcess
+                ? GpuCullMode.Back : GpuCullMode.None,
+            GpuFrontFace.CounterClockwise);
+        _depthStencilState = GpuDepthStencilState.Default with { DepthTest = usesDepth, DepthWrite = usesDepth };
         string shader = stage == TutorialStage.Triangle ? "tutorial_triangle" : "tutorial_3d";
-        _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), raster);
+        var pipelineDesc = new GpuGraphicsPipelineDesc(new GpuAttachmentLayout(
+            GpuFormat.Rgba8Unorm, usesDepth ? GpuFormat.D32Float : null));
+        _pipeline = device.CreateGraphicsPipeline(GpuShaderCode.Load(shader), pipelineDesc);
         _postPipeline = device.CreateComputePipeline(GpuShaderCode.Load("compute_tutorial_postprocess"));
     }
 
@@ -105,6 +109,9 @@ internal sealed class TriangleRenderer : IDisposable
             using GpuCommandBuffer triangleCommand = _device.MainQueue.StartCommandRecording();
             triangleCommand.BeginRendering(_target, null, 0.055f, 0.07f, 0.11f, 1)
                 .SetGraphicsPipeline(_pipeline)
+                .SetRasterizerState(_rasterizerState)
+                .SetDepthStencilState(_depthStencilState)
+                .SetBlendState(GpuBlendState.None)
                 .SetRootArguments(vertexBufferIndex)
                 .Draw(3)
                 .EndRendering()
@@ -153,6 +160,9 @@ internal sealed class TriangleRenderer : IDisposable
         using GpuCommandBuffer command = _device.MainQueue.StartCommandRecording();
         command.BeginRendering(_target!, _depth, 0.025f, 0.035f, 0.06f, 1)
             .SetGraphicsPipeline(_pipeline)
+                .SetRasterizerState(_rasterizerState)
+                .SetDepthStencilState(_depthStencilState)
+                .SetBlendState(GpuBlendState.None)
             .SetRootArguments(args)
             .Draw(_indexCount)
             .EndRendering()
@@ -229,6 +239,9 @@ internal sealed class TriangleRenderer : IDisposable
     private void DrawCube(GpuCommandBuffer command, GpuTexture color, GpuTexture depth, DrawArgs3D args)
         => command.BeginRendering(color, depth, 0.025f, 0.035f, 0.06f, 1)
             .SetGraphicsPipeline(_pipeline)
+                .SetRasterizerState(_rasterizerState)
+                .SetDepthStencilState(_depthStencilState)
+                .SetBlendState(GpuBlendState.None)
             .SetRootArguments(args)
             .Draw(_indexCount)
             .EndRendering();

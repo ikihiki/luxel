@@ -19,6 +19,8 @@ public class Story : Attribute
     public string? Path { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
+    /// <summary>Whether this authored story exposes an Args panel. Set to <see langword="false"/> to suppress inherited generated Args.</summary>
+    public bool ArgsEnabled { get; set; } = true;
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
     public string? Args { get; set; }
 
@@ -122,7 +124,7 @@ public sealed class StoryContext : IDisposable
     /// <summary>ホスト所有の ResourceSystem (画像/テクスチャ等のロード窓口 — knob/Log と同じく
     /// 「ストーリーがホスト設備を借りる」窓口)。キャッシュはストーリー横断で共有され、
     /// ハンドルは取得側 (シーン等) が Dispose する (refcount)。Pump はホストの毎フレームループが叩き、
-    /// <see cref="Observe{T}"/> のsignalへ初回完了・reload・failureをUI thread上で反映する。</summary>
+    /// <c>Observe&lt;T&gt;</c> のsignalへ初回完了・reload・failureをUI thread上で反映する。</summary>
     public Luxel.Resources.ResourceSystem Resources
         => _resources ?? throw new InvalidOperationException("ホストが ResourceSystem を設定していません (StoryContext ctor で渡す)");
 
@@ -279,7 +281,12 @@ public sealed class StoryContext : IDisposable
         T initial = defaultValue;
         if (_args.TryGet(name, out JsonElement incoming))
         {
-            try { initial = options?.Parser is { } parser ? parser(incoming) : WidgetDebugCodec.Coerce<T>(incoming); }
+            try
+            {
+                initial = options?.Parser is { } parser ? parser(incoming)
+                    : typeof(T) == typeof(JsonElement) ? (T)(object)incoming.Clone()
+                    : WidgetDebugCodec.Coerce<T>(incoming);
+            }
             catch (Exception error) when (error is FormatException or InvalidCastException or JsonException or ArgumentException)
             {
                 Log($"arg '{name}' was ignored: {error.Message}");
@@ -287,10 +294,11 @@ public sealed class StoryContext : IDisposable
         }
 
         var signal = new Signal<T>(initial);
-        StoryKnob knob = StoryKnob.For(name, signal, options?.Description, options?.Parser);
+        StoryKnob knob = StoryKnob.For(name, signal, options?.Description, options?.Parser,
+            options?.Min, options?.Max, options?.Step, options?.Options, options?.Editor ?? StoryArgEditorKind.Auto);
         _knobs.Add(knob);
         _argKnobs.Add(name, knob);
-        IReadOnlyList<string>? choices = typeof(T).IsEnum ? Enum.GetNames(typeof(T)) : null;
+        IReadOnlyList<string>? choices = options?.Options ?? (typeof(T).IsEnum ? Enum.GetNames(typeof(T)) : null);
         _argDefinitions.Add(new StoryArgDefinition(
             name,
             knob.Type,
@@ -300,7 +308,8 @@ public sealed class StoryContext : IDisposable
             options?.Min,
             options?.Max,
             options?.Step,
-            choices));
+            choices,
+            knob.Editor));
         signal.Changed += value =>
         {
             _args = _args.With(name, StoryArgCodec.Serialize(value));
@@ -367,87 +376,128 @@ public sealed class GeneratedComponentStoryPreview(Func<Widget> build) : Composi
 /// <summary>ストーリーのイベントログ 1 件。Seq はストーリー実体化ごとの連番 (フロントの差分表示用)。</summary>
 public readonly record struct StoryLogEntry(long Seq, string Time, string Message);
 
-/// <summary>StoryContext の knob 1 つ (名前 + 型ヒント + 説明 + 現在値 + 書き込み)。</summary>
+/// <summary>StoryContext の knob 1 つ (schema metadata + 現在値 + 書き込み)。</summary>
 public sealed class StoryKnob
 {
     private readonly Func<string> _get;
     private readonly Action<JsonElement> _set;
 
     public string Name { get; }
-    /// <summary>DevTools と同じ型ヒント ("color"/"int"/"float"/"bool"/"string")。</summary>
+    /// <summary>Source-compatible DevTools type hint. Editor dispatch uses <see cref="Editor"/>.</summary>
     public string Type { get; }
-    /// <summary>Knobs テーブルの説明列 (autodoc 相当、任意)。</summary>
     public string? Description { get; }
+    public double? Min { get; }
+    public double? Max { get; }
+    public double? Step { get; }
+    public IReadOnlyList<string>? Options { get; }
+    public StoryArgEditorKind Editor { get; }
     public string Value => _get();
 
-    private StoryKnob(string name, string type, string? description, Func<string> get, Action<JsonElement> set)
-    { Name = name; Type = type; Description = description; _get = get; _set = set; }
+    private StoryKnob(string name, string type, string? description, Func<string> get, Action<JsonElement> set,
+        double? min = null, double? max = null, double? step = null, IReadOnlyList<string>? options = null,
+        StoryArgEditorKind editor = StoryArgEditorKind.Auto)
+    {
+        Name = name;
+        Type = type;
+        Description = description;
+        Min = min;
+        Max = max;
+        Step = step;
+        Options = options;
+        Editor = StoryArgDefinition.ResolveEditor(type, options, editor);
+        _get = get;
+        _set = set;
+    }
 
     public void Set(JsonElement el) => _set(el);
 
-    /// <summary>文字列表現から書き込む (エディタ経由 — 型に応じて JSON へ寄せる)。
-    /// 数値/bool として解釈できない文字列は <see cref="FormatException"/> (Pump 側が無視する)。</summary>
-    public void SetText(string v)
+    /// <summary>Converts editor text to the canonical JSON wire value. Invalid intermediate text is ignored.</summary>
+    public void SetText(string value)
     {
         try
         {
-            Set(Type switch
+            Set(Editor switch
             {
-                "bool" => JsonSerializer.SerializeToElement(
-                    bool.TryParse(v, out bool b) ? b : throw new FormatException(v)),
-                "int" => JsonSerializer.SerializeToElement(
-                    int.TryParse(v, out int i) ? i : throw new FormatException(v)),
-                "float" => JsonSerializer.SerializeToElement(
-                    float.TryParse(v, System.Globalization.CultureInfo.InvariantCulture, out float f)
-                        ? f : throw new FormatException(v)),
-                _ => JsonSerializer.SerializeToElement(v),   // color/string は文字列のまま (Coerce が解釈)
+                StoryArgEditorKind.Boolean => StoryArgCodec.Serialize(
+                    bool.TryParse(value, out bool boolean) ? boolean : throw new FormatException(value)),
+                StoryArgEditorKind.Number => ParseJsonNumber(value),
+                StoryArgEditorKind.Json => ParseJson(value),
+                StoryArgEditorKind.Preset => ParsePreset(value),
+                _ => StoryArgCodec.Serialize(value),
             });
         }
-        catch (FormatException)
+        catch (Exception error) when (error is FormatException or JsonException or OverflowException)
         {
-            // Interactive knob editors ignore incomplete/invalid text and retain the previous value.
+            // Interactive editors retain the previous value while their input is incomplete or invalid.
         }
     }
 
-    internal static StoryKnob For<T>(string name, Signal<T> sig, string? description = null,
-        Func<JsonElement, T>? parser = null)
+    private static JsonElement ParseJsonNumber(string value)
     {
-        // enum: DebugProps と同じ "enum:A|B|C" 型ヒント。書き込みは canonical name。
-        if (typeof(T).IsEnum)
-            return new StoryKnob(name, $"enum:{string.Join('|', Enum.GetNames(typeof(T)))}", description,
-                () => sig.Value?.ToString() ?? "",
-                el => sig.Value = parser is not null ? parser(el) : WidgetDebugCodec.Coerce<T>(el));
-        // Length: CSS 風文字列 ("120px" "50%" "1.5em" ...) で往復
-        if (typeof(T) == typeof(Length))
-            return new StoryKnob(name, "length", description,
-                () => sig.Value!.ToString()!,
-                el => sig.Value = parser is not null ? parser(el) : WidgetDebugCodec.Coerce<T>(el));
-        if (parser is not null)
-            return new StoryKnob(name, "string", description,
-                () => sig.Value?.ToString() ?? "", el => sig.Value = parser(el));
+        JsonElement element = ParseJson(value);
+        return element.ValueKind == JsonValueKind.Number ? element : throw new FormatException(value);
+    }
 
+    private static JsonElement ParseJson(string value)
+    {
+        using JsonDocument document = JsonDocument.Parse(value);
+        return document.RootElement.Clone();
+    }
+
+    private static JsonElement ParsePreset(string value)
+    {
+        try { return ParseJson(value); }
+        catch (JsonException) { return StoryArgCodec.Serialize(value); }
+    }
+
+    internal static StoryKnob For<T>(string name, Signal<T> signal, string? description = null,
+        Func<JsonElement, T>? parser = null, double? min = null, double? max = null, double? step = null,
+        IReadOnlyList<string>? options = null, StoryArgEditorKind editor = StoryArgEditorKind.Auto)
+    {
         string type =
+            typeof(T).IsEnum ? $"enum:{string.Join('|', Enum.GetNames(typeof(T)))}" :
+            typeof(T) == typeof(Length) ? "length" :
+            typeof(T) == typeof(JsonElement) ? "json" :
+            parser is not null ? "string" :
             typeof(T) == typeof(uint) ? "color" :
             typeof(T) == typeof(int) ? "int" :
             typeof(T) == typeof(float) || typeof(T) == typeof(double) ? "float" :
             typeof(T) == typeof(bool) ? "bool" : "string";
+
+        IReadOnlyList<string>? resolvedOptions = options ?? (typeof(T).IsEnum ? Enum.GetNames(typeof(T)) : null);
         Func<string> get =
-            typeof(T) == typeof(uint) ? () => WidgetDebugCodec.FormatColor((uint)(object)sig.Value!) :
-            typeof(T) == typeof(bool) ? () => (bool)(object)sig.Value! ? "true" : "false" :
-            () => sig.Value?.ToString() ?? "";
-        bool writable = typeof(T) == typeof(uint) || typeof(T) == typeof(int) || typeof(T) == typeof(float)
-                     || typeof(T) == typeof(double) || typeof(T) == typeof(bool) || typeof(T) == typeof(string);
-        Action<JsonElement> set = writable ? el => sig.Value = WidgetDebugCodec.Coerce<T>(el) : _ => { };
-        return new StoryKnob(name, type, description, get, set);
+            typeof(T) == typeof(uint) ? () => WidgetDebugCodec.FormatColor((uint)(object)signal.Value!) :
+            typeof(T) == typeof(bool) ? () => (bool)(object)signal.Value! ? "true" : "false" :
+            typeof(T) == typeof(JsonElement) ? () => ((JsonElement)(object)signal.Value!).GetRawText() :
+            () => signal.Value?.ToString() ?? "";
+        bool writable = parser is not null || typeof(T).IsEnum || typeof(T) == typeof(Length) ||
+            typeof(T) == typeof(JsonElement) || typeof(T) == typeof(uint) || typeof(T) == typeof(int) ||
+            typeof(T) == typeof(float) || typeof(T) == typeof(double) || typeof(T) == typeof(bool) ||
+            typeof(T) == typeof(string);
+        Action<JsonElement> set = !writable ? _ => { } : parser is not null
+            ? element => signal.Value = parser(element)
+            : typeof(T) == typeof(JsonElement)
+                ? element => signal.Value = (T)(object)element.Clone()
+                : element => signal.Value = WidgetDebugCodec.Coerce<T>(element);
+        return new StoryKnob(name, type, description, get, set, min, max, step, resolvedOptions, editor);
     }
 }
 
-/// <summary>Source-generated identity for one production <c>[UiComponent]</c> Docs/Basic pair.</summary>
+/// <summary>Source-generated identity for one production <c>[UiComponent]</c> Docs/Basic/Playground set.</summary>
 public sealed record GeneratedComponentStoryDescriptor(
     string ComponentType,
+    string AssemblyOwner,
     string Category,
-    string DocsPath,
-    string BasicPath);
+    string ControlName,
+    bool IsUserFacing = true)
+{
+    public string RoutePrefix => IsUserFacing
+        ? $"Controls/{Category}/{ControlName}"
+        : $"Gallery/Infrastructure/{ControlName}";
+    public string DocsPath => $"{RoutePrefix}/Docs";
+    public string BasicPath => $"{RoutePrefix}/Basic";
+    public string PlaygroundPath => $"{RoutePrefix}/Playground";
+}
 
 /// <summary>StorybookのDocs/Story区分に対応する、pathとは独立したstoryの役割。</summary>
 public enum StoryKind

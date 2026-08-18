@@ -29,6 +29,7 @@ public sealed class ComponentStoryGeneratorTests
         Assert.Contains("global::Luxel.Controls.Kit.Button(text: arg0.Value, variant: arg1.Value)", generated);
         Assert.Contains("global::Demo.Playground.ApplyDisabled(component, arg2.Value)", generated);
         Assert.Contains("global::Demo.Playground.Wrap(component)", generated);
+        Assert.DoesNotContain("GalleryXmlDocText.Resolve", generated, StringComparison.Ordinal);
         Assert.Contains("new global::Luxel.Gallery.ComponentStoryPreview", generated);
         Assert.DoesNotContain("Activator", generated);
         Assert.DoesNotContain("DynamicInvoke", generated);

@@ -21,14 +21,18 @@ public static class UiGalleryProject
         using IDisposable ownership = builder.BeginOwnership(Ownership);
         var categoryBuilder = new StoryCatalogBuilder();
         RegisterProductionComponents(categoryBuilder);
-        // Enrich generated component Docs in the same catalog before authored exact-path
-        // replacements are applied. This keeps a single canonical Docs entry per component.
+        UiControlDocs.Register(categoryBuilder, ProductionComponents);
+        // Keep library-level guides and compatibility categories after exact component-identity Docs.
         global::Luxel.Gallery.Stories.ControlDocsApi.RegisterControlStories(categoryBuilder);
         Merge(Luxel.Gallery.Generated.StoryRegistration_Luxel_UI_Gallery.Register);
         Merge(Luxel.Gallery.Generated.ComponentStoryRegistration_Luxel_UI_Gallery.Register);
 
-        foreach (StoryInfo story in categoryBuilder.Build().All)
+        StoryCatalog catalog = categoryBuilder.Build();
+        foreach (StoryInfo story in catalog.All)
             builder.Add(story, replaceGenerated: true);
+        ControlStoryAliases.Add(builder, catalog, ProductionComponents);
+        ControlStoryAliases.AddIfHidden(builder, catalog, "Controls/Layout/Docs", "Controls/Layout/Layout/Docs");
+        ControlStoryAliases.AddIfHidden(builder, catalog, "Controls/Kit/Docs", "Controls/Layout/Kit/Docs");
 
         void Merge(Action<StoryCatalogBuilder> register)
         {
@@ -75,8 +79,11 @@ public static class UiGalleryProject
         GeneratedComponentStoryDescriptor[] descriptors = ProductionLazy.Value;
         if (descriptors.Select(descriptor => descriptor.ComponentType).Distinct(StringComparer.Ordinal).Count() != descriptors.Length)
             throw new InvalidOperationException("Generated UI production component types must be unique.");
-        if (descriptors.SelectMany(static descriptor => new[] { descriptor.DocsPath, descriptor.BasicPath })
-                .Distinct(StringComparer.Ordinal).Count() != descriptors.Length * 2)
+        int expectedPaths = descriptors.Sum(static descriptor => descriptor.IsUserFacing ? 3 : 2);
+        if (descriptors.SelectMany(static descriptor => descriptor.IsUserFacing
+                    ? new[] { descriptor.DocsPath, descriptor.BasicPath, descriptor.PlaygroundPath }
+                    : new[] { descriptor.DocsPath, descriptor.BasicPath })
+                .Distinct(StringComparer.Ordinal).Count() != expectedPaths)
             throw new InvalidOperationException("Generated UI production component paths must be unique.");
     }
 }

@@ -2,6 +2,7 @@
 using Luxel.UI;
 
 [assembly: GenerateAssemblyApi("Luxel.Diagnostics")]
+[assembly: GenerateAssemblyApi("Luxel.Editor.UI")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics.Abstraction")]
 [assembly: GenerateAssemblyApi("Luxel.Graphics.TwoD")]

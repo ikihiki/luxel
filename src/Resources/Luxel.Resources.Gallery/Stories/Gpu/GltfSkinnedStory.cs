@@ -112,7 +112,7 @@ public static class GltfSkinnedStories
                 {
                     if (_prim is not null) return;   // 最初のスキンメッシュのみ
                     AssetPrimitive p = mr.Mesh.Primitives[0];
-                    if (assets.Primitives.TryGetValue(p, out ScenePrimitiveGpu gpu) && gpu.HasSkinning)
+                    if (assets.Primitives.TryGetValue(p, out ScenePrimitiveGpu? gpu) && gpu is { HasSkinning: true })
                     {
                         _prim = gpu;
                         jointMats = jm.Matrices;
@@ -131,10 +131,9 @@ public static class GltfSkinnedStories
             _instance.FlushImmediate();
 
             _depth = Track(Device.CreateDepthTarget(W, H));
-            var raster = GpuRasterDesc.Default(GpuFormat.Rgba8Unorm);
-            raster.DepthTest = true;
-            raster.DepthWrite = true;
-            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_skinned"), raster));
+            var pipelineDesc = new GpuGraphicsPipelineDesc(
+                new GpuAttachmentLayout(GpuFormat.Rgba8Unorm, GpuFormat.D32Float));
+            _pipeline = Track(Device.CreateGraphicsPipeline(ResourceStoryShaders.Load("scene_pbr_skinned"), pipelineDesc));
         }
 
         protected override void OnRender(float time)
@@ -158,6 +157,9 @@ public static class GltfSkinnedStories
                 bool indexed = _prim.IndexCount > 0;
                 ctx.Cmd.BeginRendering(Target, _depth, 0.05f, 0.06f, 0.09f, 1f, 1f)
                        .SetGraphicsPipeline(_pipeline)
+                .SetRasterizerState(GpuRasterizerState.Default)
+                .SetDepthStencilState(GpuDepthStencilState.Default with { DepthTest = true, DepthWrite = true })
+                .SetBlendState(GpuBlendState.None)
                        .SetRootArguments(new SkinnedDrawArgs
                        {
                            ViewProj = Matrix4x4.Transpose(viewProj),
