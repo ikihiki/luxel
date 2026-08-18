@@ -113,37 +113,32 @@ public static class StudioShellStory
             status.Value = "Beacon added";
         }
 
-        var reg = new CommandRegistry();
-        reg.Register("file.new", "New Scene", () => status.Value = "New scene mock", menuPath: "File/New", order: 0);
-        reg.Register("file.open", "Open Project", () => status.Value = "Open project mock", menuPath: "File/Open", order: 1);
-        reg.Register("file.save", "Save", () => { SaveScene(); SaveScript(); }, key: "Ctrl+S", menuPath: "File/Save", order: 2, toolbar: true);
-        reg.Register("project.play", "Play", Play, key: "F5", menuPath: "Run/Play", order: 10, toolbar: true);
+        var documents = new Dictionary<string, IEditorDocument>
+        {
+            [EditorPaneIds.Scene] = new EditorToolDocument(EditorDocumentProviderIds.Scene, "arena.scene.json", () => sceneEditor),
+            [EditorPaneIds.Inspector] = new EditorToolDocument("inspector", "Inspector", () => inspector),
+            [EditorPaneIds.Assets] = new EditorToolDocument("assets", "Assets", () => assets),
+            ["script"] = script,
+            [EditorPaneIds.Play] = new EditorToolDocument("play", "Play View", PlayerView),
+            [EditorPaneIds.Problems] = new EditorToolDocument("problems", "Problems", ProblemsView),
+        };
+        DockTree layout = DockTree.Single(EditorPaneIds.Scene);
+        layout = layout.Dock(EditorPaneIds.Inspector, layout.GroupOf(EditorPaneIds.Scene)!.Id, DockSide.Right);
+        layout = layout.Dock(EditorPaneIds.Play, layout.GroupOf(EditorPaneIds.Scene)!.Id, DockSide.Bottom);
+        layout = layout.Dock("script", layout.GroupOf(EditorPaneIds.Scene)!.Id, DockSide.Right);
+        layout = layout.Dock(EditorPaneIds.Assets, layout.GroupOf(EditorPaneIds.Inspector)!.Id, DockSide.Bottom);
+        layout = layout.Dock(EditorPaneIds.Problems, layout.GroupOf(EditorPaneIds.Play)!.Id, DockSide.Bottom);
+        var session = new EditorSession(storage, documents, layout);
+        CommandRegistry reg = session.Commands;
+        reg.Register(EditorCommandIds.Save, "Save", () => { SaveScene(); SaveScript(); }, key: "Ctrl+S", menuPath: "File/Save", order: 2, toolbar: true);
+        reg.Register(EditorCommandIds.Play, "Play", Play, key: "F5", menuPath: "Run/Play", order: 10, toolbar: true);
         reg.Register("project.pause", "Pause", () => { paused.Value = true; status.Value = "Paused"; }, enabled: () => game is not null, menuPath: "Run/Pause", order: 11, toolbar: true);
         reg.Register("project.step", "Step", () => { game?.World.Update(1f / 60f); game?.ApplySceneRequest(); RefreshProblems(); }, enabled: () => game is not null, menuPath: "Run/Step", order: 12, toolbar: true);
-        reg.Register("project.stop", "Stop", () => { game = null; status.Value = "Stopped"; }, enabled: () => game is not null, menuPath: "Run/Stop", order: 13, toolbar: true);
-        reg.Register("project.ship", "Ship (mock)", () => status.Value = "Ship command mock: samples/StudioShell", menuPath: "File/Ship", order: 20, toolbar: true);
+        reg.Register(EditorCommandIds.Stop, "Stop", () => { game = null; status.Value = "Stopped"; }, enabled: () => game is not null, menuPath: "Run/Stop", order: 13, toolbar: true);
         reg.Register("scene.addBeacon", "Scene: Add Beacon", AddBeacon, menuPath: "Scene/Add Beacon", order: 30);
         reg.Register("scene.save", "Scene: Save", SaveScene, menuPath: "Scene/Save Scene", order: 31);
         reg.Register("script.reload", "Script: Save + Reload", ReloadScript, key: "Ctrl+Enter", menuPath: "Script/Reload", order: 40, toolbar: true);
         reg.Register("problems.next", "Problems: Jump Next", () => status.Value = problems.Peek() == "問題なし" ? "No problems" : "Jumped to first problem", menuPath: "Problems/Next", order: 50);
-
-        var tree = new Signal<DockTree>(DockTree.Single("scene"));
-        tree.Value = tree.Value.Dock("inspector", tree.Value.GroupOf("scene")!.Id, DockSide.Right);
-        tree.Value = tree.Value.Dock("player", tree.Value.GroupOf("scene")!.Id, DockSide.Bottom);
-        tree.Value = tree.Value.Dock("script", tree.Value.GroupOf("scene")!.Id, DockSide.Right);
-        tree.Value = tree.Value.Dock("assets", tree.Value.GroupOf("inspector")!.Id, DockSide.Bottom);
-        tree.Value = tree.Value.Dock("problems", tree.Value.GroupOf("player")!.Id, DockSide.Bottom);
-
-        DockItem Resolve(string id) => id switch
-        {
-            "scene" => new DockItem("arena.scene.json", () => sceneEditor),
-            "inspector" => new DockItem("Inspector", () => inspector),
-            "assets" => new DockItem("Assets", () => assets),
-            "script" => new DockItem(script.Title, () => script.CreateView(), script.Dirty),
-            "player" => new DockItem("Play View", PlayerView),
-            "problems" => new DockItem("Problems", ProblemsView),
-            _ => new DockItem(id, () => Muted(id)),
-        };
 
         Widget PlayerView() => Border(background: Bind.From(() => UiTheme.T.Surface), padding: new Thickness(8))[
             VStack(6)[
@@ -174,28 +169,20 @@ public static class StudioShellStory
                           Text($"{status}", 12, color: Bind.From(() => UiTheme.T.TextMuted))],
                 Text($"{problems}", 12, color: Bind.From(() => problems.Value == "問題なし" ? UiTheme.T.TextMuted : UiTheme.T.Danger))]];
 
-        MenuBar menuBar = MenuBar(reg, contributions: () => ws.Active.Value?.Contributions ?? []);
-        Toolbar toolbar = Toolbar(reg, contributions: () => ws.Active.Value?.Contributions ?? []);
-        DockHost host = DockHost(tree, Resolve, closeRemoves: false);
-        StatusBar statusBar = StatusBar(
-            left: [Muted("Studio Shell"), Muted($"{status}")],
-            right: [Badge("Ready", Intent.Success)]);
-        var palette = new PaletteOpener { OnOpen = c => CommandPalette.Open(c, reg, ws.Active.Value?.Contributions ?? []) };
-
-        Reactive.Effect(() => { _ = script.Dirty.Value; _ = problems.Value; toolbar.Refresh(); });
+        var fixture = new EditorTestFixture { Session = session, ProductName = "Studio Shell" };
 
         ctx.Play("shell", async d =>
         {
-            reg.BindShortcuts(d.Host);
             await d.Snap();
             reg.Run("scene.addBeacon");
             reg.Run("file.save");
             await d.Expect(() => storage.Read("scenes/arena.scene.json")!.Contains("Beacon"), "Scene command -> save");
-            reg.Run("project.play");
+            reg.Run(EditorCommandIds.Play);
             await d.Step(28);
             await d.Expect(() => game!.World is Player3DWorld, "2D title csx requests 3D arena");
             await d.Expect(() => game!.World.Find("Beacon") is not null, "saved scene is loaded into Player");
             await d.Snap("playing");
+            DockHost host = fixture.Shell!.DocumentsHost!;
             var scriptTab = host.TabCenter("script")!.Value;
             await d.Click(scriptTab.X, scriptTab.Y);
             TextEditorView scriptView = (TextEditorView)host.ViewOf("script")!;
@@ -209,23 +196,10 @@ public static class StudioShellStory
             scriptView.SetSearch("1.0f");
             reg.Run("script.reload");
             await d.Expect(() => problems.Peek() == "問題なし", "fix + reload clears Problems");
-            reg.Run("project.ship");
-            await d.Expect(() => status.Peek().Contains("Ship command mock"), "Ship command is routed");
             await d.Snap("fixed");
         });
 
-        menuBar.GridRow(0);
-        toolbar.GridRow(1);
-        palette.GridRow(1);
-        palette.HAlign.SetBase(Align.End);
-        host.GridRow(2);
-        statusBar.GridRow(3);
-        Grid shell = Grid(rows: [GridLength.Px(Luxel.Controls.MenuBar.BarH), GridLength.Px(34),
-                                 GridLength.Star(), GridLength.Px(Luxel.Controls.StatusBar.BarH)])[
-            menuBar, toolbar, palette, host, statusBar];
-        shell.HAlign.SetBase(Align.Stretch);
-        shell.VAlign.SetBase(Align.Stretch);
-        return shell;
+        return fixture;
     }
 
     private sealed class CsxDocumentProvider(ICodeLanguage lang) : IDocumentProvider
@@ -246,17 +220,6 @@ public static class StudioShellStory
                 v.Providers.Add(new CurrentLineProvider(() => UiTheme.T));
                 return v;
             });
-    }
-
-    private sealed class PaletteOpener : CompositeControl
-    {
-        public required Action<UiBuildContext> OnOpen;
-        private UiBuildContext? _ctx;
-
-        protected override void OnRealize(UiBuildContext ctx) => _ctx = ctx;
-
-        protected override Widget Build()
-            => Button(_ => { if (_ctx is not null) OnOpen(_ctx); }, "Command Palette");
     }
 
     private static void SeedProject(MemoryFileStorage storage)

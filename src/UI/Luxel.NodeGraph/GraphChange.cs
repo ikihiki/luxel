@@ -55,6 +55,20 @@ public sealed record SetNodeData(int NodeId, object? Data) : GraphChange
     public override IReadOnlyList<GraphChange> InvertAgainst(NodeGraphDoc doc) => [new SetNodeData(NodeId, doc.Node(NodeId).Data)];
 }
 
+/// <summary>ノードの標準 parameter payload 内の 1 値を差し替える。</summary>
+public sealed record SetNodeParameter<T>(int NodeId, NodeParameter<T> Parameter, T Value) : GraphChange
+{
+    public override NodeGraphDoc Apply(NodeGraphDoc doc)
+    {
+        GraphNode node = doc.Node(NodeId);
+        NodeParameterValues values = node.Data as NodeParameterValues ?? NodeParameterValues.Empty;
+        return doc.ReplaceNode(node with { Data = values.Set(Parameter.Key, Value) });
+    }
+
+    public override IReadOnlyList<GraphChange> InvertAgainst(NodeGraphDoc doc)
+        => [new SetNodeData(NodeId, doc.Node(NodeId).Data)];
+}
+
 /// <summary>ノードの折り畳み状態を設定する。</summary>
 public sealed record SetNodeCollapsed(int NodeId, bool Collapsed) : GraphChange
 {

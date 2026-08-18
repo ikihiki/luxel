@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Luxel.Gallery;
 using Luxel.UI;
 
@@ -17,10 +18,10 @@ public sealed class ProductionDocsCompletenessTests
         GeneratedComponentStoryDescriptor[] all = [.. ui, .. editor, .. particles];
 
         Assert.Equal(53, ui.Length);
-        Assert.Equal(6, editor.Length);
+        Assert.Equal(7, editor.Length);
         Assert.Single(particles);
-        Assert.Equal(60, all.Length);
-        Assert.Equal(57, all.Count(static descriptor => descriptor.IsUserFacing));
+        Assert.Equal(61, all.Length);
+        Assert.Equal(58, all.Count(static descriptor => descriptor.IsUserFacing));
         Assert.Equal(all.Length, all.Select(static descriptor => descriptor.ComponentType).Distinct(StringComparer.Ordinal).Count());
         int expectedPaths = all.Sum(static descriptor => descriptor.IsUserFacing ? 3 : 2);
         Assert.Equal(expectedPaths, all.SelectMany(static descriptor => descriptor.IsUserFacing
@@ -87,6 +88,23 @@ public sealed class ProductionDocsCompletenessTests
 
         StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find("Controls/Input/Button/Playground"));
         Assert.NotEmpty(Assert.IsAssignableFrom<IReadOnlyList<StoryArgDefinition>>(playground.ArgDefinitions));
+    }
+
+    [Fact]
+    public void NodeGraph_playground_exposes_only_the_authored_graph_json_arg()
+    {
+        StoryCatalog catalog = global::Luxel.Editor.Gallery.EditorGalleryProject.CreateCatalog();
+        StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find("Controls/Editor/NodeGraphView/Playground"));
+
+        StoryArgDefinition definition = Assert.Single(playground.ArgDefinitions ?? []);
+        Assert.Equal("graph", definition.Name);
+        Assert.Equal("json", definition.Type);
+        Assert.Equal(StoryArgEditorKind.Json, definition.EditorKind);
+        Assert.Equal(JsonValueKind.Object, definition.DefaultValue.ValueKind);
+
+        using var context = new StoryContext();
+        _ = playground.Build(context);
+        Assert.Equal(["graph"], context.ArgDefinitions.Select(static arg => arg.Name));
     }
 
     [Fact]
@@ -163,7 +181,7 @@ public sealed class ProductionDocsCompletenessTests
             }
         }
 
-        Assert.Equal(57, playgroundCount);
+        Assert.Equal(58, playgroundCount);
     }
 
     [Fact]

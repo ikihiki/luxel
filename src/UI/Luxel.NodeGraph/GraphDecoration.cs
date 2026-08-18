@@ -67,9 +67,15 @@ public sealed record PendingWireDecoration(PortId From, Vector2 To, uint Color) 
 }
 
 /// <summary>ノード本体に差すインライン枠 — <see cref="Width"/>×<see cref="Height"/> を占有し view が <see cref="Key"/> から
-/// 実 Widget を解決する ([[Luxel.Document.WidgetDecoration]] 相当、コアは Widget 型を知らない)。ノードのサイズに効くので
-/// <see cref="AffectsLayout"/>=true。実際の widget ホストは S6 で view 側に足す。</summary>
-public sealed record NodeInlineDecoration(int NodeId, float Width, float Height, object Key) : GraphDecoration
+/// 実 Widget を解決する ([[Luxel.Document.WidgetDecoration]] 相当、コアは Widget 型を知らない)。<see cref="Parameter"/> を
+/// 指定すると resolver は対象 node/value に既に結び付いた document-backed Signal を受け取れる。ノードのサイズに効くので
+/// <see cref="AffectsLayout"/>=true。</summary>
+public sealed record NodeInlineDecoration(
+    int NodeId,
+    float Width,
+    float Height,
+    object Key,
+    NodeParameter? Parameter = null) : GraphDecoration
 {
     /// <inheritdoc/>
     public override int SortKey => NodeId;

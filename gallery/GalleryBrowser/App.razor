@@ -234,6 +234,7 @@ else
     private string _activeTab = "Args";
     private string _runtimeState = "loading";
     private string _runtimeSummary = "Storyランタイムを待機しています。";
+    private int _sentRevision;
     private int _revision;
     private StoryInfo _story = null!;
     private IReadOnlyList<StoryInfo> _displayStories = Array.Empty<StoryInfo>();
@@ -289,6 +290,7 @@ else
         if (_documentHtml is null)
         {
             await _galleryHostModule.InvokeVoidAsync("configure", _runtimeFrame, _story.Path, _runtimeInstance);
+            await SendArgsAsync();
             await _galleryHostModule.InvokeVoidAsync("wireSplitter", _workspace, _splitter);
         }
     }
@@ -312,6 +314,7 @@ else
         _argsJson = canonicalArgs.ToJson();
         _runtimeInstance = Guid.NewGuid().ToString("N");
         _revision = 0;
+        _sentRevision = 0;
         _runtimeState = "loading";
         _runtimeSummary = "Storyランタイムを待機しています。";
         _output.Clear();
@@ -333,9 +336,13 @@ else
     public Task OnRuntimeMessage(JsonElement message)
     {
         string type = message.GetProperty("type").GetString() ?? "event";
+        bool acceptSnapshot = true;
         if (message.TryGetProperty("revision", out JsonElement revision) && revision.TryGetInt32(out int runtimeRevision))
+        {
+            acceptSnapshot = runtimeRevision >= _revision;
             _revision = Math.Max(_revision, runtimeRevision);
-        if (message.TryGetProperty("args", out JsonElement args) && args.ValueKind == JsonValueKind.Object)
+        }
+        if (acceptSnapshot && message.TryGetProperty("args", out JsonElement args) && args.ValueKind == JsonValueKind.Object)
         {
             StoryArgs snapshot = new(args.EnumerateObject().Select(property => KeyValuePair.Create(property.Name, property.Value)));
             _argValues = snapshot.Values.ToDictionary(pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
@@ -378,13 +385,8 @@ else
         {
             _argValues[definition.Name] = ParseArgValue(definition, rawValue);
             _argsJson = new StoryArgs(_argValues).ToJson();
-            int revision = ++_revision;
-            string requestId = $"args-{revision}-{Guid.NewGuid():N}";
-            if (_compact && _runtimeModule is not null)
-                await _runtimeModule.InvokeVoidAsync("setArgs", revision, requestId, _argsJson);
-            else if (_galleryHostModule is not null)
-                await _galleryHostModule.InvokeVoidAsync("setArgs", _runtimeFrame, _story.Path, _runtimeInstance,
-                    revision, requestId, _argsJson);
+            _revision++;
+            await SendArgsAsync();
         }
         catch (Exception error) when (error is FormatException or JsonException or OverflowException)
         {
@@ -392,6 +394,21 @@ else
             AddOutput("error", $"{definition.Name}: {error.Message}");
             _activeTab = "Output";
         }
+    }
+
+    private async Task SendArgsAsync()
+    {
+        if (_revision <= _sentRevision) return;
+        int revision = _revision;
+        string requestId = $"args-{revision}-{Guid.NewGuid():N}";
+        if (_compact && _runtimeModule is not null)
+            await _runtimeModule.InvokeVoidAsync("setArgs", revision, requestId, _argsJson);
+        else if (!_compact && _galleryHostModule is not null)
+            await _galleryHostModule.InvokeVoidAsync("setArgs", _runtimeFrame, _story.Path, _runtimeInstance,
+                revision, requestId, _argsJson);
+        else
+            return;
+        _sentRevision = revision;
     }
 
     private static JsonElement ParseArgValue(StoryArgDefinition definition, object? rawValue)

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Numerics;
 using Luxel.Controls;
 using Luxel.Diagnostics;
@@ -91,7 +92,7 @@ public static class NodeGraphViewStory
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("NodeGraphView (汎用ノードエディタ)"),
-                Muted("Luxel.NodeGraph (不変 + Transaction + 純射影) を canvas に載せた薄いビュー。ドラッグ移動 / クリック・範囲選択 / ホイールズーム / 中ボタン pan / Ctrl+Click 追加選択。"),
+                Muted("Luxel.NodeGraph (不変 + Transaction + 純射影) を canvas に載せた薄いビュー。入力/出力 port label、ドラッグ移動 / クリック・範囲選択 / ホイールズーム / 中ボタン pan / Ctrl+Click 追加選択。"),
                 ed]];
     }
 
@@ -164,18 +165,21 @@ public static class NodeGraphViewStory
     [Story]
     public static StoryResult Widgets(StoryContext ctx)
     {
-        Signal<float> vol = ctx.Signal("vol", 0.6f);
         const string sliderKey = "gain-slider";
+        NodeParameter<float> gain = NodeParameter.Create("gain", 0.6f);
 
-        var doc = NodeGraphDoc.Of(
-            [NumNode(1, "gain", "Gain", new Vector2(60, 60), hasIn: true, hasOut: true),
-             NumNode(2, "out", "Output", new Vector2(380, 90), hasIn: true, hasOut: false)],
-            [new GraphEdge(10, new PortId(1, 1), new PortId(2, 0))]);
+        GraphNode gainNode = NumNode(1, "gain", "Gain", new Vector2(60, 60), hasIn: true, hasOut: true) with
+        {
+            Data = NodeParameterValues.Empty.Set(gain.Key, 0.6f)
+        };
+        var document = new GraphDocument(NodeGraphDoc.Of(
+            [gainNode, NumNode(2, "out", "Output", new Vector2(380, 90), hasIn: true, hasOut: false)],
+            [new GraphEdge(10, new PortId(1, 1), new PortId(2, 0))]));
 
-        NodeGraphView ed = NodeGraphView(source: doc, viewWidth: 620f, viewHeight: 390f);
-        // ノード内インライン widget: Gain ノードにスライダ
-        ed.WidgetResolver = key => Equals(key, sliderKey) ? Slider(vol) : null;
-        ed.SetDecorations("inline", new GraphDecorationSet([new NodeInlineDecoration(1, 150, 24, sliderKey)]));
+        NodeGraphView ed = NodeGraphView(document: document, viewWidth: 620f, viewHeight: 390f);
+        // resolver は外部 Signal や node.Data を選ばず、slot に結び付いた document-backed Signal を使う。
+        ed.WidgetResolver = widget => Equals(widget.Key, sliderKey) ? Slider(widget.Signal<float>()) : null;
+        ed.SetDecorations("inline", new GraphDecorationSet([new NodeInlineDecoration(1, 150, 24, sliderKey, gain)]));
         // 右クリック追加パレット
         ed.NodeCatalog = new NodeCatalog(
             new NodeCatalogEntry("gain", "Gain", (id, pos) => NumNode(id, "gain", "Gain", pos, true, true)),
@@ -185,8 +189,9 @@ public static class NodeGraphViewStory
         {
             await d.Snap();                              // Gain ノードにスライダ (値 0.6)
             Vector2 c = ed.SlotScreenCenter(sliderKey);
-            await d.Click(c.X + 30, c.Y);                // スライダを叩く → 値が動く
-            await d.Expect(() => Math.Abs(vol.Peek() - 0.6f) > 0.01f, "ノード内スライダが反応");
+            await d.Click(c.X + 30, c.Y);                // スライダを叩く → document parameter が動く
+            await d.Expect(() => Math.Abs(gain.Read(document.Doc.Node(1)) - 0.6f) > 0.01f,
+                "ノード内スライダが document parameter を更新");
             await d.Snap("slid");
         });
 
@@ -205,7 +210,7 @@ public static class NodeGraphViewStory
         return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
             VStack(10)[
                 Heading("NodeGraphView — ノード内 UI + パレット"),
-                Muted("NodeInlineDecoration + WidgetResolver でノード内にスライダをホスト。右クリックで INodeCatalog のパレット追加 (PopupPlacer)。"),
+                Muted("NodeInlineDecoration + NodeGraph 専用 WidgetResolver で document-backed Signal のスライダをホスト。右クリックで INodeCatalog のパレット追加 (PopupPlacer)。"),
                 ed]];
     }
 
@@ -250,6 +255,172 @@ public static class NodeGraphViewStory
                 Heading("NodeGraphView — 自動整列 (式グラフ)"),
                 Muted("式グラフ (Const×2 → Add → Output) を例に、AutoLayout で辺依存に沿って左→右へ整列 + FitToView。グリッドスナップ有効。"),
                 ed]];
+    }
+
+    private static readonly NodeParameter<float> PlaygroundGain = NodeParameter.Create("gain", 0.65f);
+    private const string PlaygroundGainWidget = "playground-gain";
+
+    private static NodeGraphDoc PlaygroundGraph()
+    {
+        NodePort In(int id, string type, string label, bool multi = false) => new(id, PortDir.In, type, label, multi);
+        NodePort Out(int id, string type, string label) => new(id, PortDir.Out, type, label);
+
+        var texture = new GraphNode(1, "texture", "Texture", new Vector2(30, 45),
+            [Out(0, "color", "rgba")]);
+        var tint = new GraphNode(2, "color", "Tint", new Vector2(35, 210),
+            [Out(0, "color", "color")]);
+        var mask = new GraphNode(3, "value", "Mask", new Vector2(40, 340),
+            [Out(0, "float", "value")]);
+        var blend = new GraphNode(4, "blend", "Blend", new Vector2(270, 125),
+            [In(0, "color", "source"), In(1, "color", "tint"), In(2, "float", "mask"), Out(3, "color", "result")]);
+        var gain = new GraphNode(5, "gain", "Gain", new Vector2(500, 145),
+            [In(0, "color", "input"), Out(1, "color", "adjusted")],
+            Data: NodeParameterValues.Empty.Set(PlaygroundGain.Key, 0.65f));
+        var preview = new GraphNode(6, "preview", "Preview", new Vector2(735, 145),
+            [In(0, "color", "image")]);
+        var debug = new GraphNode(7, "debug", "Debug", new Vector2(500, 360),
+            [In(0, "color", "inspect", multi: true), Out(1, "string", "text")], Collapsed: true);
+
+        return NodeGraphDoc.Of([texture, tint, mask, blend, gain, preview, debug],
+            [new GraphEdge(10, new PortId(1, 0), new PortId(4, 0)),
+             new GraphEdge(11, new PortId(2, 0), new PortId(4, 1)),
+             new GraphEdge(12, new PortId(3, 0), new PortId(4, 2)),
+             new GraphEdge(13, new PortId(4, 3), new PortId(5, 0)),
+             new GraphEdge(14, new PortId(5, 1), new PortId(6, 0)),
+             new GraphEdge(15, new PortId(4, 3), new PortId(7, 0))]);
+    }
+
+    private static JsonElement GraphJson(NodeGraphDoc doc)
+    {
+        using JsonDocument json = JsonDocument.Parse(NodeGraphJson.Serialize(doc));
+        return json.RootElement.Clone();
+    }
+
+    private sealed class NodeGraphPlaygroundRoot : CompositeControl
+    {
+        private readonly StoryContext _story;
+        private readonly Signal<JsonElement> _json;
+        private readonly GraphDocument _document;
+        private readonly NodeGraphView _view;
+        private bool _synchronizing;
+
+        public NodeGraphPlaygroundRoot(StoryContext story, Signal<JsonElement> json)
+        {
+            _story = story;
+            _json = json;
+            _document = new GraphDocument(NodeGraphJson.Deserialize(json.Peek().GetRawText()));
+            _view = NodeGraphView(document: _document, viewWidth: 900f, viewHeight: 500f);
+            _view.SnapToGrid = true;
+            _view.WidgetResolver = context => Equals(context.Key, PlaygroundGainWidget)
+                ? Slider(context.Signal<float>(), min: 0f, max: 2f)
+                : null;
+            ApplyDecorations();
+        }
+
+        public NodeGraphView View => _view;
+
+        protected override Widget Build() => _view;
+
+        protected override void OnRealize(UiBuildContext ctx)
+        {
+            _json.Changed += OnJsonChanged;
+            _document.Changed += OnDocumentChanged;
+            ctx.Own(new PlaygroundSubscription(_json, OnJsonChanged, _document, OnDocumentChanged));
+        }
+
+        private void OnJsonChanged(JsonElement json)
+        {
+            if (_synchronizing) return;
+            try
+            {
+                NodeGraphDoc doc = NodeGraphJson.Deserialize(json.GetRawText());
+                _synchronizing = true;
+                _document.Load(doc);
+                ApplyDecorations();
+            }
+            catch (Exception error) when (error is JsonException or FormatException or ArgumentException or InvalidOperationException)
+            {
+                _story.Log($"graph JSON was ignored: {error.Message}");
+            }
+            finally { _synchronizing = false; }
+        }
+
+        private void OnDocumentChanged(GraphDocument document, bool docChanged)
+        {
+            if (!docChanged || _synchronizing) return;
+            _synchronizing = true;
+            try { _json.Value = GraphJson(document.Doc); }
+            finally { _synchronizing = false; }
+        }
+
+        private void ApplyDecorations()
+        {
+            GraphNode? gain = _document.Doc.Nodes.FirstOrDefault(node => node.Kind == "gain");
+            GraphDecorationSet decorations = gain is null
+                ? GraphDecorationSet.Empty
+                : new GraphDecorationSet([new NodeInlineDecoration(gain.Id, 150, 24, PlaygroundGainWidget, PlaygroundGain)]);
+            _view.SetDecorations("playground-parameters", decorations);
+        }
+
+        private sealed class PlaygroundSubscription(
+            Signal<JsonElement> json,
+            Action<JsonElement> jsonHandler,
+            GraphDocument document,
+            Action<GraphDocument, bool> documentHandler) : IDisposable
+        {
+            public void Dispose()
+            {
+                json.Changed -= jsonHandler;
+                document.Changed -= documentHandler;
+            }
+        }
+    }
+
+    public static IReadOnlyList<StoryArgDefinition> PlaygroundArgs() =>
+    [
+        StoryArgDefinition.Create("graph", "json", GraphJson(PlaygroundGraph()),
+            description: "NodeGraph JSON。ArgsのJSON編集とcanvas上の編集が双方向に同期します。",
+            order: 0, editor: StoryArgEditorKind.Json),
+    ];
+
+    [Story(Args = nameof(PlaygroundArgs))]
+    public static StoryResult Playground(StoryContext ctx)
+    {
+        Signal<JsonElement> graph = ctx.Arg("graph", GraphJson(PlaygroundGraph()), new StoryArgOptions<JsonElement>
+        {
+            Description = "NodeGraph JSON。ArgsのJSON編集とcanvas上の編集が双方向に同期します。",
+            Editor = StoryArgEditorKind.Json,
+            Order = 0,
+        });
+        var root = new NodeGraphPlaygroundRoot(ctx, graph);
+        NodeGraphView ed = root.View;
+
+        ctx.Play("json-two-way", async d =>
+        {
+            ed.FitToView();
+            await d.Step(1);
+            await d.Snap();
+            await d.Expect(() => ed.NodeCount == 7 && ed.EdgeCount == 6, "豊富な既定JSONを表示");
+
+            var replacement = NodeGraphDoc.Of([
+                new GraphNode(20, "source", "JSON Source", new Vector2(40, 70), [new NodePort(0, PortDir.Out, "v", "value")]),
+                new GraphNode(21, "sink", "JSON Sink", new Vector2(330, 120), [new NodePort(0, PortDir.In, "v", "input")]),
+            ], [new GraphEdge(30, new PortId(20, 0), new PortId(21, 0))]);
+            graph.Value = GraphJson(replacement);             // Args JSON → view
+            await d.Step(1);
+            await d.Expect(() => ed.NodeCount == 2 && ed.EdgeCount == 1, "Args JSONの変更をviewへ反映");
+
+            ed.ApplyEdit(new MoveNode(21, new Vector2(70, 25))); // view → Args JSON
+            NodeGraphDoc reflected = NodeGraphJson.Deserialize(graph.Peek().GetRawText());
+            await d.Expect(() => reflected.Node(21).Pos == new Vector2(400, 145), "view編集をArgs JSONへ反映");
+            await d.Snap("json-applied");
+        });
+
+        return Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(20))[
+            VStack(10)[
+                Heading("NodeGraphView Playground — JSON双方向編集"),
+                Muted("Argsのgraph JSONを編集するとviewを再構築し、ノード移動・追加・削除・配線などview側の編集は同じJSONへ書き戻します。既定値はport label、複数型、分岐、collapsed node、parameter widgetを含みます。"),
+                root]];
     }
 
     // DevTools のレンダーグラフと同型のサンプル診断 (パス×リソース DAG)
