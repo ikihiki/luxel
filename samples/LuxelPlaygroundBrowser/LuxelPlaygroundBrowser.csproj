@@ -23,7 +23,7 @@
     <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\..\src\Graphics\Luxel.Graphics.WebGPU.Browser\Luxel.Graphics.WebGPU.Browser.csproj" />
-    <ProjectReference Include="..\..\src\Graphics\Luxel.Typography\Luxel.Typography.csproj" AdditionalProperties="LuxelBrowserWasm=true" />
+    <ProjectReference Include="..\..\src\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\..\src\UI\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\src\Platform\Luxel.Platform\Luxel.Platform.csproj" />
     <ProjectReference Include="..\..\src\Platform\Luxel.Platform.Web\Luxel.Platform.Web.csproj" />

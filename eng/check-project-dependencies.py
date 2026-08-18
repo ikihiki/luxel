@@ -12,9 +12,37 @@ from project_graph import (
 )
 
 
+def validate_project_reference_build_flavors(root: Path) -> list[str]:
+    """Reject ad-hoc project instances that would share the referenced project's bin/obj paths."""
+    import xml.etree.ElementTree as ET
+
+    errors: list[str] = []
+    for path in sorted(root.rglob("*.csproj")):
+        if any(part in {"bin", "obj", ".git"} for part in path.parts):
+            continue
+        try:
+            xml = ET.parse(path).getroot()
+        except ET.ParseError:
+            continue  # load_graph reports the parse error with project context.
+        for reference in xml.findall(".//ProjectReference"):
+            additional = reference.get("AdditionalProperties")
+            if additional is None:
+                node = reference.find("AdditionalProperties")
+                additional = node.text.strip() if node is not None and node.text else None
+            if additional:
+                include = reference.get("Include", "(missing Include)")
+                errors.append(
+                    "ProjectReference creates an unsafe custom build flavor that can race on shared bin/obj paths: "
+                    f"{path.relative_to(root).as_posix()} -> {include} [AdditionalProperties={additional}]. "
+                    "Use a standard TargetFramework/RuntimeIdentifier dimension or a separate project instead."
+                )
+    return errors
+
+
 def validate(root: Path, solution: str, baseline_path: Path) -> list[str]:
     projects, errors = load_graph(root, solution)
     baseline = load_baseline(baseline_path)
+    errors.extend(validate_project_reference_build_flavors(root))
     errors.extend(validate_metadata(root, projects))
 
     for cycle in cycles(projects):
