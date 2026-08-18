@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.Text.Json;
 using Luxel.Gallery.Generators;
 using Microsoft.CodeAnalysis;
@@ -9,7 +10,7 @@ namespace Luxel.Gallery.Generators.Tests;
 public sealed class GeneratedComponentStoryTests
 {
     [Fact]
-    public void Automatic_component_story_generation_emits_static_schema_direct_factory_and_capability_fallback()
+    public void Automatic_component_story_generation_covers_every_param_with_typed_args_collections_and_presets()
     {
         const string source = """
             using System;
@@ -33,6 +34,13 @@ public sealed class GeneratedComponentStoryTests
                 public sealed class Signal<T> { public Signal(T value) { } }
                 public sealed class UiEvent { }
                 public readonly struct Length { }
+                public enum GridUnit { Pixel, Auto, Star }
+                public readonly record struct GridLength(float Value, GridUnit Unit)
+                {
+                    public static GridLength Star(float value = 1) => new(value, GridUnit.Star);
+                    public static GridLength Px(float value) => new(value, GridUnit.Pixel);
+                    public static GridLength Auto => new(0, GridUnit.Auto);
+                }
                 public abstract partial class Widget
                 {
                     [UiParam] public Bindable<Length> Width { get; } = new();
@@ -77,6 +85,10 @@ public sealed class GeneratedComponentStoryTests
                     [UiParam] public Bindable<float> ViewportHeight { get; } = new();
                     [UiParam] public Bindable<float> EditorWidth { get; } = new();
                     [UiParam] public Bindable<float> EditorHeight { get; } = new();
+                    [UiParam] public Bindable<Signal<bool>> Open { get; } = new();
+                    [UiParam] public Bindable<string[]> Labels { get; } = new();
+                    [UiParam] public Bindable<GridLength[]> Columns { get; } = new();
+                    [UiParam] public Bindable<Widget[]> Content { get; } = new();
                 }
 
                 public sealed class Capability { }
@@ -85,6 +97,7 @@ public sealed class GeneratedComponentStoryTests
                 public sealed partial class AssetBrowser : Widget
                 {
                     [UiParam] public Bindable<Signal<Capability>> Services { get; } = new();
+                    [UiParam] public Bindable<Action<Capability>> Changed { get; } = new();
                 }
 
                 public static partial class Kit { }
@@ -103,6 +116,23 @@ public sealed class GeneratedComponentStoryTests
 
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
         string generated = Assert.Single(result.GeneratedTrees).ToString();
+        MatchCollection argBlocks = Regex.Matches(generated,
+            @"private static readonly global::Luxel\.Gallery\.StoryArgDefinition\[\] Args_\d+ =\s*\[(.*?)\];",
+            RegexOptions.Singleline);
+        Assert.Equal(3, argBlocks.Count);
+        string[][] expectedArgNames =
+        [
+            ["services", "changed", "width"],
+            ["text", "enabled", "width"],
+            ["child", "min", "max", "iconSize", "stroke", "surfaceWidth", "surfaceHeight", "spinnerSize",
+             "viewportHeight", "editorWidth", "editorHeight", "open", "labels", "columns", "content", "width"],
+        ];
+        for (int block = 0; block < argBlocks.Count; block++)
+        {
+            string[] actualNames = Regex.Matches(argBlocks[block].Groups[1].Value, "Create<[^>]+>\\(\\\"([^\\\"]+)\\\"")
+                .Select(match => match.Groups[1].Value).ToArray();
+            Assert.Equal(expectedArgNames[block], actualNames);
+        }
         Assert.Contains("public const int ComponentCount = 3;", generated, StringComparison.Ordinal);
         Assert.Contains("GeneratedComponentStoryDescriptor", generated, StringComparison.Ordinal);
         Assert.Contains("\"Controls/Input/Button/Docs\"", generated, StringComparison.Ordinal);
@@ -132,8 +162,25 @@ public sealed class GeneratedComponentStoryTests
         Assert.Contains("StoryArgDefinition.Create<float>(\"editorWidth\", \"float\", 320f", generated, StringComparison.Ordinal);
         Assert.Contains("StoryArgDefinition.Create<float>(\"editorHeight\", \"float\", 240f", generated, StringComparison.Ordinal);
         Assert.Contains("Min = 1d, Max = 1024d, Step = 1d", generated, StringComparison.Ordinal);
-        Assert.Contains("new global::Luxel.Gallery.StoryCapabilityFallback(\"AssetBrowser\"", generated, StringComparison.Ordinal);
-        Assert.Contains("Unsupported capability/constructor inputs use a deterministic fallback: Services.", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<bool>(\"open\", \"bool\", false", generated, StringComparison.Ordinal);
+        Assert.Contains("ctx.Arg<bool>(\"open\", false", generated, StringComparison.Ordinal);
+        Assert.Contains("global::Luxel.UI.Signal<bool> value", generated, StringComparison.Ordinal);
+        Assert.Contains("value", generated, StringComparison.Ordinal);
+        Assert.Contains(".Value = arg", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"labels\", \"string\", \"One, Two, Three\"", generated, StringComparison.Ordinal);
+        Assert.Contains("labels: arg", generated, StringComparison.Ordinal);
+        Assert.Contains("StringSplitOptions.TrimEntries | global::System.StringSplitOptions.RemoveEmptyEntries", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"columns\", \"string\", \"1*, 1*\"", generated, StringComparison.Ordinal);
+        Assert.Contains("columns: ParseGridLengths(arg", generated, StringComparison.Ordinal);
+        Assert.Contains("private static global::Luxel.UI.GridLength[] ParseGridLengths", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"content\", \"preset\", \"Generated fixture\"", generated, StringComparison.Ordinal);
+        Assert.Contains("content: new global::Luxel.UI.Widget[]", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"services\", \"preset\", \"Component default\"", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"changed\", \"preset\", \"Component default\"", generated, StringComparison.Ordinal);
+        Assert.Contains("per-parameter component-default presets where adapters are required: Services, Changed.", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Unsupported capability/constructor inputs use a deterministic fallback", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("RequiresFallback", generated, StringComparison.Ordinal);
+        Assert.Contains("(\"width\", \"length\"", generated, StringComparison.Ordinal);
         Assert.Contains("StoryResult.FromMarkdown", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Activator", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Reflection", generated, StringComparison.Ordinal);
