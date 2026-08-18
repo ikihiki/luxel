@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Luxel.Typography;
 using Luxel.UI;
 using Luxel.Controls;
@@ -131,18 +132,33 @@ public sealed partial class KnobsTable : CompositeControl
         return editor;
     }
 
+    private static string PresetLabel(string option)
+    {
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(option);
+            return document.RootElement.ValueKind == JsonValueKind.String
+                ? document.RootElement.GetString() ?? ""
+                : option;
+        }
+        catch (JsonException)
+        {
+            return option;
+        }
+    }
+
     private Widget CreateEditor(StoryKnob k)
     {
         void Commit(string v) => OnEdit.Invoke(this, k, v);
 
-        if (k.Type == "bool")
+        if (k.Editor == StoryArgEditorKind.Boolean)
         {
             var b = new Signal<bool>(k.Value == "true");
             bool first = true;
             Reactive.Effect(() => { bool v = b.Value; if (first) { first = false; return; } Commit(v ? "true" : "false"); });
             return Check(b, "");
         }
-        if (k.Type == "color")
+        if (k.Editor == StoryArgEditorKind.Color)
         {
             // Kit ファクトリが型名を隠すため完全修飾 (CS0119 回避)
             var col = new Signal<uint>(global::Luxel.Controls.ColorPicker.TryParseHex(k.Value, out uint c) ? c : 0xFF000000u);
@@ -150,26 +166,36 @@ public sealed partial class KnobsTable : CompositeControl
             Reactive.Effect(() => { uint v = col.Value; if (first) { first = false; return; } Commit(global::Luxel.Controls.ColorPicker.ToHex(v)); });
             return ColorPicker(col);
         }
-        if (k.Type == "length")
+        if (k.Editor == StoryArgEditorKind.Length)
         {
             var len = new Signal<Length>(Length.TryParse(k.Value, null, out Length l) ? l : default);
             bool first = true;
             Reactive.Effect(() => { Length v = len.Value; if (first) { first = false; return; } Commit(v.ToString()); });
             return LengthField(len);
         }
-        if (k.Type.StartsWith("enum:"))
+        if ((k.Editor is StoryArgEditorKind.Enum or StoryArgEditorKind.Preset) && k.Options is { Count: > 0 })
         {
-            string[] opts = k.Type[5..].Split('|');
-            var sel = new Signal<int>(Math.Max(0, Array.IndexOf(opts, k.Value)));
+            string[] options = k.Options.ToArray();
+            int selectedIndex = Array.IndexOf(options, k.Value);
+            if (selectedIndex < 0) selectedIndex = Array.FindIndex(options,
+                option => string.Equals(PresetLabel(option), k.Value, StringComparison.Ordinal));
+            var selected = new Signal<int>(Math.Max(0, selectedIndex));
             bool first = true;
-            Reactive.Effect(() => { int i = sel.Value; if (first) { first = false; return; } Commit(opts[Math.Clamp(i, 0, opts.Length - 1)]); });
-            return Select(opts, sel);
+            Reactive.Effect(() =>
+            {
+                int index = selected.Value;
+                if (first) { first = false; return; }
+                Commit(options[Math.Clamp(index, 0, options.Length - 1)]);
+            });
+            return Select(options.Select(PresetLabel).ToArray(), selected);
         }
         var txt = new Signal<string>(k.Value);
         bool firstT = true;
         Reactive.Effect(() => { string v = txt.Value; if (firstT) { firstT = false; return; } Commit(v); });
         TextField tf = TextField(txt, width: CtlW);
-        tf.Pattern = k.Type switch { "int" => IntPattern, "float" => FloatPattern, _ => null };
+        tf.Pattern = k.Editor == StoryArgEditorKind.Number
+            ? k.Type == "int" ? IntPattern : FloatPattern
+            : null;
         return tf;
     }
 }

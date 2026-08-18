@@ -98,6 +98,57 @@ public sealed class StoryResultTests
     }
 
     [Fact]
+    public void Arg_schema_resolves_explicit_and_legacy_editors()
+    {
+        StoryArgDefinition legacyNumber = StoryArgDefinition.Create("count", "int", 2, min: 1, max: 9, step: 2);
+        StoryArgDefinition legacyEnum = StoryArgDefinition.Create("size", "enum:Small|Large", "Small",
+            options: ["Small", "Large"]);
+        StoryArgDefinition json = StoryArgDefinition.Create("layout", "Layout", Json("{\"gap\":8}"),
+            editor: StoryArgEditorKind.Json);
+
+        Assert.Equal(StoryArgEditorKind.Number, legacyNumber.EditorKind);
+        Assert.Equal(StoryArgEditorKind.Enum, legacyEnum.EditorKind);
+        Assert.Equal(StoryArgEditorKind.Json, json.EditorKind);
+        Assert.Equal(JsonValueKind.Object, json.DefaultValue.ValueKind);
+    }
+
+    [Fact]
+    public void Arg_options_flow_editor_range_and_presets_to_schema_and_knob()
+    {
+        var context = new StoryContext();
+        string[] presets = ["{\"gap\":4}", "{\"gap\":12}"];
+        Signal<JsonElement> layout = context.Arg("layout", Json(presets[0]), new StoryArgOptions<JsonElement>
+        {
+            Description = "Layout preset",
+            Min = 1,
+            Max = 20,
+            Step = 1,
+            Options = presets,
+            Editor = StoryArgEditorKind.Preset,
+        });
+
+        StoryKnob knob = Assert.Single(context.Knobs);
+        StoryArgDefinition definition = Assert.Single(context.ArgDefinitions);
+        Assert.Equal(StoryArgEditorKind.Preset, knob.Editor);
+        Assert.Equal(presets, knob.Options);
+        Assert.Equal(1, knob.Min);
+        Assert.Equal(20, knob.Max);
+        Assert.Equal(1, knob.Step);
+        Assert.Equal(StoryArgEditorKind.Preset, definition.Editor);
+        Assert.Equal(presets, definition.Options);
+
+        knob.SetText(presets[1]);
+        Assert.Equal(12, layout.Value.GetProperty("gap").GetInt32());
+        Assert.Equal(presets[1], context.Args.Values["layout"].GetRawText());
+    }
+
+    private static JsonElement Json(string json)
+    {
+        using JsonDocument document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
+
+    [Fact]
     public void Story_log_notifies_output_subscribers_with_the_recorded_entry()
     {
         var context = new StoryContext();
