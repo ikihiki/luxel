@@ -495,7 +495,10 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine();
         sb.AppendLine("namespace Luxel.Gallery.Generated");
         sb.AppendLine("{");
-        sb.Append("    public static class ").AppendLine(registration);
+        // Registrations are compilation-local aggregators. Referenced components are emitted
+        // again for the consuming Gallery, so exporting these types only creates CS0436
+        // collisions when a component assembly also runs this generator.
+        sb.Append("    internal static class ").AppendLine(registration);
         sb.AppendLine("    {");
         sb.AppendLine("        public const int ComponentCount = " + components.Count + ";");
         sb.AppendLine("        public static global::System.Collections.Generic.IReadOnlyList<global::Luxel.Gallery.GeneratedComponentStoryDescriptor> Descriptors { get; } =");
@@ -505,7 +508,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             string category = widget.FactoryName;
             sb.Append("            new global::Luxel.Gallery.GeneratedComponentStoryDescriptor(")
                 .Append(Lit(widget.TypeFq)).Append(", ").Append(Lit(category)).Append(", ")
-                .Append(Lit("Controls/" + category + "/Overview")).Append(", ")
+                .Append(Lit("Controls/" + category + "/Docs")).Append(", ")
                 .Append(Lit("Controls/" + category + "/Basic")).AppendLine("),");
         }
         sb.AppendLine("        ];");
@@ -517,15 +520,17 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         {
             WidgetModel widget = components[index];
             string category = widget.FactoryName;
-            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Overview"))
-                .Append(", static _ => Overview_").Append(index).Append("(), Source: ")
-                .Append(Lit("Generated overview for " + widget.TypeFq))
-                .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index).AppendLine("]));");
+            sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Docs"))
+                .Append(", static _ => Docs_").Append(index).Append("(), Source: ")
+                .Append(Lit("Generated component docs for " + widget.TypeFq))
+                .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
+                .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Docs));");
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit("Controls/" + category + "/Basic"))
                 .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
                 .Append(Lit("Generated direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
                 .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget)))
-                .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index).AppendLine("]));");
+                .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
+                .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Basic));");
         }
         sb.AppendLine("        }");
         for (int index = 0; index < components.Count; index++)
@@ -539,7 +544,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
                 EmitStaticArgDefinition(sb, field);
             sb.AppendLine("        ];");
             sb.AppendLine();
-            EmitGeneratedOverview(sb, widget, args, index);
+            EmitGeneratedDocs(sb, widget, args, index);
             sb.AppendLine();
             EmitGeneratedBasic(sb, widget, args, index, factoryDefault);
         }
@@ -602,7 +607,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         sb.AppendLine("),");
     }
 
-    private static void EmitGeneratedOverview(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index)
+    private static void EmitGeneratedDocs(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index)
     {
         string category = widget.FactoryName;
         string summary = widget.DocSummary.Length > 0 ? widget.DocSummary : category + " is a production Luxel UI component.";
@@ -611,7 +616,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         string exampleArgs = string.Join(", ", args.Where(static field => field.Own).Take(4).Select(field => ParamName(field.Name) + ": " + StoryDefault(field)));
         string example = widget.FactoryName + "(" + exampleArgs + ")";
         string markdown = "# " + category + "\n\n" + summary + "\n\n```luxel-story\n0\n```\n\n## Implementation\n\n```csharp\n" + example + "\n```\n\n## Patterns and variants\n\n- Basic typed factory usage\n- Representative editable scalar args\n- Inherited layout args: width, height, alignment and transforms when supported\n- Deterministic browser fixture/fallback for capability inputs\n\n## Events, parameters and API\n\n**Events:** " + events + "\n\n**Component parameters:** " + own + "\n\nSee `ControlApiRegistry` / the generated API table for the complete inherited API.\n";
-        sb.Append("        private static global::Luxel.Gallery.StoryResult Overview_").Append(index).Append("() => global::Luxel.Gallery.StoryResult.FromMarkdown(")
+        sb.Append("        private static global::Luxel.Gallery.StoryResult Docs_").Append(index).Append("() => global::Luxel.Gallery.StoryResult.FromMarkdown(")
             .Append(Lit(markdown)).Append(", global::Luxel.Gallery.StoryReference.To(").Append(Lit("Controls/" + category + "/Basic")).AppendLine("));");
     }
 

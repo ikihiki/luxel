@@ -330,7 +330,7 @@ public sealed class UiBuildContext
 /// </summary>
 public abstract partial class Widget
 {
-    private Dictionary<string, object?>? _attached;
+    private Dictionary<object, object?>? _attached;
     private Dictionary<string, object>? _setterWraps;
 
     // ---- 状態 signals (全 widget 共通)。Realize が入力配線し、Bindable の状態レイヤ判定と
@@ -598,4 +598,22 @@ public abstract partial class Widget
     /// <summary>添付プロパティを型付きで取得する。未設定なら fallback。</summary>
     public T GetAttached<T>(string key, T fallback = default!)
         => _attached != null && _attached.TryGetValue(key, out object? v) && v is T t ? t : fallback;
+
+    /// <summary>型付き添付プロパティを設定する。validation は設定時に実行される。</summary>
+    public void SetAttached<T>(AttachedProperty<T> property, T value)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+        property.Validate(value);
+        _attached ??= new();
+        _attached[property] = value;
+    }
+
+    /// <summary>型付き添付プロパティを取得する。未設定なら property の既定値。</summary>
+    public T GetAttached<T>(AttachedProperty<T> property)
+    {
+        ArgumentNullException.ThrowIfNull(property);
+        return _attached != null && _attached.TryGetValue(property, out object? value) && value is T typed
+            ? typed
+            : property.DefaultValue;
+    }
 }

@@ -1,4 +1,4 @@
-﻿using Luxel.Controls;
+using Luxel.Controls;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography;
 using Luxel.UI;
@@ -29,6 +29,17 @@ public class UiThemeTests
         Assert.Equal(14f, theme.FontSm);
         Assert.Equal(24f, theme.FontLg);
         Assert.Equal(32f, theme.FontHeading);
+    }
+
+    [Fact]
+    public void ThemeSnapshotsUseReplaceOnlySemantics()
+    {
+        Theme original = Theme.Light;
+        Theme replacement = original with { Primary = Color2D.Rgba(1, 2, 3) };
+
+        Assert.NotSame(original, replacement);
+        Assert.NotEqual(original.Primary, replacement.Primary);
+        Assert.Equal(original.Background, replacement.Background);
     }
 
     [Fact]

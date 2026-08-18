@@ -9,7 +9,7 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls/Navigation")]
 public static class NavigationStories
 {
-    [Story]
+    [Story(Path = "Controls/Navigation/Examples/History")]
     public static StoryResult NavigationHistory(StoryContext ctx)
     {
         string[] paths = ["/", "/details", "/saved"];
@@ -29,7 +29,7 @@ public static class NavigationStories
             host]);
     }
 
-    [Story]
+    [Story(Path = "Controls/NavigationView/Basic")]
     public static StoryResult NavigationViewBasic(StoryContext ctx)
     {
         string[] paths = ["/", "/projects", "/settings", "/admin"];

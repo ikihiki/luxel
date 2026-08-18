@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using Luxel.UI.Styling;
 
@@ -32,7 +32,16 @@ public sealed partial class Slider : Widget, ISlotted<SliderSlotKey>
 
     // === Slot ===
     private readonly Dictionary<SliderSlotKey, Func<Widget>> _slots = new();
-    public void SetSlot(SliderSlotKey key, Func<Widget> template) => _slots[key] = template;
+    private readonly Dictionary<SliderSlotKey, Widget> _slotInstances = new();
+    public void SetSlot(SliderSlotKey key, Func<Widget> template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        if (_slotInstances.Remove(key, out Widget? previous)) previous.Scope?.Dispose();
+        _slots[key] = template;
+        MarkNeedsRealize();
+    }
+
+    public override IEnumerable<Widget> DebugChildren() => _slotInstances.Values;
 
     public Slider this[params ISlotPart[] slots]
     {
@@ -75,8 +84,9 @@ public sealed partial class Slider : Widget, ISlotted<SliderSlotKey>
         UiNode track = ctx.Canvas.AddChild(node);
         if (_slots.TryGetValue(SliderSlotKey.Track, out var trackTmpl))
         {
-            var customTrack = trackTmpl();
-            customTrack.Layout(Constraints.Tight(new Size(EffectiveWidth, TrackH)), new LayoutContext { Font = ctx.Font });
+            Widget customTrack = trackTmpl() ?? throw new InvalidOperationException("The Slider track slot template returned null.");
+            _slotInstances[SliderSlotKey.Track] = customTrack;
+            customTrack.Layout(Constraints.Tight(new Size(EffectiveWidth, TrackH)), new LayoutContext { Font = ctx.Font, Theme = ctx.Theme.Peek() });
             customTrack.Offset = new Point(0, ty);
             customTrack.Realize(ctx, node, world);
         }
@@ -97,8 +107,9 @@ public sealed partial class Slider : Widget, ISlotted<SliderSlotKey>
         UiNode knob = ctx.Canvas.AddChild(node); knob.Z = 2;
         if (_slots.TryGetValue(SliderSlotKey.Knob, out var knobTmpl))
         {
-            var customKnob = knobTmpl();
-            customKnob.Layout(Constraints.Tight(new Size(Knob, H)), new LayoutContext { Font = ctx.Font });
+            Widget customKnob = knobTmpl() ?? throw new InvalidOperationException("The Slider knob slot template returned null.");
+            _slotInstances[SliderSlotKey.Knob] = customKnob;
+            customKnob.Layout(Constraints.Tight(new Size(Knob, H)), new LayoutContext { Font = ctx.Font, Theme = ctx.Theme.Peek() });
             customKnob.Offset = new Point(0, 0);
             customKnob.Realize(ctx, knob, world);
         }

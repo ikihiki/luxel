@@ -43,8 +43,13 @@ public sealed partial class TextField : Widget, ITextInput, ISlotted<TextFieldSl
     /// <summary>文字入力領域の前後へ widget を置く slot。</summary>
     public void SetSlot(TextFieldSlotKey key, Func<Widget> template)
     {
-        if (key == TextFieldSlotKey.Leading) _leading = template();
-        else _trailing = template();
+        ArgumentNullException.ThrowIfNull(template);
+        Widget replacement = template() ?? throw new InvalidOperationException("A TextField slot template returned null.");
+        ref Widget? current = ref (key == TextFieldSlotKey.Leading ? ref _leading : ref _trailing);
+        if (ReferenceEquals(current, replacement)) return;
+        current?.Scope?.Dispose();
+        current = replacement;
+        MarkNeedsRealize();
     }
 
     public TextField this[params ISlotPart[] slots]

@@ -1,4 +1,4 @@
-﻿using Luxel.UI;
+using Luxel.UI;
 
 namespace Luxel.Controls;
 
@@ -15,35 +15,32 @@ public static class GridAttachedExtensions
 {
     public static T GridColumn<T>(this T w, int column) where T : Widget
     {
-        w.SetAttached(new Attached(GridKeys.Column, column));
+        U.Grid.Column(column).ApplyTo(w);
         return w;
     }
 
     public static T GridRow<T>(this T w, int row) where T : Widget
     {
-        w.SetAttached(new Attached(GridKeys.Row, row));
+        U.Grid.Row(row).ApplyTo(w);
         return w;
     }
 
     public static T GridColumnSpan<T>(this T w, int span) where T : Widget
     {
-        w.SetAttached(new Attached(GridKeys.ColumnSpan, span));
+        U.Grid.ColumnSpan(span).ApplyTo(w);
         return w;
     }
 
     public static T GridRowSpan<T>(this T w, int span) where T : Widget
     {
-        w.SetAttached(new Attached(GridKeys.RowSpan, span));
+        U.Grid.RowSpan(span).ApplyTo(w);
         return w;
     }
 
     /// <summary>セル指定のまとめ書き (列, 行, スパン)。</summary>
     public static T GridCell<T>(this T w, int column, int row, int columnSpan = 1, int rowSpan = 1) where T : Widget
     {
-        w.SetAttached(new Attached(GridKeys.Column, column));
-        w.SetAttached(new Attached(GridKeys.Row, row));
-        if (columnSpan != 1) w.SetAttached(new Attached(GridKeys.ColumnSpan, columnSpan));
-        if (rowSpan != 1) w.SetAttached(new Attached(GridKeys.RowSpan, rowSpan));
+        U.Grid.Cell(column, row, columnSpan, rowSpan).ApplyTo(w);
         return w;
     }
 }

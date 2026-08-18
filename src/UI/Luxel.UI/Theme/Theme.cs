@@ -1,4 +1,4 @@
-﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD;
 
 namespace Luxel.UI;
 
@@ -6,39 +6,76 @@ namespace Luxel.UI;
 /// 配色・寸法・タイポのトークン集合。<see cref="UiTheme.Current"/> に signal 保持し、切替時は
 /// 束縛ノードの recolor (スタイルのみ部分更新) で反映される (保持型の高速パスと好相性)。
 /// </summary>
-public sealed class Theme
+public sealed record class Theme
 {
-    // 配色 (RGBA)
-    public uint Background, Surface, SurfaceAlt, BorderColor, Text, TextMuted, OnAccent;
-    public uint Primary, PrimaryHover, PrimaryActive;
-    public uint Success, Warning, Danger, Info;
+    // 配色 (RGBA). Theme snapshots are replace-only; tokens cannot be mutated after construction.
+    public uint Background { get; init; }
+    public uint Surface { get; init; }
+    public uint SurfaceAlt { get; init; }
+    public uint BorderColor { get; init; }
+    public uint Text { get; init; }
+    public uint TextMuted { get; init; }
+    public uint OnAccent { get; init; }
+    public uint Primary { get; init; }
+    public uint PrimaryHover { get; init; }
+    public uint PrimaryActive { get; init; }
+    public uint Success { get; init; }
+    public uint Warning { get; init; }
+    public uint Danger { get; init; }
+    public uint Info { get; init; }
+
     // シンタックスハイライトのトークン色 (SH — コードブロック)。既定値は VS Code Light+/Dark+ 相当
-    public uint TokComment, TokString, TokEscape, TokRegexp, TokNumber, TokConstant;
-    public uint TokKeyword, TokKeywordControl, TokOperator;
-    public uint TokFunction, TokType, TokVariable, TokTag, TokAttribute;
+    public uint TokComment { get; init; }
+    public uint TokString { get; init; }
+    public uint TokEscape { get; init; }
+    public uint TokRegexp { get; init; }
+    public uint TokNumber { get; init; }
+    public uint TokConstant { get; init; }
+    public uint TokKeyword { get; init; }
+    public uint TokKeywordControl { get; init; }
+    public uint TokOperator { get; init; }
+    public uint TokFunction { get; init; }
+    public uint TokType { get; init; }
+    public uint TokVariable { get; init; }
+    public uint TokTag { get; init; }
+    public uint TokAttribute { get; init; }
 
     // 寸法
-    public float Radius = 6, RadiusLg = 12, Space = 8;
+    public float Radius { get; init; } = 6;
+    public float RadiusLg { get; init; } = 12;
+    public float Space { get; init; } = 8;
     // Web typography baseline: body 16px, supporting text 14px, h2 24px, h1 32px.
-    public float Font = 16, FontSm = 14, FontLg = 24, FontHeading = 32;
+    public float Font { get; init; } = 16;
+    public float FontSm { get; init; } = 14;
+    public float FontLg { get; init; } = 24;
+    public float FontHeading { get; init; } = 32;
 
     // コントロール密度 (既定 = 従来のハードコード値。Compact() で詰まる)
-    public float ControlH = 38;              // TextField/Select の高さ
-    public float BtnPadX = 18, BtnPadY = 9;  // Button の既定 padding
-    public float PadIn = 10;                 // 入力系の内側左右 pad (Select は +2)
-    public float CheckBox = 20, CheckGap = 9;
+    public float ControlH { get; init; } = 38;       // TextField/Select の高さ
+    public float BtnPadX { get; init; } = 18;
+    public float BtnPadY { get; init; } = 9;         // Button の既定 padding
+    public float PadIn { get; init; } = 10;          // 入力系の内側左右 pad (Select は +2)
+    public float CheckBox { get; init; } = 20;
+    public float CheckGap { get; init; } = 9;
 
     /// <summary>この配色のまま寸法だけ詰めた高密度テーマを返す (ツール/インスペクタ向け)。</summary>
-    public Theme Compact()
+    public Theme Compact() => this with
     {
-        var t = (Theme)MemberwiseClone();
         // Compact changes density, not legibility. Typography stays on the web baseline.
-        t.Font = 16; t.FontSm = 14; t.FontLg = 24; t.FontHeading = 32;
-        t.Space = 4; t.Radius = 4; t.RadiusLg = 8;
-        t.ControlH = 24; t.BtnPadX = 10; t.BtnPadY = 3; t.PadIn = 6;
-        t.CheckBox = 14; t.CheckGap = 6;
-        return t;
-    }
+        Font = 16,
+        FontSm = 14,
+        FontLg = 24,
+        FontHeading = 32,
+        Space = 4,
+        Radius = 4,
+        RadiusLg = 8,
+        ControlH = 24,
+        BtnPadX = 10,
+        BtnPadY = 3,
+        PadIn = 6,
+        CheckBox = 14,
+        CheckGap = 6,
+    };
 
     private static uint C(byte r, byte g, byte b) => Color2D.Rgba(r, g, b);
 

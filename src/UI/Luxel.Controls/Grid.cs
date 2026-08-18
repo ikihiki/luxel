@@ -1,16 +1,16 @@
-﻿using Luxel.Graphics.TwoD;
+using Luxel.Graphics.TwoD;
 
 using Luxel.UI;
 
 namespace Luxel.Controls;
 
-/// <summary>Grid の添付プロパティのキー (Grid.cs と GridDsl.cs で共有)。</summary>
-internal static class GridKeys
+/// <summary>Grid が子 Widget から読む型付き添付プロパティ。</summary>
+public static class GridProperties
 {
-    public const string Column = "Grid.Column";
-    public const string Row = "Grid.Row";
-    public const string ColumnSpan = "Grid.ColumnSpan";
-    public const string RowSpan = "Grid.RowSpan";
+    public static readonly AttachedProperty<int> Column = AttachedProperty<int>.Create<Grid>("Luxel.Controls.Grid.Column", 0, static value => value >= 0);
+    public static readonly AttachedProperty<int> Row = AttachedProperty<int>.Create<Grid>("Luxel.Controls.Grid.Row", 0, static value => value >= 0);
+    public static readonly AttachedProperty<int> ColumnSpan = AttachedProperty<int>.Create<Grid>("Luxel.Controls.Grid.ColumnSpan", 1, static value => value >= 1);
+    public static readonly AttachedProperty<int> RowSpan = AttachedProperty<int>.Create<Grid>("Luxel.Controls.Grid.RowSpan", 1, static value => value >= 1);
 }
 
 /// <summary>
@@ -57,10 +57,10 @@ public sealed partial class Grid : Widget
 
         foreach (Widget ch in _children)
         {
-            int col = Math.Clamp(ch.GetAttached(GridKeys.Column, 0), 0, columns.Length - 1);
-            int row = Math.Clamp(ch.GetAttached(GridKeys.Row, 0), 0, rows.Length - 1);
-            int cspan = Math.Max(1, ch.GetAttached(GridKeys.ColumnSpan, 1));
-            int rspan = Math.Max(1, ch.GetAttached(GridKeys.RowSpan, 1));
+            int col = Math.Clamp(ch.GetAttached(GridProperties.Column), 0, columns.Length - 1);
+            int row = Math.Clamp(ch.GetAttached(GridProperties.Row), 0, rows.Length - 1);
+            int cspan = ch.GetAttached(GridProperties.ColumnSpan);
+            int rspan = ch.GetAttached(GridProperties.RowSpan);
             float cw = SumSpan(colW, col, cspan);
             float chh = SumSpan(rowH, row, rspan);
             LayoutHelper.PlaceInBox(ch, ctx, colX[col], rowY[row], cw, chh);   // margin + HAlign/VAlign
@@ -96,7 +96,7 @@ public sealed partial class Grid : Widget
     {
         float w = 0;
         foreach (Widget ch in _children)
-            if (Math.Clamp(ch.GetAttached(GridKeys.Column, 0), 0, columns.Length - 1) == col)
+            if (Math.Clamp(ch.GetAttached(GridProperties.Column), 0, columns.Length - 1) == col)
                 w = MathF.Max(w, ch.MaxIntrinsicWidth(float.PositiveInfinity, ctx));
         return w;
     }
