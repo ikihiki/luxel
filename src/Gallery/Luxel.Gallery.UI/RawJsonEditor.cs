@@ -6,6 +6,12 @@ using static Luxel.Controls.Kit;
 
 namespace Luxel.Gallery.UI;
 
+public enum JsonEditorMode
+{
+    Raw,
+    Tree,
+}
+
 /// <summary>
 /// Native multiline raw JSON editor for Gallery args. Draft text is isolated in
 /// <see cref="StoryJsonArgDocument"/> until the user explicitly applies it.
@@ -16,7 +22,9 @@ public sealed class RawJsonEditor : CompositeControl
     private readonly Signal<string> _draft;
     private readonly Signal<string> _status;
     private readonly Signal<string> _diagnostic;
+    private readonly Signal<JsonEditorMode> _mode = new(JsonEditorMode.Raw);
     private readonly TextEditorView _editor;
+    private readonly JsonTreeView _tree;
 
     public RawJsonEditor(StoryArgDefinition definition, JsonElement acceptedValue, Action<string> commit,
         float width = 180f, float height = 112f)
@@ -31,6 +39,7 @@ public sealed class RawJsonEditor : CompositeControl
         _status = new Signal<string>(Status);
         _diagnostic = new Signal<string>(DiagnosticText());
         _editor = TextEditorView(_draft, editorHeight: MathF.Max(72, height), editorWidth: _width);
+        _tree = new JsonTreeView(Document.Tree, _width);
         _editor.WrapText = true;
         _editor.OnEdit = _ => DraftChanged();
     }
@@ -38,6 +47,25 @@ public sealed class RawJsonEditor : CompositeControl
     public StoryJsonArgDocument Document { get; }
     public Signal<string> Draft => _draft;
     public TextEditorView EditorView => _editor;
+    public JsonTreeView TreeView => _tree;
+    public JsonEditorMode Mode => _mode.Peek();
+
+    public void SwitchMode(JsonEditorMode mode)
+    {
+        if (mode == JsonEditorMode.Tree)
+        {
+            Document.SetRawDraft(_draft.Value);
+            if (Document.IsDirty) Document.ValidateRawDraft();
+            UpdateStatus();
+        }
+        else
+        {
+            SyncDraft();
+        }
+        _tree.Refresh();
+        _mode.Value = mode;
+    }
+
     public string Status => Document.IsInvalid
         ? "JSONにエラーがあります"
         : Document.IsDirty ? "未適用の変更があります" : "有効なJSONです";
@@ -77,21 +105,31 @@ public sealed class RawJsonEditor : CompositeControl
     }
 
     protected override Widget Build()
-        => VStack(5, width: _width)[
-            _editor,
+    {
+        JsonEditorMode mode = _mode.Value;
+        var children = new List<Widget>
+        {
             HStack(4)[
+                Button(_ => SwitchMode(JsonEditorMode.Raw), "Raw", fontSize: 10),
+                Button(_ => SwitchMode(JsonEditorMode.Tree), "Tree", fontSize: 10)],
+            mode == JsonEditorMode.Raw ? _editor : _tree,
+        };
+        if (mode == JsonEditorMode.Raw)
+            children.Add(HStack(4)[
                 Button(_ => Apply(), "適用", fontSize: 10),
                 Button(_ => Format(), "整形", fontSize: 10),
                 Button(_ => Compact(), "圧縮", fontSize: 10),
-                Button(_ => Discard(), "破棄", fontSize: 10)],
-            Text(_status, 10, color: Bind.From(() =>
-            {
-                _ = _status.Value;
-                return Document.IsInvalid ? UiTheme.T.Danger
-                    : Document.IsDirty ? UiTheme.T.Warning : UiTheme.T.Success;
-            }), width: _width, wrap: TextWrap.Word),
-            Text(_diagnostic, 10, color: Bind.From(() => UiTheme.T.Danger),
-                width: _width, wrap: TextWrap.Word)];
+                Button(_ => Discard(), "破棄", fontSize: 10)]);
+        children.Add(Text(_status, 10, color: Bind.From(() =>
+        {
+            _ = _status.Value;
+            return Document.IsInvalid ? UiTheme.T.Danger
+                : Document.IsDirty ? UiTheme.T.Warning : UiTheme.T.Success;
+        }), width: _width, wrap: TextWrap.Word));
+        children.Add(Text(_diagnostic, 10, color: Bind.From(() => UiTheme.T.Danger),
+            width: _width, wrap: TextWrap.Word));
+        return VStack(5, width: _width)[children.ToArray()];
+    }
 
     private void DraftChanged()
     {

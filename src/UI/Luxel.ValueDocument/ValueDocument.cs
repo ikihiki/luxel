@@ -94,6 +94,9 @@ public enum ValueApplyStatus
     NoDraft,
     NothingToUndo,
     NothingToRedo,
+    InvalidRawDraft,
+    NodeNotFound,
+    InvalidOperation,
 }
 
 public sealed record ValueApplyResult(ValueApplyStatus Status, ValueTransaction? Transaction = null)
@@ -107,7 +110,7 @@ public sealed record ExternalValueConflict(
     long DraftBaseRevision,
     long AcceptedRevision);
 
-public sealed class ValueDocument
+public sealed partial class ValueDocument
 {
     private static readonly ValueCommitCallback AcceptAll = (_, _) => ValueCommitResult.Accepted();
     private readonly ValueCommitCallback _commit;
@@ -146,6 +149,27 @@ public sealed class ValueDocument
         ExternalConflict = null;
         return RawDraft;
     }
+
+    /// <summary>Parses the current raw draft without committing it.</summary>
+    public bool ValidateRawDraft()
+    {
+        if (RawDraft is null)
+        {
+            _diagnostics = Array.Empty<ValueDiagnostic>();
+            Candidate = null;
+            return true;
+        }
+
+        JsonValueParseResult parsed = JsonValueCodec.Parse(RawDraft.Text);
+        _diagnostics = parsed.Diagnostics;
+        Candidate = parsed.Success
+            ? new ParsedValueCandidate(parsed.Root!, RawDraft.Revision, RawDraft.BaseRevision, parsed.Diagnostics)
+            : null;
+        return parsed.Success;
+    }
+
+    /// <summary>True when an uncommitted raw draft cannot be represented by structured editors.</summary>
+    public bool HasInvalidDirtyRawDraft => RawDraft?.IsDirty == true && !JsonValueCodec.Parse(RawDraft.Text).Success;
 
     public ValueApplyResult ApplyRawDraft(ValueSelection? selection = null)
     {

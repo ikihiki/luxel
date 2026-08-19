@@ -99,7 +99,11 @@ public sealed class StoryJsonArgDocument
             commit(JsonValueCodec.ToJsonElement(candidate));
             return ValueCommitResult.Accepted();
         });
+        Tree = new ValueTreeController(_document);
     }
+
+    public ValueDocument.ValueDocument ValueDocument => _document;
+    public ValueTreeController Tree { get; }
 
     public StoryArgDefinition Definition { get; }
     public ValueDescriptor Descriptor { get; }
@@ -109,6 +113,10 @@ public sealed class StoryJsonArgDocument
     public StoryJsonArgDiagnostic? Diagnostic => _document.Diagnostics.FirstOrDefault() is { } diagnostic
         ? new StoryJsonArgDiagnostic(diagnostic.Message, diagnostic.Line, diagnostic.Column, diagnostic.Source)
         : null;
+
+    public bool ValidateRawDraft() => _document.ValidateRawDraft();
+    public bool IsTreeReadOnly => IsDirty;
+    public long Revision => _document.Revision;
 
     public void SetRawDraft(string text) => _document.SetRawDraft(text);
 

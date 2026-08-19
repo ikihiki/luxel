@@ -3,6 +3,7 @@ using System.Text.Json;
 using Luxel.Gallery;
 using Luxel.Gallery.UI;
 using Luxel.UI;
+using Luxel.ValueDocument;
 using Xunit;
 using static Luxel.Gallery.UI.Kit;
 
@@ -80,6 +81,52 @@ public sealed class RawJsonEditorTests
         (StoryKnob editedKnob, string editedValue) = Assert.Single(edits);
         Assert.Same(knob, editedKnob);
         Assert.Equal("{\"nodes\":[2]}", editedValue);
+    }
+
+    [Fact]
+    public void Mode_switch_is_revision_neutral_and_invalid_draft_roundtrips_exactly()
+    {
+        var commits = new List<string>();
+        var editor = CreateEditor(commits.Add);
+
+        editor.SwitchMode(JsonEditorMode.Tree);
+        editor.SwitchMode(JsonEditorMode.Raw);
+
+        Assert.Equal(0, editor.Document.Revision);
+        Assert.Empty(commits);
+
+        const string invalid = "{\n  \"nodes\": [1,\n}";
+        editor.Draft.Value = invalid;
+        editor.SwitchMode(JsonEditorMode.Tree);
+
+        Assert.Equal(JsonEditorMode.Tree, editor.Mode);
+        Assert.True(editor.Document.IsInvalid);
+        Assert.True(editor.TreeView.IsReadOnly);
+        Assert.Empty(commits);
+
+        editor.SwitchMode(JsonEditorMode.Raw);
+        Assert.Equal(invalid, editor.Draft.Value);
+        Assert.Equal(0, editor.Document.Revision);
+    }
+
+    [Fact]
+    public void Native_tree_widget_edits_shared_document_and_commits_once()
+    {
+        var commits = new List<string>();
+        var editor = CreateEditor(commits.Add);
+        editor.SwitchMode(JsonEditorMode.Tree);
+        ValueNode root = editor.Document.ValueDocument.AcceptedRoot;
+        ValueScalarNode scalar = Assert.IsType<ValueScalarNode>(
+            Assert.IsType<ValueArrayNode>(Assert.IsType<ValueObjectNode>(root).Properties[0].Value).Items[0]);
+
+        ValueApplyResult result = editor.TreeView.EditScalar(scalar.Id, "2");
+
+        Assert.True(result.Success);
+        Assert.Equal("{\"nodes\":[2]}", Assert.Single(commits));
+        Assert.Equal(1, editor.Document.Revision);
+        Assert.True(editor.Document.ValueDocument.History.CanUndo);
+        Assert.True(editor.TreeView.Undo().Success);
+        Assert.Equal("{\"nodes\":[1]}", commits[^1]);
     }
 
     private static RawJsonEditor CreateEditor(Action<string> commit)
