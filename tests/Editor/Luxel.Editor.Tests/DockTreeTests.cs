@@ -209,6 +209,27 @@ public class DockTreeTests
         Assert.Throws<ArgumentException>(() => t.WithSizes(sid, new[] { 1f }));
     }
 
+    [Fact]
+    public void SerializeIncludesSchemaVersionAndLegacyLayoutsRemainReadable()
+    {
+        string current = DockTree.Single("a", "b").Serialize();
+        Assert.Contains($"\"schemaVersion\":{DockTree.LayoutSchemaVersion}", current);
+
+        const string legacy = "{\"nextId\":2,\"root\":{\"id\":1,\"tabs\":[\"a\",\"b\"],\"active\":1}}";
+        DockGroup restored = Assert.IsType<DockGroup>(DockTree.Deserialize(legacy).Root);
+        Assert.Equal(new[] { "a", "b" }, restored.Tabs);
+        Assert.Equal(1, restored.Active);
+    }
+
+    [Fact]
+    public void DeserializeRejectsFutureSchemaVersions()
+    {
+        string json = DockTree.Single("a").Serialize()
+            .Replace("\"schemaVersion\":1", "\"schemaVersion\":999", StringComparison.Ordinal);
+
+        Assert.Throws<NotSupportedException>(() => DockTree.Deserialize(json));
+    }
+
     // ---- 窓内フローティング ----
 
     [Fact]

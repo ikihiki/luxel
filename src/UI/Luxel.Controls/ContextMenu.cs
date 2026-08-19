@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 
@@ -14,9 +14,8 @@ public static class ContextMenu
 {
     private sealed class State
     {
-        public required RealizeScope Scope;
-        public required HitTarget Dismiss;
-        public required UiNode Holder;
+        public required Signal<bool> Open;
+        public required OverlayEntry Entry;
     }
 
     private static readonly ConditionalWeakTable<UiBuildContext, State> _open = new();
@@ -41,35 +40,28 @@ public static class ContextMenu
                                   float maxW = 320, float maxH = 600)
     {
         Close(ctx);
-        Theme t = ctx.Theme.Peek();
-
-        // 全面ディスミス (メニュー行のヒットはレイヤで前面勝ち — フロート層 1+ より上の 3000)
-        HitTarget dismiss = ctx.AddHit(ctx.Canvas.Root, new Rect(-1e6f, -1e6f, 2e6f, 2e6f), onClick: () => Close(ctx));
-        dismiss.Layer = 3000;
 
         // 吸収ホストで包む — 内側の CompositeControl (パレット等) が Rebuild したとき、その場で
-        // 再実体化する。包まないと dirty がルートへバブリングして SetRoot 全再構築になり、
-        // 手動実体化のこのメニューごと消える
-        var host = new MenuHost { Menu = menu };
-        host.HitLayer = 3000;   // サブツリーのヒット全部 (部分再実体化でも保たれる)
-
-        var lc = new LayoutContext { Font = ctx.Font, Theme = t };
-        Size cs = host.Layout(Constraints.LooseW(maxW, maxH), lc, parentUsesSize: true);
-        // 画面端でクランプ/フリップ (ADR-0007 の共通ソルバ)。指定位置直下に開き、下に入らなければ上へ。
-        float vw = ctx.Host?.Width ?? 0, vh = ctx.Host?.Height ?? 0;
-        Point pos = new(x, y);
-        if (vw > 0 && vh > 0)
+        // 再実体化する。ライフサイクル/外側クリック/Escape/ビューポート制約は共通 overlay に委譲する。
+        var host = new MenuHost { Menu = menu, HitLayer = 3000 };
+        var open = new Signal<bool>(true);
+        var entry = new OverlayEntry
         {
-            PopupSolve sol = PopupPlacer.Solve(new Rect(x, y, 0, 0), cs, new Rect(0, 0, vw, vh),
-                new AnchoredPlacement { Side = PopupSide.Below, Align = PopupAlign.Start, Gap = 0, Margin = 4 });
-            pos = new Point(sol.Rect.X, sol.Rect.Y);
-        }
-        host.Offset = pos;
-        UiNode holder = ctx.Canvas.AddChild(ctx.Canvas.Root);
-        holder.Z = 3000;   // 最前面 (オーバーレイ層 1000 より上)
-        host.Realize(ctx, holder, new Point(0, 0));
-
-        _open.Add(ctx, new State { Scope = host.Scope!, Dismiss = dismiss, Holder = holder });
+            Open = open,
+            Content = host,
+            Anchor = () => new Rect(x, y, 0, 0),
+            Anchored = new AnchoredPlacement
+            {
+                Side = PopupSide.Below,
+                Align = PopupAlign.Start,
+                Gap = 0,
+                Margin = 4,
+                MaxWidth = maxW,
+                MaxHeight = maxH,
+            },
+        };
+        ctx.RegisterOverlay(entry);
+        _open.Add(ctx, new State { Open = open, Entry = entry });
     }
 
     /// <summary>メニュー widget のホスト。子 (メニュー内容) の再実体化要求をその場で吸収する —
@@ -113,7 +105,7 @@ public static class ContextMenu
     }
 
     /// <summary>メニューが開いているか。</summary>
-    public static bool IsOpen(UiBuildContext ctx) => _open.TryGetValue(ctx, out _);
+    public static bool IsOpen(UiBuildContext ctx) => _open.TryGetValue(ctx, out State? state) && state.Open.Peek();
 
     /// <summary>テキスト編集の標準メニュー (切り取り/コピー/貼り付け/すべて選択)。
     /// 動作は既存のキーボード配線 (<see cref="FocusTarget.OnKey"/> の Ctrl+X/C/V/A) を再利用する。</summary>
@@ -148,8 +140,7 @@ public static class ContextMenu
     {
         if (!_open.TryGetValue(ctx, out State? s)) return;
         _open.Remove(ctx);
-        s.Scope.Release();
-        ctx.Hits.Remove(s.Dismiss);
-        ctx.Canvas.Remove(s.Holder);
+        s.Open.Value = false;
+        ctx.UnregisterOverlay(s.Entry);
     }
 }

@@ -35,8 +35,13 @@ public interface IEditorDocument
     void Redo();
 
     /// <summary>永続化表現へ直列化する (テキスト = 文字列そのもの、ノード = JSON、…)。
-    /// 往復契約: <c>LoadFrom(Serialize())</c> が同じ内容を復元する。</summary>
+    /// 往復契約: <c>LoadFrom(Serialize())</c> が同じ内容を復元する。この操作は保存点を
+    /// 進めてはならない。ストレージ書込成功後に <see cref="AcceptSavedSnapshot"/> が呼ばれる。</summary>
     string Serialize();
+
+    /// <summary>ストレージへの書込が成功した直列化内容を保存点として受理する。
+    /// 実装は例外を送出してはならない。既存実装との互換性のため既定では Dirty のみ解除する。</summary>
+    void AcceptSavedSnapshot(string content) => Dirty.Value = false;
 
     /// <summary>直列化表現から内容を読み込む (open の実体)。</summary>
     void LoadFrom(string content);

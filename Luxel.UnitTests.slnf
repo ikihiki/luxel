@@ -1,0 +1,43 @@
+{
+  "solution": {
+    "path": "Luxel.slnx",
+    "projects": [
+      "tests/Animation/Luxel.Animation.Tests/Luxel.Animation.Tests.csproj",
+      "tests/Audio/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj",
+      "tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj",
+      "tests/Audio/Luxel.Audio.Tests/Luxel.Audio.Tests.csproj",
+      "tests/DevTools/Luxel.DevTools.Tests/Luxel.DevTools.Tests.csproj",
+      "tests/Editor/Luxel.Editor.Tests/Luxel.Editor.Tests.csproj",
+      "tests/Editor/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj",
+      "tests/Editor/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj",
+      "tests/Framework/Luxel.Framework.Tests/Luxel.Framework.Tests.csproj",
+      "tests/Framework/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj",
+      "tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj",
+      "tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj",
+      "tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj",
+      "tests/Gallery/Luxel.Gallery.Tests/Luxel.Gallery.Tests.csproj",
+      "tests/GamesSamples/Luxel.GamesSamples.Tests/Luxel.GamesSamples.Tests.csproj",
+      "tests/Graphics/Luxel.Graphics.MessagePipe.Tests/Luxel.Graphics.MessagePipe.Tests.csproj",
+      "tests/Graphics/Luxel.Graphics.RenderSystem.Tests/Luxel.Graphics.RenderSystem.Tests.csproj",
+      "tests/Graphics/Luxel.Graphics.Tests/Luxel.Graphics.Tests.csproj",
+      "tests/Graphics/Luxel.Shaders.Tests/Luxel.Shaders.Tests.csproj",
+      "tests/Graphics/Luxel.Vulkan.Tests/Luxel.Vulkan.Tests.csproj",
+      "tests/Graphics/Luxel.WebGPU.Browser.Tests/Luxel.WebGPU.Browser.Tests.csproj",
+      "tests/Graphics/Luxel.WebGPU.Tests/Luxel.WebGPU.Tests.csproj",
+      "tests/Input/Luxel.Input.Tests/Luxel.Input.Tests.csproj",
+      "tests/Particles/Luxel.Particles.Tests/Luxel.Particles.Tests.csproj",
+      "tests/Platform/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj",
+      "tests/Platform/Luxel.Platform.Tests/Luxel.Platform.Tests.csproj",
+      "tests/Platform/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj",
+      "tests/Platform/Luxel.Terminal.Linux.Tests/Luxel.Terminal.Linux.Tests.csproj",
+      "tests/Platform/Luxel.Terminal.Windows.Tests/Luxel.Terminal.Windows.Tests.csproj",
+      "tests/Resources/Luxel.Resources.Browser.Tests/Luxel.Resources.Browser.Tests.csproj",
+      "tests/Resources/Luxel.Resources.Tests/Luxel.Resources.Tests.csproj",
+      "tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj",
+      "tests/Scripting/Luxel.Scripting.Tests/Luxel.Scripting.Tests.csproj",
+      "tests/Shared/Luxel.Shared.Tests/Luxel.Shared.Tests.csproj",
+      "tests/UI/Luxel.UI.Tests/Luxel.UI.Tests.csproj",
+      "tests/UI/Luxel.ValueDocument.Tests/Luxel.ValueDocument.Tests.csproj"
+    ]
+  }
+}

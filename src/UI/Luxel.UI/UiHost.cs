@@ -29,6 +29,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
     // フォーカスは参照で保持する — Focusables は部分 Realize (embed 差し替え等) で増減するため、
     // index 保持だと除去でズレて誤配送する。Current() が「まだ登録されているか」を検証する。
     private FocusTarget? _focusTarget;
+    private bool _settingRoot;
 
     private readonly UiSetRequestSubscriber _uiSetSub;
 
@@ -245,7 +246,9 @@ public sealed class UiHost : IDisposable, ITextInputClient
             Canvas = _canvas, Font = _font, Theme = Theme, RenderScale = _renderScale, Host = this,
             GpuRasterizer = _gpuRasterizer, RendererState = _rendererState,
         };
-        root.Realize(_build, _canvas.Root, new Point(0, 0));
+        _settingRoot = true;
+        try { root.Realize(_build, _canvas.Root, new Point(0, 0)); }
+        finally { _settingRoot = false; }
         RealizeOverlays();
         EmitTree();
     }
@@ -300,25 +303,35 @@ public sealed class UiHost : IDisposable, ITextInputClient
     {
         EmitInput("click", $"{x:0},{y:0}");
         if (_build == null) return false;
+        if (HandleOverlayOutsideClick(x, y)) return true;
 
-        OverlayEntry? modal = null;
-        for (int i = _build.Overlays.Count - 1; i >= 0; i--)
-            if (_build.Overlays[i].Open.Value && _build.Overlays[i].Modal) { modal = _build.Overlays[i]; break; }
+        OverlayEntry? modal = TopModal();
 
-        if (TryPick(x, y, null, out HitTarget t, out float lx, out float ly)
-            && (modal == null || modal.ContentRect.Contains(x, y)))          // モーダルが背面をブロック
+        if (TryPick(x, y, null, out HitTarget t, out float lx, out float ly))
         {
             if (t.Focus != null) FocusTo(t.Focus);                           // クリックでフォーカス
-            Guard(t.OnClickPos is null ? null : () => t.OnClickPos!(new PointerEvent(lx, ly, x, y, button, mods)), "Click");
-            Guard(t.OnClick, "Click");
+            GuardHit(t, t.OnClickPos is null ? null : () => t.OnClickPos!(new PointerEvent(lx, ly, x, y, button, mods)), "Click");
+            GuardHit(t, t.OnClick, "Click");
             return true;
         }
 
-        // ヒットなし / モーダルでブロック → 外側ディスミス
-        for (int i = _build.Overlays.Count - 1; i >= 0; i--)
+        return modal is not null;   // モーダル内の空白/背面は常に吸収する
+    }
+
+    /// <summary>最前面から外側クリックの方針を決め、ディスミスに使ったクリックは背面へ通さない。</summary>
+    private bool HandleOverlayOutsideClick(float x, float y)
+    {
+        for (int i = _build!.Overlays.Count - 1; i >= 0; i--)
         {
-            OverlayEntry o = _build.Overlays[i];
-            if (o.Open.Value && o.DismissOnOutside && !o.ContentRect.Contains(x, y)) { o.Open.Value = false; return true; }
+            OverlayEntry overlay = _build.Overlays[i];
+            if (!overlay.Open.Peek() || overlay.RuntimeScope is null) continue;
+            if (overlay.ContentRect.Contains(x, y)) return false;
+            if (overlay.DismissOnOutside)
+            {
+                overlay.Open.Value = false;
+                return true;
+            }
+            if (overlay.Modal) return true;
         }
         return false;
     }
@@ -329,6 +342,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
     {
         EmitInput("pointerdown", $"{x:0},{y:0}");
         Capture(InputKind.PointerDown, x, y);
+        if (_build != null && HandleOverlayOutsideClick(x, y)) return true;
         if (_build != null && TryPick(x, y, null, out HitTarget t, out float lx, out float ly))
         {
             if (t.Draggable)
@@ -457,15 +471,21 @@ public sealed class UiHost : IDisposable, ITextInputClient
 
     private void MoveFocus(int dir)
     {
-        if (_build == null || _build.Focusables.Count == 0) return;
+        if (_build == null) return;
+        OverlayEntry? modal = TopModal();
+        var candidates = new List<FocusTarget>(_build.Focusables.Count);
+        foreach (FocusTarget focusable in _build.Focusables)
+            if (modal?.RuntimeScope is not { } scope || FocusBelongsTo(focusable, scope)) candidates.Add(focusable);
+        if (candidates.Count == 0) return;
+
         FocusTarget? cur = Current();
         cur?.OnFocus?.Invoke(false);
-        int n = _build.Focusables.Count;
-        int i = cur is null ? -1 : _build.Focusables.IndexOf(cur);
+        int n = candidates.Count;
+        int i = cur is null ? -1 : candidates.IndexOf(cur);
         i = i < 0 ? (dir > 0 ? 0 : n - 1) : ((i + dir) % n + n) % n;
-        _focusTarget = _build.Focusables[i];
+        _focusTarget = candidates[i];
         _focusTarget.OnFocus?.Invoke(true);
-        EmitInput("focus", $"#{i}");
+        EmitInput("focus", $"#{_build.Focusables.IndexOf(_focusTarget)}");
     }
 
     /// <summary>キー押下を配送する。Tab はフォーカス移動、その他はフォーカス中の対象へ。消費したら true。</summary>
@@ -483,7 +503,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
             catch (Exception ex) { UiError.Report(ex, "KeyDown"); consumed = true; }
             if (!consumed)
                 for (int i = _build!.Overlays.Count - 1; i >= 0; i--)
-                    if (_build.Overlays[i].Open.Value && _build.Overlays[i].DismissOnOutside)
+                    if (_build.Overlays[i].Open.Value && _build.Overlays[i].DismissOnEscape)
                     { _build.Overlays[i].Open.Value = false; consumed = true; break; }
         }
         else if (key == Key.Tab) { if (shift) FocusPrev(); else FocusNext(); consumed = true; }
@@ -511,6 +531,12 @@ public sealed class UiHost : IDisposable, ITextInputClient
     public void UnregisterShortcut(KeyGesture gesture) => _shortcuts.Remove(gesture);
 
     private FocusTarget? Current()
+    {
+        if (_focusTarget is not { } f || _build == null || !_build.Focusables.Contains(f)) return null;
+        return TopModal()?.RuntimeScope is not { } modal || FocusBelongsTo(f, modal) ? f : null;
+    }
+
+    private FocusTarget? RegisteredFocus()
         => _focusTarget is { } f && _build != null && _build.Focusables.Contains(f) ? f : null;
 
     /// <summary>hover 中ヒットのカーソル形状 (WM_SETCURSOR がプラットフォーム経由で参照)。</summary>
@@ -525,10 +551,10 @@ public sealed class UiHost : IDisposable, ITextInputClient
         if (TryPick(x, y, t => t.OnContext is not null, out HitTarget t, out float lx, out float ly))
         {
             if (t.Focus != null) FocusTo(t.Focus);
-            Guard(() => t.OnContext!(new PointerEvent(lx, ly, x, y, PointerButton.Right, mods)), "Context");
+            GuardHit(t, () => t.OnContext!(new PointerEvent(lx, ly, x, y, PointerButton.Right, mods)), "Context");
             return true;
         }
-        return false;
+        return TopModal() is not null;
     }
 
     /// <summary>フォーカスを特定対象へ移す。既にフォーカス済みなら何もしない —
@@ -537,7 +563,8 @@ public sealed class UiHost : IDisposable, ITextInputClient
     public void FocusTo(FocusTarget f)
     {
         if (_build == null || !_build.Focusables.Contains(f)) return;
-        FocusTarget? cur = Current();
+        if (TopModal()?.RuntimeScope is { } modal && !FocusBelongsTo(f, modal)) return;
+        FocusTarget? cur = RegisteredFocus();
         if (ReferenceEquals(cur, f)) return;
         cur?.OnFocus?.Invoke(false);
         _focusTarget = f;
@@ -590,6 +617,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
         for (int i = 0; i < _build.Scrollables.Count; i++)
         {
             ScrollTarget s = _build.Scrollables[i];
+            if (!ScopeAcceptsModalInput(_build.ScrollScopes.GetValueOrDefault(s))) continue;
             if (!HitTest(s.Node, s.Rect, x, y, out float lx, out float ly)) continue;
             int depth = NodeDepth(s.Node);
             if (depth < bestDepth || (depth == bestDepth && i < bestIndex)) continue;
@@ -631,6 +659,7 @@ public sealed class UiHost : IDisposable, ITextInputClient
         for (int i = 0; i < _build!.Hits.Count; i++)
         {
             HitTarget t = _build.Hits[i];
+            if (!ScopeAcceptsModalInput(_build.HitScopes.GetValueOrDefault(t))) continue;
             if (t.Active is not null && !t.Active()) continue;
             if (filter is not null && !filter(t)) continue;
             if (!HitTest(t.Node, t.Rect, x, y, out float hx, out float hy)) continue;
@@ -708,6 +737,13 @@ public sealed class UiHost : IDisposable, ITextInputClient
         Ticked?.Invoke();
     }
 
+    private void GuardHit(HitTarget hit, Action? action, string context)
+    {
+        if (action is null) return;
+        RealizeScope? scope = _build?.HitScopes.GetValueOrDefault(hit);
+        Guard(_build is null ? action : () => _build.RunWithScope(scope, action), context);
+    }
+
     /// <summary>ユーザーハンドラの例外を握って報告する (エラー境界 — 入力 1 回の失敗でアプリを落とさない)。</summary>
     private static void Guard(Action? a, string ctx)
     {
@@ -749,99 +785,185 @@ public sealed class UiHost : IDisposable, ITextInputClient
     }
 
     // ---- オーバーレイ実体化 (最前面レイヤ) ----
+    internal void OverlayRegistered(OverlayEntry entry)
+    {
+        if (!_settingRoot && _build is not null) AttachOverlay(entry);
+    }
+
+    internal void OverlayUnregistered(OverlayEntry entry)
+    {
+        CloseOverlay(entry);
+        if (entry.OpenEffect is { } effect)
+        {
+            effect.Dispose();
+            entry.OwnerScope?.Effects.Remove(effect);
+            entry.OpenEffect = null;
+        }
+    }
+
     private void RealizeOverlays()
     {
-        if (_build == null || _build.Overlays.Count == 0) return;
-        UiNode layer = _canvas.AddChild(_canvas.Root);
-        layer.Z = 1000;
+        if (_build == null) return;
+        foreach (OverlayEntry entry in _build.Overlays.ToArray()) AttachOverlay(entry);
+    }
 
-        foreach (OverlayEntry e in _build.Overlays)
+    private void AttachOverlay(OverlayEntry entry)
+    {
+        if (_build == null || entry.OpenEffect is not null || entry.OwnerScope is not { IsDisposed: false } owner) return;
+        IDisposable effect = Reactive.Effect(() =>
         {
-            // ヒットもレイヤで前面優先 — フローティングパネル (レイヤ 1+) の上に開く
-            // ポップアップがフロートのヒットに奪われないようにする (部分再実体化でも保たれる)
-            e.Content.HitLayer ??= 2000;
-            AnchoredPlacement? anch = AnchoredOf(e);
-            Constraints cc = anch is not null
-                ? new Constraints(0, Cap(anch.MaxWidth, _width), 0, Cap(anch.MaxHeight, _height))
-                : e.Placement switch
-                {
-                    OverlayPlacement.RightEdge or OverlayPlacement.LeftEdge => new Constraints(0, _width, _height, _height),
-                    OverlayPlacement.BottomEdge => new Constraints(_width, _width, 0, _height),
-                    _ => Constraints.LooseW(_width, _height),
-                };
-            Size cs = e.Content.Layout(cc, _layoutCtx, parentUsesSize: true);
+            if (entry.Open.Value) OpenOverlay(entry);
+            else CloseOverlay(entry);
+        });
+        entry.OpenEffect = effect;
+        owner.Effects.Add(effect);
+    }
 
-            Point pos; PopupSide solvedSide = PopupSide.Below;
-            if (anch is not null)
-            {
-                PopupSolve sol = PopupPlacer.Solve(e.Anchor!(), cs, new Rect(0, 0, _width, _height), anch);
-                pos = new Point(sol.Rect.X, sol.Rect.Y);
-                solvedSide = sol.Side;
-            }
-            else pos = PlaceRegion(e, cs);
-            e.ContentRect = new Rect(pos.X, pos.Y, cs.Width, cs.Height);
+    private void OpenOverlay(OverlayEntry entry)
+    {
+        if (_build == null || entry.RuntimeScope is not null || entry.OwnerScope is not { IsDisposed: false } owner) return;
 
-            // 開閉トランジション: open/closed の状態遷移 (AS-M3 — 状態機械へ統一)。
-            // 初期は瞬時 (snap 不変)。Visible は開度 > 0 の間だけ true — 閉アニメ完了で描画順から除外。
-            OverlayEntry e2 = e;
-            float dur = anch is not null ? 0.13f : e.Placement switch
+        _layoutCtx.Theme = Theme.Peek();
+        _layoutCtx.ViewportW = _width;
+        _layoutCtx.ViewportH = _height;
+        entry.Content.HitLayer ??= 2000;
+
+        AnchoredPlacement? anchored = AnchoredOf(entry);
+        float margin = MathF.Max(0, anchored?.Margin ?? entry.Margin);
+        float availableW = MathF.Max(0, _width - margin * 2);
+        float availableH = MathF.Max(0, _height - margin * 2);
+        Constraints constraints = anchored is not null
+            ? new Constraints(0, Cap(anchored.MaxWidth, availableW), 0, Cap(anchored.MaxHeight, availableH))
+            : entry.Placement switch
             {
-                OverlayPlacement.RightEdge or OverlayPlacement.LeftEdge or OverlayPlacement.BottomEdge => 0.22f,
-                OverlayPlacement.Center => 0.18f,
-                _ => 0.13f,
+                OverlayPlacement.RightEdge or OverlayPlacement.LeftEdge => new Constraints(0, _width, _height, _height),
+                OverlayPlacement.BottomEdge => new Constraints(_width, _width, 0, _height),
+                _ => Constraints.LooseW(availableW, availableH),
             };
-            var vis = new UiStates(_build!, new TransitionTable().Default(new TransitionSpec(dur)))
-                .AddState("closed", ("t", 0f))
-                .AddState("open", ("t", 1f));
-            vis.Start(e.Open.Peek() ? "open" : "closed");
-            _build!.Effect(() => vis.Goto(e2.Open.Value ? "open" : "closed"));
+        Size contentSize = entry.Content.Layout(constraints, _layoutCtx, parentUsesSize: true);
 
-            if (e.Modal)
+        Point position;
+        if (anchored is not null)
+        {
+            PopupSolve solved = PopupPlacer.Solve(entry.Anchor!(), contentSize,
+                new Rect(0, 0, _width, _height), anchored);
+            position = new Point(solved.Rect.X, solved.Rect.Y);
+        }
+        else position = PlaceRegion(entry, contentSize);
+
+        float visibleX = MathF.Max(0, position.X);
+        float visibleY = MathF.Max(0, position.Y);
+        float visibleRight = MathF.Min(_width, position.X + contentSize.Width);
+        float visibleBottom = MathF.Min(_height, position.Y + contentSize.Height);
+        entry.ContentRect = new Rect(visibleX, visibleY,
+            MathF.Max(0, visibleRight - visibleX), MathF.Max(0, visibleBottom - visibleY));
+
+        FocusTarget? restore = entry.Modal ? RegisteredFocus() : null;
+        UiNode? layer = null;
+        RealizeScope runtime = _build.RealizeOwned(owner, () =>
+        {
+            layer = _canvas.AddChild(_canvas.Root);
+            layer.Z = 1000;
+            layer.Clip = new RectClip(0, 0, _width, _height);
+
+            if (entry.Modal)
             {
                 UiNode scrim = _canvas.AddChild(layer);
-                var ss = new TwoD.Scene2D(); ss.FillRect(TwoD.Color2D.White, 0, 0, _width, _height);
-                scrim.Content = ss; scrim.Color = TwoD.Color2D.Rgba(0, 0, 0);
-                _build.Effect(() => scrim.Opacity = 0.45f * vis.Float("t"));
+                var scene = new TwoD.Scene2D();
+                scene.FillRect(TwoD.Color2D.White, 0, 0, _width, _height);
+                scrim.Content = scene;
+                scrim.Color = TwoD.Color2D.Rgba(0, 0, 0);
+                scrim.Opacity = 0.45f;
             }
 
-            UiNode holder = _canvas.AddChild(layer); holder.Z = 1;
-            e.Content.Offset = new Point(0, 0);
-            e.Content.Realize(_build, holder, pos);
-            float cw = cs.Width, ch = cs.Height;
-            OverlayPlacement pl = e.Placement;
-            bool anchored = anch is not null;
-            PopupSide side = solvedSide;
-            _build.Effect(() =>
-            {
-                float t = vis.Float("t");
-                holder.Visible = t > 0.001f;
-                holder.Opacity = t;   // EffectiveOpacity でサブツリーに継承される
-                holder.Transform = anchored
-                    // アンカー配置: 解いた方向に 6px スライド + フェード
-                    ? side switch
-                    {
-                        PopupSide.Above => Affine2D.Translate(pos.X, pos.Y + (1 - t) * 6),
-                        PopupSide.Right => Affine2D.Translate(pos.X - (1 - t) * 6, pos.Y),
-                        PopupSide.Left => Affine2D.Translate(pos.X + (1 - t) * 6, pos.Y),
-                        _ => Affine2D.Translate(pos.X, pos.Y - (1 - t) * 6),   // Below
-                    }
-                    : pl switch
-                    {
-                        // ダイアログ: 中心スケール 0.96 → 1
-                        OverlayPlacement.Center => Affine2D.Mul(
-                            Affine2D.Translate(pos.X + cw / 2, pos.Y + ch / 2),
-                            Affine2D.Mul(Affine2D.Scale(0.96f + 0.04f * t, 0.96f + 0.04f * t),
-                                              Affine2D.Translate(-cw / 2, -ch / 2))),
-                        // ドロワー: 端からスライドイン
-                        OverlayPlacement.RightEdge => Affine2D.Translate(pos.X + (1 - t) * cw, pos.Y),
-                        OverlayPlacement.LeftEdge => Affine2D.Translate(pos.X - (1 - t) * cw, pos.Y),
-                        OverlayPlacement.BottomEdge => Affine2D.Translate(pos.X, pos.Y + (1 - t) * ch),
-                        // トースト: 下から浮き上がる
-                        OverlayPlacement.CornerBottomRight => Affine2D.Translate(pos.X, pos.Y + (1 - t) * 16),
-                        _ => Affine2D.Translate(pos.X, pos.Y),
-                    };
-            });
+            UiNode holder = _canvas.AddChild(layer);
+            holder.Z = 1;
+            holder.Transform = Affine2D.Translate(position.X, position.Y);
+            entry.Content.Offset = default;
+            entry.Content.Realize(_build, holder, position);
+        });
+        runtime.Nodes.Add(layer!);
+        entry.RuntimeScope = runtime;
+
+        if (!entry.Modal) return;
+        entry.RestoreFocus = restore;
+        if (_captured is not null)
+        {
+            _captured = null;
+            if (_dragPayload is not null) EndDrag();
         }
+        if (_hover is not null)
+        {
+            Guard(_hover.OnHover is { } off ? () => off(false) : null, "Hover");
+            _hover = null;
+            CurrentCursor = CursorKind.Arrow;
+        }
+        RegisteredFocus()?.OnFocus?.Invoke(false);
+        _focusTarget = FirstFocusable(runtime);
+        _focusTarget?.OnFocus?.Invoke(true);
+    }
+
+    private void CloseOverlay(OverlayEntry entry)
+    {
+        if (entry.RuntimeScope is not { } runtime) return;
+        FocusTarget? focused = RegisteredFocus();
+        bool focusedInside = focused is not null && FocusBelongsTo(focused, runtime);
+        if (focusedInside) focused!.OnFocus?.Invoke(false);
+        if (_captured is { } captured && HitBelongsTo(captured, runtime))
+        {
+            _captured = null;
+            if (_dragPayload is not null) EndDrag();
+        }
+        if (_hover is { } hover && HitBelongsTo(hover, runtime))
+        {
+            Guard(hover.OnHover is { } off ? () => off(false) : null, "Hover");
+            _hover = null;
+            CurrentCursor = CursorKind.Arrow;
+        }
+
+        entry.RuntimeScope = null;
+        runtime.Release();
+        if (focusedInside) _focusTarget = null;
+
+        FocusTarget? restore = entry.RestoreFocus;
+        entry.RestoreFocus = null;
+        if (entry.Modal && restore is not null && _build is not null && _build.Focusables.Contains(restore))
+            FocusTo(restore);
+    }
+
+    private OverlayEntry? TopModal()
+    {
+        if (_build == null) return null;
+        for (int i = _build.Overlays.Count - 1; i >= 0; i--)
+        {
+            OverlayEntry overlay = _build.Overlays[i];
+            if (overlay.Modal && overlay.Open.Peek() && overlay.RuntimeScope is not null) return overlay;
+        }
+        return null;
+    }
+
+    private bool ScopeAcceptsModalInput(RealizeScope? scope)
+        => TopModal()?.RuntimeScope is not { } modal || IsScopeWithin(scope, modal);
+
+    private bool HitBelongsTo(HitTarget hit, RealizeScope ancestor)
+        => _build is not null && _build.HitScopes.TryGetValue(hit, out RealizeScope? scope) && IsScopeWithin(scope, ancestor);
+
+    private bool FocusBelongsTo(FocusTarget focus, RealizeScope ancestor)
+        => _build is not null && _build.FocusScopes.TryGetValue(focus, out RealizeScope? scope) && IsScopeWithin(scope, ancestor);
+
+    private static bool IsScopeWithin(RealizeScope? scope, RealizeScope ancestor)
+    {
+        for (RealizeScope? current = scope; current is not null; current = current.Parent)
+            if (ReferenceEquals(current, ancestor)) return true;
+        return false;
+    }
+
+    private FocusTarget? FirstFocusable(RealizeScope runtime)
+    {
+        if (_build == null) return null;
+        foreach (FocusTarget focus in _build.Focusables)
+            if (FocusBelongsTo(focus, runtime)) return focus;
+        return null;
     }
 
     // Placement (Below/Above) を同等の Anchored へ写す — 既存呼び出しも同じソルバ (フリップ/シフト/クランプ) を通す。
@@ -859,14 +981,16 @@ public sealed class UiHost : IDisposable, ITextInputClient
 
     private Point PlaceRegion(OverlayEntry e, Size cs)
     {
-        float W = _width, H = _height, cw = cs.Width, ch = cs.Height, m = e.Margin;
+        float W = _width, H = _height, cw = cs.Width, ch = cs.Height, m = MathF.Max(0, e.Margin);
+        float maxX = MathF.Max(0, W - cw), maxY = MathF.Max(0, H - ch);
         return e.Placement switch
         {
-            OverlayPlacement.RightEdge => new Point(W - cw, 0),
+            OverlayPlacement.RightEdge => new Point(maxX, 0),
             OverlayPlacement.LeftEdge => new Point(0, 0),
-            OverlayPlacement.BottomEdge => new Point(0, H - ch),
-            OverlayPlacement.CornerBottomRight => new Point(W - cw - m, H - ch - m),
-            _ => new Point((W - cw) / 2, (H - ch) / 2),   // Center
+            OverlayPlacement.BottomEdge => new Point(0, maxY),
+            OverlayPlacement.CornerBottomRight => new Point(
+                Math.Clamp(W - cw - m, 0, maxX), Math.Clamp(H - ch - m, 0, maxY)),
+            _ => new Point(Math.Clamp((W - cw) / 2, 0, maxX), Math.Clamp((H - ch) / 2, 0, maxY)),
         };
     }
 }

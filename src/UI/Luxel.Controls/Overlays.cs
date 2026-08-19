@@ -1,4 +1,4 @@
-﻿using Luxel.Animation;
+using Luxel.Animation;
 using Luxel.Graphics.TwoD;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -20,6 +20,27 @@ public sealed partial class Dialog : Widget
         => ctx.RegisterOverlay(new OverlayEntry { Open = Open.Get(), Content = Panel.Get(), Placement = OverlayPlacement.Center, Modal = true });
 }
 
+/// <summary>アンカー矩形の周囲に表示する非モーダル popover。portal。</summary>
+[UiComponent]
+public sealed partial class Popover : Widget
+{
+    [UiParam] private readonly Bindable<Signal<bool>> _open = new();
+    [UiParam] private readonly Bindable<Widget> _content = new();
+    [UiParam] private readonly Bindable<Func<Rect>> _anchor = new();
+    [UiParam] private readonly Bindable<AnchoredPlacement> _placement = new(
+        new AnchoredPlacement { Side = PopupSide.Below, Align = PopupAlign.Start, Gap = 6, Margin = 4 });
+
+    protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = Size.Zero;
+    protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
+        => ctx.RegisterOverlay(new OverlayEntry
+        {
+            Open = Open.Get(),
+            Content = Content.Get(),
+            Anchor = Anchor.Get(),
+            Anchored = Placement.Get(),
+        });
+}
+
 /// <summary>コーナートースト (右下)。portal。</summary>
 [UiComponent]
 public sealed partial class Toast : Widget
@@ -31,7 +52,7 @@ public sealed partial class Toast : Widget
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx) => Size = Size.Zero;
     protected override void RealizeCore(UiBuildContext ctx, UiNode parent, Point worldOrigin)
-        => ctx.RegisterOverlay(new OverlayEntry { Open = Open.Get(), Content = Content.Get(), Placement = OverlayPlacement.CornerBottomRight, DismissOnOutside = false });
+        => ctx.RegisterOverlay(new OverlayEntry { Open = Open.Get(), Content = Content.Get(), Placement = OverlayPlacement.CornerBottomRight, DismissOnOutside = false, DismissOnEscape = false });
 }
 
 /// <summary>右端ドロワー (モーダル)。portal。</summary>
@@ -188,6 +209,7 @@ public sealed partial class Tooltip : Widget
             Placement = OverlayPlacement.Above,
             Anchor = () => new Rect(world.X, world.Y, Size.Width, Size.Height),
             DismissOnOutside = false,
+            DismissOnEscape = false,
         });
     }
 }

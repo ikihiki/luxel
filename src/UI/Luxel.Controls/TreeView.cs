@@ -1,4 +1,4 @@
-﻿using Luxel.UI;
+using Luxel.UI;
 using Luxel.Graphics.TwoD;
 using Luxel.Typography.TwoD;
 using static Luxel.Controls.Kit;
@@ -47,7 +47,7 @@ public sealed record TreeViewAppearance(
 /// </list>
 /// </summary>
 [UiComponent]
-public sealed partial class TreeView : CompositeControl
+public sealed partial class TreeView : CompositeControl, ISemanticProvider
 {
     /// <summary>ルートノード列。</summary>
     [UiParam] private readonly Bindable<IReadOnlyList<TreeNode>> _roots = new([]);
@@ -79,6 +79,110 @@ public sealed partial class TreeView : CompositeControl
         if (ExpandedSet.Add(key)) _version.Value++;
     }
 
+    public string? FocusedKey { get; private set; }
+    public IReadOnlySet<string> SelectedKeys => _selectedKeys;
+    private readonly HashSet<string> _selectedKeys = new(StringComparer.Ordinal);
+    private string? _selectionAnchor;
+    private FocusTarget? _focusTarget;
+    public bool IsKeyboardFocused { get; private set; }
+
+    /// <summary>キーボード navigation と pointer selection を同じ selection path に流す。</summary>
+    public string? MoveFocus(Key key, bool additive = false)
+    {
+        var flat = VisibleRows();
+        if (flat.Count == 0) return FocusedKey = null;
+        int current = flat.FindIndex(x => x.Node.Key == (FocusedKey ?? Selected.Get()));
+        int next = key switch
+        {
+            Key.Home => 0,
+            Key.End => flat.Count - 1,
+            Key.Up => current <= 0 ? 0 : current - 1,
+            Key.Down => current < 0 ? 0 : Math.Min(flat.Count - 1, current + 1),
+            Key.Right when current >= 0 && flat[current].Node.HasChildren => ExpandAndStay(flat[current].Node, current),
+            Key.Left when current >= 0 && ExpandedSet.Remove(flat[current].Node.Key) => BumpAndStay(current),
+            _ => current < 0 ? 0 : current,
+        };
+        SelectNode(flat[next].Node, additive ? SelectionGesture.Extend : SelectionGesture.Replace, flat);
+        return FocusedKey;
+    }
+
+    private enum SelectionGesture { Replace, Toggle, Extend }
+
+    private List<(TreeNode Node, int Depth)> VisibleRows()
+    {
+        var flat = new List<(TreeNode Node, int Depth)>();
+        string filter = Filter.Or("").Trim();
+        if (filter.Length > 0) FlattenFiltered(FilterTree(Roots.Get(), filter), 0, flat);
+        else Flatten(Roots.Get(), ExpandedSet, 0, flat);
+        return flat;
+    }
+
+    private void SelectNode(TreeNode node, SelectionGesture gesture, List<(TreeNode Node, int Depth)>? visible = null)
+    {
+        visible ??= VisibleRows();
+        if (gesture == SelectionGesture.Replace)
+        {
+            _selectedKeys.Clear();
+            _selectedKeys.Add(node.Key);
+            _selectionAnchor = node.Key;
+        }
+        else if (gesture == SelectionGesture.Toggle)
+        {
+            if (!_selectedKeys.Remove(node.Key)) _selectedKeys.Add(node.Key);
+            _selectionAnchor = node.Key;
+        }
+        else
+        {
+            string anchor = _selectionAnchor ?? FocusedKey ?? node.Key;
+            int a = visible.FindIndex(x => x.Node.Key == anchor);
+            int b = visible.FindIndex(x => x.Node.Key == node.Key);
+            if (a < 0 || b < 0) { _selectedKeys.Add(node.Key); _selectionAnchor = node.Key; }
+            else
+            {
+                _selectedKeys.Clear();
+                for (int i = Math.Min(a, b); i <= Math.Max(a, b); i++) _selectedKeys.Add(visible[i].Node.Key);
+            }
+        }
+        FocusedKey = node.Key;
+        OnSelect.Invoke(this, node);
+        _version.Value++;
+    }
+
+    private void PointerSelect(TreeNode node, PointerEvent e)
+        => SelectNode(node, e.Shift ? SelectionGesture.Extend : e.Ctrl ? SelectionGesture.Toggle : SelectionGesture.Replace);
+
+    private bool OnKey(KeyEvent e)
+    {
+        if (e.Key is Key.Up or Key.Down or Key.Left or Key.Right or Key.Home or Key.End)
+        {
+            MoveFocus(e.Key, e.Shift);
+            return true;
+        }
+        if (e.Key == Key.Space && FocusedKey is { } key)
+        {
+            TreeNode? node = VisibleRows().Select(x => x.Node).FirstOrDefault(x => x.Key == key);
+            if (node is not null) SelectNode(node, e.Ctrl ? SelectionGesture.Toggle : SelectionGesture.Replace);
+            return node is not null;
+        }
+        return false;
+    }
+
+    protected override void OnRealize(UiBuildContext ctx)
+    {
+        _focusTarget ??= new FocusTarget { OnFocus = focused => IsKeyboardFocused = focused, OnKey = OnKey };
+        ctx.AddFocusable(_focusTarget);
+    }
+
+    public SemanticNode GetSemantics()
+    {
+        var children = VisibleRows().Select(x => new SemanticNode(SemanticRole.TreeItem, x.Node.Label, x.Node.Key,
+            _selectedKeys.Contains(x.Node.Key) || x.Node.Key == Selected.Get(), false, null)).ToArray();
+        return new SemanticNode(SemanticRole.Tree, Children: children);
+    }
+
+    private int ExpandAndStay(TreeNode node, int index) { Expand(node.Key); return index; }
+    private int BumpAndStay(int index) { _version.Value++; return index; }
+
     protected override Widget Build()
     {
         _ = _version.Value;   // 開閉を追跡
@@ -95,15 +199,15 @@ public sealed partial class TreeView : CompositeControl
         {
             Flatten(roots, ExpandedSet, 0, flat);
         }
-        TreeViewAppearance? appearance = Appearance.Get();
+        TreeViewAppearance appearance = Appearance.Get() ?? new TreeViewAppearance(RowHeight: 22, RowSpacing: 3,
+            Indent: 12, PaddingX: 4, Radius: 2, FolderFontSize: 13, LeafFontSize: 13);
         var rows = new List<Widget>();
         foreach ((TreeNode n, int depth) in flat)
-            rows.Add(appearance is null
-                ? Row(n, depth, n.Key == sel, filtered: filter.Length > 0)
-                : StyledRow(n, depth, n.Key == sel, filtered: filter.Length > 0, appearance));
+            rows.Add(StyledRow(n, depth, _selectedKeys.Contains(n.Key) || n.Key == sel,
+                filtered: filter.Length > 0, appearance));
         if (rows.Count == 0)
             rows.Add(LinkText(null, "(該当なし)", margin: new Thickness(4, 2, 0, 0)));
-        return VStack(appearance?.RowSpacing ?? 3)[rows.ToArray()];
+        return VStack(appearance.RowSpacing)[rows.ToArray()];
     }
 
     /// <summary>展開状態に従って可視行を列挙する (テスト用に分離)。</summary>
@@ -168,15 +272,17 @@ public sealed partial class TreeView : CompositeControl
     private Widget StyledRow(TreeNode n, int depth, bool selected, bool filtered, TreeViewAppearance appearance)
     {
         bool open = filtered || ExpandedSet.Contains(n.Key);
-        Action activate = n.HasChildren && n.Tag is null
-            ? () => Toggle(n)
-            : () =>
+        Action<PointerEvent> activate = e =>
+        {
+            if (n.HasChildren && n.Tag is null && !e.Ctrl && !e.Shift) Toggle(n);
+            else
             {
                 if (n.HasChildren) Expand(n.Key);
-                OnSelect.Invoke(this, n);
-            };
+                PointerSelect(n, e);
+            }
+        };
         return new TreeViewRow(n.Label, depth, n.HasChildren, open, selected, appearance,
-            activate, n.HasChildren ? () => Toggle(n) : null);
+            activate, n.HasChildren ? () => Toggle(n) : null, () => _focusTarget);
     }
 
     private void Toggle(TreeNode n)
@@ -195,9 +301,14 @@ internal sealed class TreeViewRow(
     bool open,
     bool selected,
     TreeViewAppearance appearance,
-    Action activate,
-    Action? toggle) : Widget
+    Action<PointerEvent> activate,
+    Action? toggle,
+    Func<FocusTarget?>? focus = null) : Widget
 {
+    public TreeViewRow(string label, int depth, bool hasChildren, bool open, bool selected,
+        TreeViewAppearance appearance, Action activate, Action? toggle)
+        : this(label, depth, hasChildren, open, selected, appearance, _ => activate(), toggle) { }
+
     public override string? DebugDetail => label;
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
@@ -270,7 +381,7 @@ internal sealed class TreeViewRow(
         });
 
         ctx.AddHit(node, new Rect(0, 0, Size.Width, appearance.RowHeight),
-            onClick: activate, onHover: h => Hovered.Value = h, cursor: CursorKind.Hand);
+            onClickPos: activate, onHover: h => Hovered.Value = h, focus: focus?.Invoke(), cursor: CursorKind.Hand);
         if (hasChildren && toggle is not null)
         {
             float hitX = MathF.Max(0, baseX - 3);

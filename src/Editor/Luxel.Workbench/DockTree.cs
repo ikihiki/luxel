@@ -196,12 +196,19 @@ public sealed class DockTree
         return new DockTree(Map(Root, n => n is DockSplit ss && ss.Id == splitId ? ss with { Sizes = norm } : n), Floats, NextId);
     }
 
+    public const int LayoutSchemaVersion = 1;
+
     // ---- 直列化 ----
 
     /// <summary>JSON へ直列化 (レイアウトの保存、フロート込み)。</summary>
     public string Serialize()
     {
-        var o = new JsonObject { ["nextId"] = NextId, ["root"] = Write(Root) };
+        var o = new JsonObject
+        {
+            ["schemaVersion"] = LayoutSchemaVersion,
+            ["nextId"] = NextId,
+            ["root"] = Write(Root),
+        };
         if (Floats.Count > 0)
             o["floats"] = new JsonArray(Floats.Select(f => (JsonNode)new JsonObject
             {
@@ -214,7 +221,11 @@ public sealed class DockTree
     /// <summary>JSON から復元。</summary>
     public static DockTree Deserialize(string json)
     {
-        var o = (JsonObject)JsonNode.Parse(json)!;
+        var o = JsonNode.Parse(json) as JsonObject
+            ?? throw new FormatException("Dock layout root must be an object.");
+        int version = (int?)o["schemaVersion"] ?? 0; // version 0 is the pre-versioning legacy format
+        if (version is < 0 or > LayoutSchemaVersion)
+            throw new NotSupportedException($"Unsupported Dock layout schema version: {version}.");
         var floats = new List<DockFloat>();
         if (o["floats"] is JsonArray fa)
             foreach (JsonNode? fn in fa)

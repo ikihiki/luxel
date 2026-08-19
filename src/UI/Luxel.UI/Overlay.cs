@@ -1,4 +1,4 @@
-﻿namespace Luxel.UI;
+namespace Luxel.UI;
 
 /// <summary>オーバーレイの配置方法。</summary>
 public enum OverlayPlacement
@@ -27,8 +27,13 @@ public sealed class OverlayEntry
     public Func<Rect>? Anchor { get; init; }          // トリガのワールド矩形 (Below/Above/Anchored 用)
     public bool Modal { get; init; }                  // scrim + 背面ブロック
     public bool DismissOnOutside { get; init; } = true;
+    public bool DismissOnEscape { get; init; } = true;
     public float Gap { get; init; } = 6;
     public float Margin { get; init; } = 16;          // 端/隅からの余白
 
     internal Rect ContentRect;                        // 実体化後の content ワールド矩形
+    internal RealizeScope? OwnerScope;
+    internal RealizeScope? RuntimeScope;
+    internal IDisposable? OpenEffect;
+    internal FocusTarget? RestoreFocus;
 }

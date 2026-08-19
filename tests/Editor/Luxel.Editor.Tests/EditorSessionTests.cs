@@ -26,6 +26,9 @@ public sealed class EditorSessionTests
         Assert.NotNull(application.Session);
 
         application.RequestExit();
+        Assert.False(application.ExitRequested);
+        Assert.Equal(EditorCloseScope.Application, application.Session!.CloseCoordinator.Pending.Value?.Scope);
+        application.Session.CloseCoordinator.Decide(EditorCloseDecision.Discard);
         Assert.True(application.ExitRequested);
         Assert.Null(application.Session);
     }
@@ -58,6 +61,68 @@ public sealed class EditorSessionTests
     }
 
     [Fact]
+    public void RequestExitNeverBypassesDirtyDocumentsWhenCleanConfirmationIsDisabled()
+    {
+        var host = new FakeEditorHost();
+        using var application = new EditorApplication(host, files =>
+        {
+            var document = new FakeDocument("dirty");
+            document.Dirty.Value = true;
+            var session = new EditorSession(files,
+                new Dictionary<string, IEditorDocument> { ["dirty"] = document }, DockTree.Single("dirty"));
+            session.Settings.Apply(session.Settings.Current.Peek() with { ConfirmExit = false });
+            return session;
+        });
+        Assert.True(application.OpenProject("sample"));
+
+        application.RequestExit();
+
+        Assert.False(application.ExitRequested);
+        Assert.NotNull(application.Session);
+        Assert.Equal(EditorCloseScope.Application, application.Session!.CloseCoordinator.Pending.Value?.Scope);
+    }
+
+    [Fact]
+    public void CloseProjectNeverBypassesDirtyDocumentsWhenCleanConfirmationIsDisabled()
+    {
+        var host = new FakeEditorHost();
+        using var application = new EditorApplication(host, files =>
+        {
+            var document = new FakeDocument("dirty");
+            document.Dirty.Value = true;
+            var session = new EditorSession(files,
+                new Dictionary<string, IEditorDocument> { ["dirty"] = document }, DockTree.Single("dirty"));
+            session.Settings.Apply(session.Settings.Current.Peek() with { ConfirmExit = false });
+            return session;
+        });
+        Assert.True(application.OpenProject("sample"));
+
+        application.CloseProject();
+
+        Assert.NotNull(application.Session);
+        Assert.Equal(EditorCloseScope.Project, application.Session!.CloseCoordinator.Pending.Value?.Scope);
+    }
+
+    [Fact]
+    public void CleanExitConfirmationCanBeSuppressed()
+    {
+        var host = new FakeEditorHost();
+        using var application = new EditorApplication(host, files =>
+        {
+            var session = new EditorSession(files,
+                new Dictionary<string, IEditorDocument> { ["clean"] = new FakeDocument("clean") }, DockTree.Single("clean"));
+            session.Settings.Apply(session.Settings.Current.Peek() with { ConfirmExit = false });
+            return session;
+        });
+        Assert.True(application.OpenProject("sample"));
+
+        application.RequestExit();
+
+        Assert.True(application.ExitRequested);
+        Assert.Null(application.Session);
+    }
+
+    [Fact]
     public void LayoutSelectionSynchronizesWorkspaceActiveDocument()
     {
         var first = new FakeDocument("first");
@@ -82,9 +147,14 @@ public sealed class EditorSessionTests
         Assert.NotNull(session.Documents);
         Assert.NotNull(session.Commands);
         Assert.NotNull(session.Layout);
-        Assert.NotNull(session.Selection);
-        Assert.NotNull(session.Diagnostics);
-        Assert.NotNull(session.Output);
+#pragma warning disable CS0618
+        Assert.IsType<Signal<object?>>(session.Selection);
+        Assert.IsType<Signal<IReadOnlyList<EditorDiagnostic>>>(session.Diagnostics);
+        Assert.IsType<Signal<string>>(session.Output);
+#pragma warning restore CS0618
+        Assert.NotNull(session.SelectionService);
+        Assert.NotNull(session.DiagnosticsService);
+        Assert.NotNull(session.OutputService);
         Assert.False(session.IsPlaying.Value);
     }
 
@@ -133,6 +203,8 @@ public sealed class EditorSessionTests
 
         graph.Redo();
         string serialized = graph.Serialize();
+        Assert.True(graph.Dirty.Value);
+        graph.AcceptSavedSnapshot(serialized);
         Assert.False(graph.Dirty.Value);
         Assert.Contains("Source", serialized, StringComparison.Ordinal);
     }

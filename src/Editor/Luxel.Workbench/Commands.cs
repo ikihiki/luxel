@@ -62,6 +62,7 @@ public static class KeyGestures
 public sealed class CommandRegistry
 {
     private readonly Dictionary<string, Command> _commands = new();
+    private readonly Dictionary<string, KeyGesture?> _gestureOverrides = new(StringComparer.Ordinal);
     private readonly List<(string Path, string CommandId, int Order, int Seq)> _menu = new();
     private readonly List<(string CommandId, int Order, int Seq)> _toolbar = new();
     private int _seq;
@@ -89,6 +90,30 @@ public sealed class CommandRegistry
 
     public Command? Find(string id) => _commands.GetValueOrDefault(id);
 
+    /// <summary>keymap override を考慮した実効 gesture。</summary>
+    public KeyGesture? EffectiveGesture(string id)
+        => _gestureOverrides.TryGetValue(id, out KeyGesture? gesture) ? gesture : Find(id)?.Gesture;
+
+    /// <summary>コマンドの gesture を差し替える。null は binding を無効化する。</summary>
+    public void SetGestureOverride(string id, KeyGesture? gesture)
+    {
+        if (!_commands.ContainsKey(id)) throw new KeyNotFoundException($"Unknown command id: {id}");
+        _gestureOverrides[id] = gesture;
+        Version.Value++;
+    }
+
+    public void ResetGestureOverride(string id)
+    {
+        if (_gestureOverrides.Remove(id)) Version.Value++;
+    }
+
+    public void ResetGestureOverrides()
+    {
+        if (_gestureOverrides.Count == 0) return;
+        _gestureOverrides.Clear();
+        Version.Value++;
+    }
+
     /// <summary>全コマンド (パレット用は <see cref="PaletteCommands"/>)。</summary>
     public IReadOnlyCollection<Command> Commands => _commands.Values;
 
@@ -109,7 +134,7 @@ public sealed class CommandRegistry
             foreach (CommandContribution c in extra)
                 if (c.Command.Gesture == g && c.Command.IsEnabled) { c.Command.Run(); return true; }
         foreach (Command c in _commands.Values)
-            if (c.Gesture == g && c.IsEnabled) { c.Run(); return true; }
+            if (EffectiveGesture(c.Id) == g && c.IsEnabled) { c.Run(); return true; }
         return false;
     }
 
@@ -124,7 +149,7 @@ public sealed class CommandRegistry
             foreach (KeyGesture g in bound) host.UnregisterShortcut(g);
             bound.Clear();
             foreach (Command c in _commands.Values)
-                if (c.Gesture is { } g)
+                if (EffectiveGesture(c.Id) is { } g)
                 {
                     string id = c.Id;
                     host.RegisterShortcut(g, () => Run(id));
