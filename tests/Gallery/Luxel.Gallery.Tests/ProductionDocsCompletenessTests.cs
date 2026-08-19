@@ -17,11 +17,11 @@ public sealed class ProductionDocsCompletenessTests
         GeneratedComponentStoryDescriptor[] particles = [.. global::Luxel.Particles.Gallery.ParticlesGalleryProject.ProductionComponents];
         GeneratedComponentStoryDescriptor[] all = [.. ui, .. editor, .. particles];
 
-        Assert.Equal(53, ui.Length);
+        Assert.Equal(57, ui.Length);
         Assert.Equal(7, editor.Length);
         Assert.Single(particles);
-        Assert.Equal(61, all.Length);
-        Assert.Equal(58, all.Count(static descriptor => descriptor.IsUserFacing));
+        Assert.Equal(65, all.Length);
+        Assert.Equal(62, all.Count(static descriptor => descriptor.IsUserFacing));
         Assert.Equal(all.Length, all.Select(static descriptor => descriptor.ComponentType).Distinct(StringComparer.Ordinal).Count());
         int expectedPaths = all.Sum(static descriptor => descriptor.IsUserFacing ? 3 : 2);
         Assert.Equal(expectedPaths, all.SelectMany(static descriptor => descriptor.IsUserFacing
@@ -181,7 +181,7 @@ public sealed class ProductionDocsCompletenessTests
             }
         }
 
-        Assert.Equal(58, playgroundCount);
+        Assert.Equal(62, playgroundCount);
     }
 
     [Fact]

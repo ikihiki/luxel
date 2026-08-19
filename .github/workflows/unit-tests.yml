@@ -49,29 +49,26 @@ jobs:
       - name: Install browser WebAssembly workload
         run: dotnet workload install wasm-tools
 
+      - name: Validate unit-test solution filter
+        run: python3 eng/check-unit-test-solution-filter.py
+
+      - name: Restore .NET unit tests
+        run: dotnet restore Luxel.UnitTests.slnf
+
+      - name: Build .NET unit tests
+        run: >
+          dotnet build Luxel.UnitTests.slnf
+          --configuration Release
+          --no-restore
+
       - name: Run .NET unit tests
-        shell: bash
-        run: |
-          mapfile -t projects < <(
-            find tests -name '*.Tests.csproj' -type f \
-              ! -path '*E2E*' \
-              ! -path '*E2e*' \
-              ! -path '*.Present.Tests*' \
-              | sort
-          )
-          printf 'Running %d unit-test projects\n' "${#projects[@]}"
-          failed=0
-          for project in "${projects[@]}"; do
-            echo "::group::$project"
-            if ! dotnet test "$project" \
-              --configuration Release \
-              --filter 'Category!=Integration&Category!=WindowsIntegration'; then
-              echo "::error file=.github/workflows/unit-tests.yml,line=63::Unit-test project failed: $project"
-              failed=1
-            fi
-            echo '::endgroup::'
-          done
-          exit "$failed"
+        run: >
+          dotnet test Luxel.UnitTests.slnf
+          --configuration Release
+          --no-restore
+          --no-build
+          --maxcpucount:1
+          --filter 'Category!=Integration&Category!=WindowsIntegration'
 
       - name: Run JavaScript unit tests
         run: node --test tests/Audio/Luxel.Audio.Browser.Tests/luxel-audio-browser.test.mjs
