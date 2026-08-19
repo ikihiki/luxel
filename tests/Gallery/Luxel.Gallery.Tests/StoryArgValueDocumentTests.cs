@@ -89,6 +89,27 @@ public sealed class StoryArgValueDocumentTests
         Assert.Equal("external-conflict", document.Diagnostic!.Source);
     }
 
+    [Fact]
+    public void Tree_edit_and_undo_each_commit_once_through_story_adapter()
+    {
+        StoryArgDefinition definition = JsonDefinition();
+        var commits = new List<JsonElement>();
+        var document = new StoryJsonArgDocument(definition, Json("""{"nodes":[1]}"""), value => commits.Add(value.Clone()));
+        ValueObjectNode root = Assert.IsType<ValueObjectNode>(document.ValueDocument.AcceptedRoot);
+        ValueArrayNode nodes = Assert.IsType<ValueArrayNode>(root.Properties.Single(property => property.Name == "nodes").Value);
+        ValueScalarNode value = Assert.IsType<ValueScalarNode>(nodes.Items[0]);
+
+        Assert.True(document.Tree.ReplaceScalar(value.Id, new ValueNodeFactory().Number("2")).Success);
+        Assert.Single(commits);
+        Assert.Equal(2, commits[0].GetProperty("nodes")[0].GetInt32());
+        Assert.Equal(1, document.Revision);
+
+        Assert.True(document.ValueDocument.Undo().Success);
+        Assert.Equal(2, commits.Count);
+        Assert.Equal(1, commits[1].GetProperty("nodes")[0].GetInt32());
+        Assert.Equal(2, document.Revision);
+    }
+
     private static StoryArgDefinition JsonDefinition()
         => new("graph", "json", Json("""{"nodes":[1]}"""), Editor: StoryArgEditorKind.Json);
 
