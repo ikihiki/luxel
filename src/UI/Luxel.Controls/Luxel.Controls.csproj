@@ -10,6 +10,7 @@
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
+    <ProjectReference Include="..\Luxel.ValueDocument\Luxel.ValueDocument.csproj" />
     <ProjectReference Include="..\Luxel.Document\Luxel.Document.csproj" />
     <!-- 汎用ノードエディタのコア (ADR-0009)。NodeGraphView が投影して描く (canvas 非依存の純データ/幾何) -->
     <ProjectReference Include="..\Luxel.NodeGraph\Luxel.NodeGraph.csproj" />
