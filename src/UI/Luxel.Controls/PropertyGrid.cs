@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Numerics;
-using System.Reflection;
 using Luxel.UI;
+using Luxel.ValueDocument;
 using static Luxel.Controls.Kit;
 
 namespace Luxel.Controls;
@@ -56,10 +56,28 @@ public sealed partial class PropertyGrid : CompositeControl
 
     private readonly Signal<int> _version = new(0);
     private readonly Dictionary<string, Widget> _editors = new();   // play/テスト用
+    private object? _controllerTarget;
+    private ReflectedPropertyController? _controller;
+
+    /// <summary>現在の対象を所有する reflected document controller。ビュー構築後に利用できる。</summary>
+    public ReflectedPropertyController? Controller => _controller;
+
+    /// <summary>複数ビューや editor document が所有する controller をこの grid に接続する。</summary>
+    public void UseController(ReflectedPropertyController controller)
+    {
+        ArgumentNullException.ThrowIfNull(controller);
+        _controller = controller;
+        _controllerTarget = controller.Target;
+        _version.Value = _version.Peek() + 1;
+    }
 
     /// <summary>対象の値が外部で変わったとき呼ぶ — 反映し直す (Peek ベース — Effect 内から
     /// 呼ばれても自己購読しない)。</summary>
-    public void Refresh() => _version.Value = _version.Peek() + 1;
+    public void Refresh()
+    {
+        _controller?.RefreshFromTarget();
+        _version.Value = _version.Peek() + 1;
+    }
 
     /// <summary>メンバー名のエディタ widget (play/テスト用)。</summary>
     public Widget? EditorOf(string name) => _editors.GetValueOrDefault(name);
@@ -68,33 +86,9 @@ public sealed partial class PropertyGrid : CompositeControl
     [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
         "PropertyGrid discovers arbitrary runtime members. Native AOT callers should use generated/static property descriptors instead.")]
     public static List<PropertyRow> Discover(object target)
-    {
-        var rows = new List<PropertyRow>();
-        Type t = target.GetType();
-        // プロパティ (宣言順) → public field (宣言順)。MetadataToken はテーブル (Property/Field) を
-        // またぐと比較できないため二段にする
-        var members = new List<MemberInfo>();
-        members.AddRange(t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p is { CanRead: true, CanWrite: true } && p.GetIndexParameters().Length == 0)
-            .OrderBy(p => p.MetadataToken));
-        members.AddRange(t.GetFields(BindingFlags.Public | BindingFlags.Instance)
-            .Where(f => !f.IsInitOnly).OrderBy(f => f.MetadataToken));
+        => ReflectedPropertyController.DiscoverRows(target).Select(pair => pair.Row).ToList();
 
-        foreach (MemberInfo m in members)
-        {
-            if (m.GetCustomAttribute<PropertyIgnoreAttribute>() is not null) continue;
-            Type mt = m is PropertyInfo pi ? pi.PropertyType : ((FieldInfo)m).FieldType;
-            if (!Supported(mt)) continue;
-            var range = m.GetCustomAttribute<PropertyRangeAttribute>();
-            string group = m.GetCustomAttribute<PropertyGroupAttribute>()?.Name ?? "";
-            Func<object?> get = m is PropertyInfo gp ? () => gp.GetValue(target) : () => ((FieldInfo)m).GetValue(target);
-            Action<object?> set = m is PropertyInfo sp ? v => sp.SetValue(target, v) : v => ((FieldInfo)m).SetValue(target, v);
-            rows.Add(new PropertyRow(m.Name, group, mt, get, set, range?.Min, range?.Max));
-        }
-        return rows;
-    }
-
-    private static bool Supported(Type t)
+    internal static bool Supported(Type t)
         => t == typeof(bool) || t == typeof(int) || t == typeof(float) || t == typeof(string)
         || t == typeof(uint) || t.IsEnum || t == typeof(Vector2) || t == typeof(Vector3) || t == typeof(Length);
 
@@ -104,14 +98,24 @@ public sealed partial class PropertyGrid : CompositeControl
         _editors.Clear();
         object? target = Target.Get();
         if (target is null)
+        {
+            _controllerTarget = null;
+            _controller = null;
             return Text("対象なし", 11, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(4, 0, 0, 0));
+        }
+        if (!ReferenceEquals(target, _controllerTarget))
+        {
+            _controllerTarget = target;
+            _controller = new ReflectedPropertyController(target);
+        }
 
         float w = Width.Get();
         float nameW = MathF.Max(60, w - CtlW - Gap);
         var rows = new List<Widget>();
         string currentGroup = "";
-        foreach (PropertyRow row in Discover(target))
+        foreach (ReflectedPropertyMember member in _controller!.Members)
         {
+            PropertyRow row = member.Row;
             if (row.Group != currentGroup)
             {
                 currentGroup = row.Group;
@@ -120,7 +124,7 @@ public sealed partial class PropertyGrid : CompositeControl
                     rows.Add(Text(currentGroup, 11, color: Bind.From(() => UiTheme.T.TextMuted),
                                   margin: new Thickness(0, 4, 0, 0)));
             }
-            Widget editor = Editor(row);
+            Widget editor = Editor(member);
             _editors[row.Name] = editor;
             rows.Add(HStack(Gap)[
                 Text(row.Name, 12, color: Bind.From(() => UiTheme.T.Text), width: nameW,
@@ -134,13 +138,16 @@ public sealed partial class PropertyGrid : CompositeControl
 
     /// <summary>型別エディタ (KnobsTable と同じ「signal + 初回スキップ Effect で commit」方式)。
     /// commit = 対象へ書き込み + OnChanged。</summary>
-    private Widget Editor(PropertyRow row)
+    private Widget Editor(ReflectedPropertyMember member)
     {
-        void Commit(object? v)
+        PropertyRow row = member.Row;
+        void Commit(object? value)
         {
-            row.Set(v);
-            OnChanged.Invoke(this, row.Name, v);
+            ValueApplyResult result = _controller!.CommitValue(member.Descriptor.Id, value);
+            if (result.Success) OnChanged.Invoke(this, row.Name, value);
         }
+
+        void InvalidDraft(string text) => _controller!.SetDraft(member.Descriptor.Id, text);
 
         if (row.Type == typeof(bool))
         {
@@ -190,9 +197,14 @@ public sealed partial class PropertyGrid : CompositeControl
             bool firstVec = true;
             Reactive.Effect(() =>
             {
-                float x = P(axes[0].Value), y = P(axes[1].Value);
-                float z = v3 ? P(axes[2].Value) : 0;
+                string xText = axes[0].Value, yText = axes[1].Value;
+                string zText = v3 ? axes[2].Value : "0";
                 if (firstVec) { firstVec = false; return; }
+                if (!TryP(xText, out float x) || !TryP(yText, out float y) || !TryP(zText, out float z))
+                {
+                    InvalidDraft(string.Join(',', axes.Select(axis => axis.Peek())));
+                    return;
+                }
                 if (v3) Commit(new Vector3(x, y, z));
                 else Commit(new Vector2(x, y));
             });
@@ -203,8 +215,16 @@ public sealed partial class PropertyGrid : CompositeControl
         Skip1(() =>
         {
             string v = txt.Value;
-            if (row.Type == typeof(int)) { if (int.TryParse(v, out int i)) Commit(i); }
-            else if (row.Type == typeof(float)) Commit(P(v));
+            if (row.Type == typeof(int))
+            {
+                if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out int i)) Commit(i);
+                else InvalidDraft(v);
+            }
+            else if (row.Type == typeof(float))
+            {
+                if (TryP(v, out float f)) Commit(f);
+                else InvalidDraft(v);
+            }
             else Commit(v);
         }, txt);
         TextField field = TextField(txt, width: CtlW);
@@ -213,7 +233,8 @@ public sealed partial class PropertyGrid : CompositeControl
     }
 
     private static string F(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
-    private static float P(string s) => float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out float f) ? f : 0;
+    private static bool TryP(string text, out float value)
+        => ReflectedPropertyController.TryParseFloatDraft(text, out value);
 
     /// <summary>signal の初回読みを捨てて以降の変化で action を呼ぶ (編集 commit 用)。</summary>
     private static void Skip1<T>(Action action, Signal<T> sig)

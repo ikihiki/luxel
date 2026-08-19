@@ -1,0 +1,310 @@
+@using Luxel.Gallery
+@using Luxel.ValueDocument
+
+<div class="raw-json-editor" data-status="@StatusKey" data-mode="@Mode.ToString().ToLowerInvariant()">
+    <div class="json-mode-tabs" role="tablist" aria-label="@($"{Document.Definition.Name} JSON表示モード")">
+        <button type="button" role="tab" aria-selected="@(Mode == JsonMode.Raw ? "true" : "false")"
+                class="@(Mode == JsonMode.Raw ? "active" : null)" @onclick="() => SwitchMode(JsonMode.Raw)">Raw</button>
+        <button type="button" role="tab" aria-selected="@(Mode == JsonMode.Tree ? "true" : "false")"
+                class="@(Mode == JsonMode.Tree ? "active" : null)" @onclick="() => SwitchMode(JsonMode.Tree)">Tree</button>
+    </div>
+
+    @if (Mode == JsonMode.Raw)
+    {
+        <textarea id="@Id" rows="5" spellcheck="false" value="@Document.Text"
+                  aria-describedby="@StatusId @DiagnosticId" aria-invalid="@(Document.IsInvalid ? "true" : "false")"
+                  @oninput="OnInput" @onblur="Apply"></textarea>
+        <div class="raw-json-toolbar">
+            <span id="@StatusId" class="raw-json-status" aria-live="polite">@StatusLabel</span>
+            <div class="raw-json-actions" aria-label="JSON編集操作">
+                <button type="button" @onmousedown:preventDefault @onclick="Apply">適用</button>
+                <button type="button" @onmousedown:preventDefault @onclick="() => Format(true)">整形</button>
+                <button type="button" @onmousedown:preventDefault @onclick="() => Format(false)">圧縮</button>
+                <button type="button" @onmousedown:preventDefault @onclick="Discard" disabled="@(!Document.IsDirty && !Document.IsInvalid)">破棄</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        @if (Document.IsTreeReadOnly)
+        {
+            <div class="json-tree-banner" role="status">
+                <strong>未適用のRawドラフトがあるため、Treeは読み取り専用です。</strong>
+                <span>Rawへ戻って修正するか、ドラフトを適用または破棄してください。ドラフトの内容は保持されています。</span>
+                <div class="raw-json-actions">
+                    <button type="button" @onclick="Apply">適用</button>
+                    <button type="button" @onclick="Discard">破棄</button>
+                </div>
+            </div>
+        }
+        <div class="json-tree-toolbar">
+            <span id="@StatusId" class="raw-json-status" aria-live="polite">@TreeStatusLabel</span>
+            <div class="raw-json-actions" aria-label="Tree履歴操作">
+                <button type="button" @onclick="Undo" disabled="@(!CanEditTree || !Document.ValueDocument.History.CanUndo)">元に戻す</button>
+                <button type="button" @onclick="Redo" disabled="@(!CanEditTree || !Document.ValueDocument.History.CanRedo)">やり直す</button>
+            </div>
+        </div>
+        <div class="json-tree" role="tree" aria-label="@($"{Document.Definition.Name} JSONツリー")" aria-readonly="@(!CanEditTree ? "true" : "false")">
+            @foreach (ValueTreeRow row in Rows)
+            {
+                <div @key="row.NodeId" class="json-tree-row" role="treeitem" aria-level="@(row.Depth + 1)"
+                     aria-expanded="@(row.HasChildren ? row.IsExpanded.ToString().ToLowerInvariant() : null)"
+                     data-node-id="@row.NodeId" data-pointer="@row.Pointer"
+                     style="@($"--tree-depth:{row.Depth}")">
+                    <div class="json-tree-main">
+                        @if (row.HasChildren)
+                        {
+                            <button type="button" class="json-tree-toggle" aria-label="@($"{RowLabel(row)}を{(row.IsExpanded ? "折りたたむ" : "展開する")}")"
+                                    @onclick="() => Toggle(row.NodeId)">@(row.IsExpanded ? "−" : "+")</button>
+                        }
+                        else
+                        {
+                            <span class="json-tree-toggle-spacer" aria-hidden="true"></span>
+                        }
+                        <span class="json-tree-key">@RowLabel(row)</span>
+                        <span class="json-tree-kind">@KindLabel(row.Kind)</span>
+                        @if (row.Kind == ValueNodeKind.Scalar)
+                        {
+                            <input class="json-tree-scalar" aria-label="@($"{RowLabel(row)} のJSON値")"
+                                   value="@ScalarDraft(row)" disabled="@(!CanEditTree)"
+                                   @oninput="eventArgs => SetScalarDraft(row.NodeId, eventArgs.Value?.ToString() ?? string.Empty)"
+                                   @onkeydown="eventArgs => OnScalarKeyDown(eventArgs, row.NodeId)" />
+                            <button type="button" class="json-tree-commit" disabled="@(!CanEditTree)"
+                                    aria-label="@($"{RowLabel(row)} の値を適用")" @onclick="() => ReplaceScalar(row.NodeId)">適用</button>
+                        }
+                        else
+                        {
+                            <code class="json-tree-summary">@row.ValueSummary</code>
+                        }
+                    </div>
+                    @if (CanEditTree)
+                    {
+                        <div class="json-tree-actions">
+                            @if (row.Key is not null && TryGetObjectParent(row.NodeId, out ValueObjectNode? objectParent))
+                            {
+                                <input aria-label="@($"{row.Key} の新しいプロパティ名")" value="@RenameDraft(row)"
+                                       @oninput="eventArgs => SetRenameDraft(row.NodeId, eventArgs.Value?.ToString() ?? string.Empty)" />
+                                <button type="button" @onclick="() => RenameProperty(objectParent!.Id, row.Key, row.NodeId)">名前変更</button>
+                                <button type="button" aria-label="@($"{row.Key} プロパティを削除")"
+                                        @onclick="() => RemoveProperty(objectParent!.Id, row.Key)">削除</button>
+                            }
+                            else if (row.Index is int index && TryGetArrayParent(row.NodeId, out ValueArrayNode? arrayParent))
+                            {
+                                <button type="button" aria-label="@($"配列項目 {index} を上へ移動")" disabled="@(index == 0)"
+                                        @onclick="() => MoveArrayItem(arrayParent!.Id, index, index - 1)">↑</button>
+                                <button type="button" aria-label="@($"配列項目 {index} を下へ移動")" disabled="@(index >= arrayParent!.Items.Count - 1)"
+                                        @onclick="() => MoveArrayItem(arrayParent!.Id, index, index + 1)">↓</button>
+                                <button type="button" aria-label="@($"配列項目 {index} を削除")"
+                                        @onclick="() => RemoveArrayItem(arrayParent!.Id, index)">削除</button>
+                            }
+                            @if (row.Kind == ValueNodeKind.Object)
+                            {
+                                <input aria-label="追加するプロパティ名" placeholder="property" value="@ObjectNameDraft(row.NodeId)"
+                                       @oninput="eventArgs => SetObjectNameDraft(row.NodeId, eventArgs.Value?.ToString() ?? string.Empty)" />
+                                <input aria-label="追加するプロパティのJSON値" placeholder="null" value="@ObjectValueDraft(row.NodeId)"
+                                       @oninput="eventArgs => SetObjectValueDraft(row.NodeId, eventArgs.Value?.ToString() ?? string.Empty)" />
+                                <button type="button" @onclick="() => AddProperty(row.NodeId)">プロパティ追加</button>
+                            }
+                            else if (row.Kind == ValueNodeKind.Array)
+                            {
+                                <input type="number" min="0" aria-label="挿入位置" value="@ArrayIndexDraft(row.NodeId)"
+                                       @oninput="eventArgs => SetArrayIndexDraft(row.NodeId, eventArgs.Value?.ToString() ?? string.Empty)" />
+                                <input aria-label="挿入するJSON値" placeholder="null" value="@ArrayValueDraft(row.NodeId)"
+                                       @oninput="eventArgs => SetArrayValueDraft(row.NodeId, eventArgs.Value?.ToString() ?? string.Empty)" />
+                                <button type="button" @onclick="() => InsertArrayItem(row.NodeId)">項目挿入</button>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (Document.Diagnostic is { } diagnostic)
+    {
+        <p id="@DiagnosticId" class="raw-json-diagnostic" role="alert">
+            <strong>@($"行 {diagnostic.Line}、列 {diagnostic.Column}")</strong>
+            <span>@diagnostic.Message</span>
+        </p>
+    }
+</div>
+
+@code {
+    private const int MaxRows = 500;
+    private const int ArrayItemLimit = 100;
+    private readonly Dictionary<NodeId, string> _scalarDrafts = [];
+    private readonly Dictionary<NodeId, string> _renameDrafts = [];
+    private readonly Dictionary<NodeId, string> _objectNameDrafts = [];
+    private readonly Dictionary<NodeId, string> _objectValueDrafts = [];
+    private readonly Dictionary<NodeId, string> _arrayIndexDrafts = [];
+    private readonly Dictionary<NodeId, string> _arrayValueDrafts = [];
+    private string? _treeMessage;
+
+    [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public StoryJsonArgDocument Document { get; set; } = null!;
+
+    private JsonMode Mode { get; set; }
+    private string StatusId => Id + "-status";
+    private string DiagnosticId => Id + "-diagnostic";
+    private string StatusKey => Document.IsInvalid ? "invalid" : Document.IsDirty ? "dirty" : "valid";
+    private string StatusLabel => StatusKey switch
+    {
+        "invalid" => "JSONにエラーがあります",
+        "dirty" => "未適用の変更があります",
+        _ => "有効なJSONです",
+    };
+    private string TreeStatusLabel => _treeMessage ?? $"{Rows.Count}行を表示中（上限{MaxRows}行、配列{ArrayItemLimit}項目）";
+    private bool CanEditTree => !Document.IsTreeReadOnly;
+    private IReadOnlyList<ValueTreeRow> Rows => Document.Tree.EnumerateRows(MaxRows, ArrayItemLimit);
+
+    private void SwitchMode(JsonMode mode)
+    {
+        if (mode == JsonMode.Tree && Document.IsDirty) Document.ValidateRawDraft();
+        Mode = mode;
+        _treeMessage = null;
+    }
+
+    private void OnInput(ChangeEventArgs eventArgs) => Document.SetRawDraft(eventArgs.Value?.ToString() ?? string.Empty);
+    private void Apply()
+    {
+        bool success = Document.Apply();
+        _treeMessage = success ? "JSONを適用しました。" : "JSONを適用できませんでした。";
+        ClearEditDrafts();
+    }
+    private void Format(bool indented) => Document.Format(indented);
+    private void Discard()
+    {
+        Document.Discard();
+        _treeMessage = "Rawドラフトを破棄しました。";
+        ClearEditDrafts();
+    }
+
+    private void Toggle(NodeId id) => Document.Tree.ToggleExpanded(id);
+    private void Undo() => Complete(Document.ValueDocument.Undo(), "変更を元に戻しました。");
+    private void Redo() => Complete(Document.ValueDocument.Redo(), "変更をやり直しました。");
+
+    private string ScalarDraft(ValueTreeRow row) => _scalarDrafts.GetValueOrDefault(row.NodeId, row.ValueSummary);
+    private void SetScalarDraft(NodeId id, string value) => _scalarDrafts[id] = value;
+    private void OnScalarKeyDown(KeyboardEventArgs eventArgs, NodeId id)
+    {
+        if (eventArgs.Key == "Enter") ReplaceScalar(id);
+    }
+    private void ReplaceScalar(NodeId id)
+    {
+        if (!TryParseValue(_scalarDrafts.GetValueOrDefault(id, CurrentSummary(id)), out ValueNode? value) || value is not ValueScalarNode scalar)
+        {
+            _treeMessage = "値には有効なJSONスカラー（文字列、数値、true、false、null）を入力してください。";
+            return;
+        }
+        Complete(Document.Tree.ReplaceScalar(id, scalar), "スカラー値を更新しました。");
+    }
+
+    private string RenameDraft(ValueTreeRow row) => _renameDrafts.GetValueOrDefault(row.NodeId, row.Key ?? string.Empty);
+    private void SetRenameDraft(NodeId id, string value) => _renameDrafts[id] = value;
+    private void RenameProperty(NodeId parentId, string oldName, NodeId childId)
+        => Complete(Document.Tree.RenameObjectProperty(parentId, oldName, _renameDrafts.GetValueOrDefault(childId, oldName)), "プロパティ名を変更しました。");
+    private void RemoveProperty(NodeId parentId, string name)
+        => Complete(Document.Tree.RemoveObjectProperty(parentId, name), "プロパティを削除しました。");
+
+    private string ObjectNameDraft(NodeId id) => _objectNameDrafts.GetValueOrDefault(id, string.Empty);
+    private string ObjectValueDraft(NodeId id) => _objectValueDrafts.GetValueOrDefault(id, "null");
+    private void SetObjectNameDraft(NodeId id, string value) => _objectNameDrafts[id] = value;
+    private void SetObjectValueDraft(NodeId id, string value) => _objectValueDrafts[id] = value;
+    private void AddProperty(NodeId id)
+    {
+        string name = ObjectNameDraft(id);
+        if (string.IsNullOrEmpty(name) || !TryParseValue(ObjectValueDraft(id), out ValueNode? value))
+        {
+            _treeMessage = "プロパティ名と有効なJSON値を入力してください。";
+            return;
+        }
+        Complete(Document.Tree.AddObjectProperty(id, name, value!), "プロパティを追加しました。");
+    }
+
+    private string ArrayIndexDraft(NodeId id)
+        => _arrayIndexDrafts.GetValueOrDefault(id, Document.ValueDocument.TryGetNode(id, out ValueNode? node) && node is ValueArrayNode array ? array.Items.Count.ToString() : "0");
+    private string ArrayValueDraft(NodeId id) => _arrayValueDrafts.GetValueOrDefault(id, "null");
+    private void SetArrayIndexDraft(NodeId id, string value) => _arrayIndexDrafts[id] = value;
+    private void SetArrayValueDraft(NodeId id, string value) => _arrayValueDrafts[id] = value;
+    private void InsertArrayItem(NodeId id)
+    {
+        if (!int.TryParse(ArrayIndexDraft(id), out int index) || !TryParseValue(ArrayValueDraft(id), out ValueNode? value))
+        {
+            _treeMessage = "有効な挿入位置とJSON値を入力してください。";
+            return;
+        }
+        Complete(Document.Tree.InsertArrayItem(id, index, value!), "配列項目を挿入しました。");
+    }
+    private void RemoveArrayItem(NodeId id, int index)
+        => Complete(Document.Tree.RemoveArrayItem(id, index), "配列項目を削除しました。");
+    private void MoveArrayItem(NodeId id, int fromIndex, int toIndex)
+        => Complete(Document.Tree.MoveArrayItem(id, fromIndex, toIndex), "配列項目を移動しました。");
+
+    private void Complete(ValueApplyResult result, string successMessage)
+    {
+        _treeMessage = result.Success ? successMessage : $"操作に失敗しました（{result.Status}）。";
+        if (result.Success) ClearEditDrafts();
+    }
+
+    private void ClearEditDrafts()
+    {
+        _scalarDrafts.Clear();
+        _renameDrafts.Clear();
+        _objectNameDrafts.Clear();
+        _objectValueDrafts.Clear();
+        _arrayIndexDrafts.Clear();
+        _arrayValueDrafts.Clear();
+    }
+
+    private string CurrentSummary(NodeId id)
+        => Document.ValueDocument.TryGetNode(id, out ValueNode? node) && node is not null ? ValueTreeController.Summary(node) : string.Empty;
+    private static bool TryParseValue(string text, out ValueNode? value)
+    {
+        JsonValueParseResult parsed = JsonValueCodec.Parse(text);
+        value = parsed.Success ? parsed.Root : null;
+        return parsed.Success;
+    }
+
+    private bool TryGetObjectParent(NodeId childId, out ValueObjectNode? parent)
+        => TryGetParent(Document.ValueDocument.AcceptedRoot, childId, out parent, out _);
+    private bool TryGetArrayParent(NodeId childId, out ValueArrayNode? parent)
+        => TryGetParent(Document.ValueDocument.AcceptedRoot, childId, out _, out parent);
+    private static bool TryGetParent(ValueNode current, NodeId childId, out ValueObjectNode? objectParent, out ValueArrayNode? arrayParent)
+    {
+        if (current is ValueObjectNode obj)
+        {
+            if (obj.Properties.Any(property => property.Value.Id == childId))
+            {
+                objectParent = obj;
+                arrayParent = null;
+                return true;
+            }
+            foreach (ValueProperty property in obj.Properties)
+                if (TryGetParent(property.Value, childId, out objectParent, out arrayParent)) return true;
+        }
+        else if (current is ValueArrayNode array)
+        {
+            if (array.Items.Any(item => item.Id == childId))
+            {
+                objectParent = null;
+                arrayParent = array;
+                return true;
+            }
+            foreach (ValueNode item in array.Items)
+                if (TryGetParent(item, childId, out objectParent, out arrayParent)) return true;
+        }
+        objectParent = null;
+        arrayParent = null;
+        return false;
+    }
+
+    private static string RowLabel(ValueTreeRow row) => row.Key ?? (row.Index is int index ? $"[{index}]" : "root");
+    private static string KindLabel(ValueNodeKind kind) => kind switch
+    {
+        ValueNodeKind.Object => "object",
+        ValueNodeKind.Array => "array",
+        _ => "scalar",
+    };
+
+    private enum JsonMode { Raw, Tree }
+}

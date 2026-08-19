@@ -16,6 +16,7 @@
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Graphics\Luxel.Graphics.csproj" />
     <ProjectReference Include="..\..\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
+    <ProjectReference Include="..\..\UI\Luxel.ValueDocument\Luxel.ValueDocument.csproj" />
     <ProjectReference Include="..\..\UI\Luxel.UI\Luxel.UI.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
   </ItemGroup>

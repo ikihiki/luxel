@@ -78,7 +78,7 @@ public sealed partial class KnobsTable : CompositeControl
                 Cell(k.Name, NameW),
                 Cell(typeLabel, TypeW, muted: true),
                 Cell(k.Description ?? "", descW, muted: true),
-                Editor(k)]);
+                Editor(k, CtlW)]);
         }
         return VStack(3)[rows.ToArray()];
     }
@@ -107,13 +107,16 @@ public sealed partial class KnobsTable : CompositeControl
                     color: Color(appearance.DescriptionColor, () => UiTheme.T.TextMuted),
                     width: labelWidth, wrap: TextWrap.Word));
 
+            float rowHeight = knob.Editor == StoryArgEditorKind.Json
+                ? MathF.Max(appearance.RowHeight, 190)
+                : appearance.RowHeight;
             Widget row = Border(
                 background: Color(appearance.RowBackground, () => UiTheme.T.Surface),
                 padding: new Thickness(appearance.PaddingX, appearance.PaddingY),
-                width: innerWidth, height: appearance.RowHeight)[
+                width: innerWidth, height: rowHeight)[
                     HStack(18)[
                         VStack(3, width: labelWidth)[labelParts.ToArray()],
-                        Border(width: appearance.ControlWidth)[Editor(knob)]]];
+                        Border(width: appearance.ControlWidth)[Editor(knob, appearance.ControlWidth)]]];
             rows.Add(row);
         }
 
@@ -124,10 +127,10 @@ public sealed partial class KnobsTable : CompositeControl
     }
 
     /// <summary>操作列 — 型別エディタ。commit は OnEdit (effect 内から呼ばれるため受け手はキューへ)。</summary>
-    private Widget Editor(StoryKnob k)
+    private Widget Editor(StoryKnob k, float width)
     {
         if (_editors.TryGetValue(k, out Widget? editor)) return editor;
-        editor = CreateEditor(k);
+        editor = CreateEditor(k, width);
         _editors.Add(k, editor);
         return editor;
     }
@@ -147,10 +150,18 @@ public sealed partial class KnobsTable : CompositeControl
         }
     }
 
-    private Widget CreateEditor(StoryKnob k)
+    private Widget CreateEditor(StoryKnob k, float width)
     {
         void Commit(string v) => OnEdit.Invoke(this, k, v);
 
+        if (k.Editor == StoryArgEditorKind.Json)
+        {
+            using JsonDocument accepted = JsonDocument.Parse(k.Value);
+            var definition = new StoryArgDefinition(k.Name, k.Type, accepted.RootElement.Clone(),
+                k.Description, Min: k.Min, Max: k.Max, Step: k.Step, Options: k.Options,
+                Editor: StoryArgEditorKind.Json);
+            return new RawJsonEditor(definition, accepted.RootElement, Commit, width, height: 112);
+        }
         if (k.Editor == StoryArgEditorKind.Boolean)
         {
             var b = new Signal<bool>(k.Value == "true");

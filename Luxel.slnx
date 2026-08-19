@@ -23,6 +23,7 @@
     <Project Path="src/UI/Luxel.Highlight.TextMate/Luxel.Highlight.TextMate.csproj" />
     <Project Path="src/UI/Luxel.MathText/Luxel.MathText.csproj" />
     <Project Path="src/UI/Luxel.NodeGraph/Luxel.NodeGraph.csproj" />
+    <Project Path="src/UI/Luxel.ValueDocument/Luxel.ValueDocument.csproj" />
     <Project Path="src/UI/Luxel.UI.Gallery/Luxel.UI.Gallery.csproj" />
     <Project Path="src/UI/Luxel.UI.Tailwind/Luxel.UI.Tailwind.csproj" />
     <Project Path="src/UI/Luxel.UI/Luxel.UI.csproj" />
@@ -223,5 +224,6 @@
   </Folder>
   <Folder Name="/tests/UI/">
     <Project Path="tests/UI/Luxel.UI.Tests/Luxel.UI.Tests.csproj" />
+    <Project Path="tests/UI/Luxel.ValueDocument.Tests/Luxel.ValueDocument.Tests.csproj" />
   </Folder>
 </Solution>

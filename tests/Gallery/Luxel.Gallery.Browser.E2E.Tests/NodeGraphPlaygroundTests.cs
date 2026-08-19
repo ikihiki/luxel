@@ -21,7 +21,7 @@ public sealed class NodeGraphPlaygroundTests : PageTest
             await route.ContinueAsync();
         });
         await Page.GotoAsync($"{GalleryTestHost.BaseUrl}{story.StoryPath(embed: false)}");
-        ILocator argsTab = Page.GetByRole(AriaRole.Tab, new() { Name = "Args" });
+        ILocator argsTab = Page.GetByRole(AriaRole.Tab, new() { Name = "引数" });
         await Expect(argsTab).ToBeVisibleAsync(new() { Timeout = 90_000 });
         await argsTab.ClickAsync();
 
@@ -53,6 +53,171 @@ public sealed class NodeGraphPlaygroundTests : PageTest
             message: "The graph edit made before runtime readiness was not replayed to the NodeGraph canvas.");
 
         await Expect(textarea).ToHaveValueAsync(replacement);
+        failures.AssertEmpty();
+    }
+
+    [Fact]
+    public async Task Invalid_json_draft_stays_inline_then_valid_correction_advances_runtime_once()
+    {
+        await GalleryTestHost.EnsureStartedAsync();
+        PageFailures failures = Page.CollectFailures(responses: true);
+        const string story = "Controls/Editor/NodeGraphView/Playground";
+
+        await Page.GotoAsync($"{GalleryTestHost.BaseUrl}{story.StoryPath(embed: false)}");
+        ILocator argsTab = Page.GetByRole(AriaRole.Tab, new() { Name = "引数" });
+        await Expect(argsTab).ToBeVisibleAsync(new() { Timeout = 90_000 });
+        await argsTab.ClickAsync();
+
+        ILocator textarea = Page.Locator("#story-arg-graph");
+        IFrameLocator runtime = Page.FrameLocator("iframe.story-runtime-frame");
+        await runtime.ExpectRuntimeStoryAsync(story, webGpu: true);
+        int initialRevision = await runtime.Locator("html").EvaluateAsync<int>(
+            "() => globalThis.luxelBrowserState?.revision ?? 0");
+        int initialOutputCount = await Page.Locator(".output-list li").CountAsync();
+        string accepted = await textarea.InputValueAsync();
+        const string invalid = "{\n  \"nodes\": [\n}";
+
+        await textarea.FillAsync(invalid);
+        await textarea.BlurAsync();
+
+        await Expect(textarea).ToHaveValueAsync(invalid);
+        await Expect(Page.Locator(".raw-json-editor")).ToHaveAttributeAsync("data-status", "invalid");
+        await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("行");
+        await Expect(Page.GetByRole(AriaRole.Alert)).ToContainTextAsync("列");
+        await Expect(argsTab).ToHaveAttributeAsync("aria-selected", "true");
+        Assert.Equal(initialOutputCount, await Page.Locator(".output-list li").CountAsync());
+        Assert.Equal(initialRevision, await runtime.Locator("html").EvaluateAsync<int>(
+            "() => globalThis.luxelBrowserState?.revision ?? 0"));
+
+        JsonObject graph = JsonNode.Parse(accepted)!.AsObject();
+        JsonArray nodes = graph["nodes"]!.AsArray();
+        while (nodes.Count > 2) nodes.RemoveAt(nodes.Count - 1);
+        graph["edges"] = new JsonArray();
+        string correction = graph.ToJsonString();
+
+        await textarea.FillAsync(correction);
+        await textarea.BlurAsync();
+
+        await GalleryPolling.EventuallyAsync(() => runtime.Locator("html").EvaluateAsync<bool>($$"""
+            () => globalThis.luxelBrowserState?.revision === {{initialRevision + 1}}
+                && globalThis.luxelBrowserState?.args?.graph?.nodes?.length === 2
+                && globalThis.luxelBrowserState?.args?.graph?.edges?.length === 0
+            """), timeoutMilliseconds: 90_000,
+            message: "The corrected JSON arg was not accepted at exactly one new runtime revision.");
+        await Task.Delay(500);
+        Assert.Equal(initialRevision + 1, await runtime.Locator("html").EvaluateAsync<int>(
+            "() => globalThis.luxelBrowserState?.revision ?? 0"));
+        await Expect(Page.Locator(".raw-json-editor")).ToHaveAttributeAsync("data-status", "valid");
+        await Expect(textarea).ToHaveValueAsync(correction);
+        failures.AssertEmpty();
+    }
+
+    [Fact]
+    public async Task Clean_raw_tree_raw_switch_preserves_text_without_runtime_revision()
+    {
+        await GalleryTestHost.EnsureStartedAsync();
+        PageFailures failures = Page.CollectFailures(responses: true);
+        const string story = "Controls/Editor/NodeGraphView/Playground";
+
+        await Page.GotoAsync($"{GalleryTestHost.BaseUrl}{story.StoryPath(embed: false)}");
+        ILocator argsTab = Page.GetByRole(AriaRole.Tab, new() { Name = "引数" });
+        await Expect(argsTab).ToBeVisibleAsync(new() { Timeout = 90_000 });
+        await argsTab.ClickAsync();
+        IFrameLocator runtime = Page.FrameLocator("iframe.story-runtime-frame");
+        await runtime.ExpectRuntimeStoryAsync(story, webGpu: true);
+
+        ILocator editor = Page.Locator(".raw-json-editor");
+        ILocator textarea = Page.Locator("#story-arg-graph");
+        string original = await textarea.InputValueAsync();
+        int revision = await runtime.Locator("html").EvaluateAsync<int>("() => globalThis.luxelBrowserState?.revision ?? 0");
+
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "Tree", Exact = true }).ClickAsync();
+        await Expect(editor).ToHaveAttributeAsync("data-mode", "tree");
+        await Expect(editor.GetByRole(AriaRole.Tree)).ToBeVisibleAsync();
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "Raw", Exact = true }).ClickAsync();
+
+        await Expect(textarea).ToHaveValueAsync(original);
+        Assert.Equal(revision, await runtime.Locator("html").EvaluateAsync<int>(
+            "() => globalThis.luxelBrowserState?.revision ?? 0"));
+        failures.AssertEmpty();
+    }
+
+    [Fact]
+    public async Task Invalid_dirty_raw_tree_is_read_only_and_raw_text_is_restored_exactly()
+    {
+        await GalleryTestHost.EnsureStartedAsync();
+        PageFailures failures = Page.CollectFailures(responses: true);
+        const string story = "Controls/Editor/NodeGraphView/Playground";
+        const string invalid = "{\n  \"nodes\": [\n}";
+
+        await Page.GotoAsync($"{GalleryTestHost.BaseUrl}{story.StoryPath(embed: false)}");
+        ILocator argsTab = Page.GetByRole(AriaRole.Tab, new() { Name = "引数" });
+        await Expect(argsTab).ToBeVisibleAsync(new() { Timeout = 90_000 });
+        await argsTab.ClickAsync();
+        IFrameLocator runtime = Page.FrameLocator("iframe.story-runtime-frame");
+        await runtime.ExpectRuntimeStoryAsync(story, webGpu: true);
+        int revision = await runtime.Locator("html").EvaluateAsync<int>("() => globalThis.luxelBrowserState?.revision ?? 0");
+
+        ILocator editor = Page.Locator(".raw-json-editor");
+        ILocator textarea = Page.Locator("#story-arg-graph");
+        await textarea.FillAsync(invalid);
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "Tree", Exact = true }).ClickAsync();
+
+        await Expect(editor.GetByText("Treeは読み取り専用です", new() { Exact = false })).ToBeVisibleAsync();
+        await Expect(editor.GetByRole(AriaRole.Tree)).ToHaveAttributeAsync("aria-readonly", "true");
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "Raw", Exact = true }).ClickAsync();
+
+        await Expect(textarea).ToHaveValueAsync(invalid);
+        Assert.Equal(revision, await runtime.Locator("html").EvaluateAsync<int>(
+            "() => globalThis.luxelBrowserState?.revision ?? 0"));
+        failures.AssertEmpty();
+    }
+
+    [Fact]
+    public async Task Tree_scalar_edit_advances_runtime_once_and_undo_restores_once()
+    {
+        await GalleryTestHost.EnsureStartedAsync();
+        PageFailures failures = Page.CollectFailures(responses: true);
+        const string story = "Controls/Editor/NodeGraphView/Playground";
+
+        await Page.GotoAsync($"{GalleryTestHost.BaseUrl}{story.StoryPath(embed: false)}");
+        ILocator argsTab = Page.GetByRole(AriaRole.Tab, new() { Name = "引数" });
+        await Expect(argsTab).ToBeVisibleAsync(new() { Timeout = 90_000 });
+        await argsTab.ClickAsync();
+        IFrameLocator runtime = Page.FrameLocator("iframe.story-runtime-frame");
+        await runtime.ExpectRuntimeStoryAsync(story, webGpu: true);
+        int revision = await runtime.Locator("html").EvaluateAsync<int>("() => globalThis.luxelBrowserState?.revision ?? 0");
+
+        ILocator editor = Page.Locator(".raw-json-editor");
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "Tree", Exact = true }).ClickAsync();
+        await editor.Locator("[data-pointer='/nodes'] .json-tree-toggle").ClickAsync();
+        await editor.Locator("[data-pointer='/nodes/0'] .json-tree-toggle").ClickAsync();
+        ILocator titleRow = editor.Locator("[data-pointer='/nodes/0/title']");
+        ILocator titleInput = titleRow.Locator(".json-tree-scalar");
+        string original = await titleInput.InputValueAsync();
+
+        await titleInput.FillAsync("\"Texture updated\"");
+        await titleRow.Locator(".json-tree-commit").ClickAsync();
+        await GalleryPolling.EventuallyAsync(() => runtime.Locator("html").EvaluateAsync<bool>($$"""
+            () => globalThis.luxelBrowserState?.revision === {{revision + 1}}
+                && globalThis.luxelBrowserState?.args?.graph?.nodes?.[0]?.title === 'Texture updated'
+            """), timeoutMilliseconds: 90_000,
+            message: "The Tree scalar edit did not reach the runtime at exactly one new revision.");
+        await Task.Delay(300);
+        Assert.Equal(revision + 1, await runtime.Locator("html").EvaluateAsync<int>(
+            "() => globalThis.luxelBrowserState?.revision ?? 0"));
+
+        await editor.GetByRole(AriaRole.Button, new() { Name = "元に戻す", Exact = true }).ClickAsync();
+        string originalTitle = JsonNode.Parse(original)!.GetValue<string>();
+        string originalTitleJson = System.Text.Json.JsonSerializer.Serialize(originalTitle);
+        await GalleryPolling.EventuallyAsync(() => runtime.Locator("html").EvaluateAsync<bool>($$"""
+            () => globalThis.luxelBrowserState?.revision === {{revision + 2}}
+                && globalThis.luxelBrowserState?.args?.graph?.nodes?.[0]?.title === {{originalTitleJson}}
+            """), timeoutMilliseconds: 90_000,
+            message: "Undo did not restore the Tree scalar edit at exactly one further revision.");
+        await Task.Delay(300);
+        Assert.Equal(revision + 2, await runtime.Locator("html").EvaluateAsync<int>(
+            "() => globalThis.luxelBrowserState?.revision ?? 0"));
         failures.AssertEmpty();
     }
 }
