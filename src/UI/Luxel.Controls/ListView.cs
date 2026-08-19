@@ -14,7 +14,7 @@ namespace Luxel.Controls;
 /// 行ごとに Effect は作らない — 色は Realize 時の単一 Effect が全行へ流す。
 /// </summary>
 [UiComponent]
-public sealed partial class ListView : Widget
+public sealed partial class ListView : Widget, ISemanticProvider
 {
     /// <summary>リストの表示高 (px)。</summary>
     [UiParam] private readonly Bindable<float> _height = new();
@@ -67,6 +67,105 @@ public sealed partial class ListView : Widget
     private float RowH => MathF.Max(8, RowHeight.Get());
 
     public int SelectedIndex => _selected.Value;
+    public IReadOnlySet<int> SelectedIndices => _selectedIndices;
+    private readonly HashSet<int> _selectedIndices = [];
+    private int _selectionAnchor = -1;
+    private FocusTarget? _focusTarget;
+    private readonly List<UiNode> _selectionNodes = [];
+    public bool IsKeyboardFocused { get; private set; }
+    public int RealizedRowCount => _rowNodes.Count;
+    public float ScrollOffset => _scroll.ClampedPeek;
+
+    public void SelectIndex(int index, bool additive = false)
+        => SelectIndex(index, additive ? SelectionGesture.Extend : SelectionGesture.Replace);
+
+    private enum SelectionGesture { Replace, Toggle, Extend }
+
+    private void SelectIndex(int index, SelectionGesture gesture)
+    {
+        IReadOnlyList<string> rows = Items.Get()?.Peek() ?? _rows;
+        if ((uint)index >= (uint)rows.Count) return;
+        if (gesture == SelectionGesture.Replace)
+        {
+            _selectedIndices.Clear();
+            _selectedIndices.Add(index);
+            _selectionAnchor = index;
+        }
+        else if (gesture == SelectionGesture.Toggle)
+        {
+            if (!_selectedIndices.Remove(index)) _selectedIndices.Add(index);
+            _selectionAnchor = index;
+        }
+        else
+        {
+            int anchor = _selectionAnchor >= 0 ? _selectionAnchor : (_selected.Peek() >= 0 ? _selected.Peek() : index);
+            _selectedIndices.Clear();
+            for (int i = Math.Min(anchor, index); i <= Math.Max(anchor, index); i++) _selectedIndices.Add(i);
+        }
+        _selected.Value = index;
+        _scroll.EnsureVisible(index * RowH, (index + 1) * RowH, 2);
+        _version.Value++;
+        OnSelect.Invoke(this, index);
+    }
+
+    public int MoveSelection(Key key, bool additive = false)
+    {
+        IReadOnlyList<string> rows = Items.Get()?.Peek() ?? _rows;
+        if (rows.Count == 0) return -1;
+        int current = _selected.Peek();
+        int next = key switch
+        {
+            Key.Home => 0,
+            Key.End => rows.Count - 1,
+            Key.Up => Math.Max(0, current - 1),
+            Key.Down => Math.Min(rows.Count - 1, current < 0 ? 0 : current + 1),
+            _ => Math.Max(0, current),
+        };
+        SelectIndex(next, additive ? SelectionGesture.Extend : SelectionGesture.Replace);
+        return next;
+    }
+
+    private bool OnKey(KeyEvent e)
+    {
+        if (e.Ctrl && e.Key == Key.A)
+        {
+            IReadOnlyList<string> rows = Items.Get()?.Peek() ?? _rows;
+            _selectedIndices.Clear();
+            for (int i = 0; i < rows.Count; i++) _selectedIndices.Add(i);
+            if (rows.Count > 0) _selected.Value = rows.Count - 1;
+            _version.Value++;
+            return true;
+        }
+        if (e.Key is Key.Up or Key.Down or Key.Home or Key.End or Key.PageUp or Key.PageDown)
+        {
+            IReadOnlyList<string> rows = Items.Get()?.Peek() ?? _rows;
+            if (rows.Count == 0) return true;
+            int current = Math.Max(0, _selected.Peek());
+            int page = Math.Max(1, (int)(H / RowH) - 1);
+            int next = e.Key switch
+            {
+                Key.PageUp => Math.Max(0, current - page),
+                Key.PageDown => Math.Min(rows.Count - 1, current + page),
+                _ => MoveSelection(e.Key, e.Shift),
+            };
+            if (e.Key is Key.PageUp or Key.PageDown) SelectIndex(next, e.Shift ? SelectionGesture.Extend : SelectionGesture.Replace);
+            return true;
+        }
+        if (e.Key == Key.Space && _selected.Peek() >= 0)
+        {
+            SelectIndex(_selected.Peek(), e.Ctrl ? SelectionGesture.Toggle : SelectionGesture.Replace);
+            return true;
+        }
+        return false;
+    }
+
+    public SemanticNode GetSemantics()
+    {
+        IReadOnlyList<string> rows = Items.Get()?.Peek() ?? _rows;
+        return new SemanticNode(SemanticRole.List, Children: rows.Select((label, index) =>
+            new SemanticNode(SemanticRole.ListItem, label, index.ToString(), _selectedIndices.Contains(index))).ToArray());
+    }
+
     public override string? DebugDetail => $"{(Items.Get()?.Value ?? _rows).Count} 行";
 
     private float ContentH => _rows.Count * RowH;
@@ -97,8 +196,11 @@ public sealed partial class ListView : Widget
     {
         _ctx = ctx;
         _rowNodes.Clear();   // 再実体化 (旧ノードは SetRoot が破棄済み)
+        _selectionNodes.Clear();
 
         UiNode node = CreateRoot(ctx, parent, worldOrigin);
+        _focusTarget ??= new FocusTarget { OnFocus = focused => IsKeyboardFocused = focused, OnKey = OnKey };
+        ctx.AddFocusable(_focusTarget);
 
         _clip = node;
         node.Clip = new RectClip(0, 0, W, H);
@@ -119,8 +221,18 @@ public sealed partial class ListView : Widget
         for (int j = 0; j < pool; j++)
         {
             _boundIdx[j] = -2;
+            UiNode selection = ctx.Canvas.AddChild(node);
+            var selectionScene = new Scene2D();
+            selectionScene.FillRoundedRect(Color2D.White, 4, 1, W - 14, RowH - 2, 2);
+            selection.Content = selectionScene;
+            _selectionNodes.Add(selection);
             _rowNodes.Add(ctx.Canvas.AddChild(_content));
         }
+        ctx.Effect(() =>
+        {
+            uint color = SelectedColor.Or(ctx.Theme.Value.SurfaceAlt);
+            foreach (UiNode selection in _selectionNodes) selection.Color = color;
+        });
         // スムーズスクロール (AS-M3): _scroll.Offset は目標、表示は動的状態 "wheel"/"drag" で追従
         // (drag は table で 0ms = 直接操作は即時)
         UiStates scroll = ctx.States(new TransitionTable()
@@ -165,6 +277,8 @@ public sealed partial class ListView : Widget
             if (ReferenceEquals(items, _rows)) return;
             _rows = items;
             _selected.Value = -1;
+            _selectedIndices.Clear();
+            _selectionAnchor = -1;
             ReservePool();
             _scroll.SetLengths(ContentH, H);   // 位置はクランプで追従、サムは signal 経由で再評価
             _version.Value++;   // 再バインド
@@ -180,6 +294,9 @@ public sealed partial class ListView : Widget
                 string? text = idx < _rows.Count ? _rows[idx] : null;
                 UiNode r = _rowNodes[j];
                 r.Transform = Affine2D.Translate(8, idx * RowH);
+                UiNode selection = _selectionNodes[j];
+                selection.Transform = Affine2D.Translate(0, idx * RowH - scroll.Float("offset"));
+                selection.Opacity = text is not null && _selectedIndices.Contains(idx) ? 1f : 0f;
                 if (_boundIdx[j] == idx && ReferenceEquals(_boundText[j], text)) continue;
                 _boundIdx[j] = idx;
                 _boundText[j] = text;
@@ -192,14 +309,16 @@ public sealed partial class ListView : Widget
 
         // 入力: 行クリック=選択、ホイール、サムのドラッグ (トラック帯を前面で拾う)
         const float grabW = ScrollBars.GrabW;
-        void SelectAt(float ly)
+        void SelectAt(float ly, KeyModifiers modifiers = KeyModifiers.None)
         {
             int i = (int)((ly + scroll.Float("offset")) / RowH);   // 見えている位置でヒット (滑走中も一致)
-            if (i >= 0 && i < _rows.Count) { _selected.Value = i; OnSelect.Invoke(this, i); }
+            if (i >= 0 && i < _rows.Count)
+                SelectIndex(i, (modifiers & KeyModifiers.Shift) != 0 ? SelectionGesture.Extend
+                    : (modifiers & KeyModifiers.Ctrl) != 0 ? SelectionGesture.Toggle : SelectionGesture.Replace);
         }
         if (!AllowReorder)
         {
-            ctx.AddHit(node, new Rect(0, 0, W - grabW, H), onClickPos: e => SelectAt(e.Y));
+            ctx.AddHit(node, new Rect(0, 0, W - grabW, H), onClickPos: e => SelectAt(e.Y, e.Modifiers), focus: _focusTarget);
         }
         else
         {
@@ -233,7 +352,8 @@ public sealed partial class ListView : Widget
                     _ctx.Font.AppendText(ghost, text, 8, _textY + 2, _fs, _ctx.Theme.Peek().Text);
                     _ctx.Host.BeginDrag(new ReorderDrag(this, pressIdx, text), ghost, grabX: e.StartX, grabY: RowH / 2);
                 },
-                onDragEnd: e => { if (!started && pressIdx >= 0) SelectAt(e.Y); },
+                onDragEnd: e => { if (!started && pressIdx >= 0) SelectAt(e.Y, e.Modifiers); },
+                focus: _focusTarget,
                 acceptsDrop: p => p is ReorderDrag d && d.Owner == this,
                 onDropHover: h => { if (!h) indicator.Opacity = 0f; },
                 onDropMove: (_, e) =>

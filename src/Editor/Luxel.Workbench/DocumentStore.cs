@@ -25,6 +25,13 @@ public interface IFileStorage
     /// <summary>全ファイルの相対 path を列挙する ('/' 区切り、順序不定)。AssetBrowser 等の
     /// 一覧表示用。</summary>
     IEnumerable<string> List();
+
+    /// <summary>ファイルを削除する。未対応の storage は明示的に失敗する。</summary>
+    void Delete(string path) => throw new NotSupportedException("This storage does not support delete.");
+
+    /// <summary>ファイルを移動/rename する。未対応の storage は明示的に失敗する。</summary>
+    void Move(string sourcePath, string destinationPath)
+        => throw new NotSupportedException("This storage does not support move.");
 }
 
 /// <summary>メモリ上の <see cref="IFileStorage"/> (テスト/一時ワークスペース用、決定的)。
@@ -62,6 +69,25 @@ public sealed class MemoryFileStorage : IFileStorage
 
     public IEnumerable<string> List() { lock (_lock) return _files.Keys.ToArray(); }
 
+    public void Delete(string path)
+    {
+        lock (_lock)
+        {
+            if (!_files.Remove(path)) throw new FileNotFoundException(path);
+        }
+    }
+
+    public void Move(string sourcePath, string destinationPath)
+    {
+        lock (_lock)
+        {
+            if (!_files.TryGetValue(sourcePath, out string? content)) throw new FileNotFoundException(sourcePath);
+            if (_files.ContainsKey(destinationPath)) throw new IOException($"Destination already exists: {destinationPath}");
+            _files.Remove(sourcePath);
+            _files[destinationPath] = content;
+        }
+    }
+
     private sealed class Token(Action dispose) : IDisposable
     {
         private Action? _d = dispose;
@@ -71,15 +97,61 @@ public sealed class MemoryFileStorage : IFileStorage
 
 /// <summary>実ディスクの <see cref="IFileStorage"/> (root 相対)。監視は FileSystemWatcher —
 /// callback は watcher スレッドで来る。</summary>
-public sealed class PhysicalFileStorage(string root) : IFileStorage
+public sealed class PhysicalFileStorage : IFileStorage
 {
-    private readonly string _root = Path.GetFullPath(root);
+    private readonly string _root;
+    private readonly string _rootPrefix;
+    private readonly StringComparison _pathComparison;
 
-    private string Full(string path) => Path.GetFullPath(Path.Combine(_root, path));
+    public PhysicalFileStorage(string root)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(root);
+        _root = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
+        _rootPrefix = Path.EndsInDirectorySeparator(_root) ? _root : _root + Path.DirectorySeparatorChar;
+        _pathComparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+    }
+
+    private string Full(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        string normalized = path.Replace('\\', '/');
+        bool hasDrivePrefix = normalized.Length >= 2 && char.IsLetter(normalized[0]) && normalized[1] == ':';
+        if (Path.IsPathRooted(path) || normalized.StartsWith("/", StringComparison.Ordinal) || hasDrivePrefix)
+            throw new ArgumentException("Storage path must be relative to the configured root.", nameof(path));
+        if (normalized.Split('/').Any(segment => segment == ".."))
+            throw new ArgumentException("Storage path cannot contain '..' segments.", nameof(path));
+
+        string full = Path.GetFullPath(Path.Combine(_root, normalized.Replace('/', Path.DirectorySeparatorChar)));
+        if (!full.StartsWith(_rootPrefix, _pathComparison))
+            throw new ArgumentException("Storage path escapes the configured root.", nameof(path));
+        RejectReparsePoints(full, path);
+        return full;
+    }
+
+    private void RejectReparsePoints(string full, string path)
+    {
+        string relative = Path.GetRelativePath(_root, full);
+        string current = _root;
+        foreach (string segment in relative.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
+        {
+            current = Path.Combine(current, segment);
+            try
+            {
+                if ((File.GetAttributes(current) & FileAttributes.ReparsePoint) != 0)
+                    throw new ArgumentException("Storage path cannot traverse symbolic links or reparse points.", nameof(path));
+            }
+            catch (FileNotFoundException) { break; }
+            catch (DirectoryNotFoundException) { break; }
+        }
+    }
 
     public bool Exists(string path) => File.Exists(Full(path));
 
-    public string? Read(string path) => File.Exists(Full(path)) ? File.ReadAllText(Full(path)) : null;
+    public string? Read(string path)
+    {
+        string full = Full(path);
+        return File.Exists(full) ? File.ReadAllText(full) : null;
+    }
 
     public void Write(string path, string content)
     {
@@ -107,25 +179,56 @@ public sealed class PhysicalFileStorage(string root) : IFileStorage
     public IEnumerable<string> List()
     {
         if (!Directory.Exists(_root)) yield break;
-        foreach (string f in Directory.EnumerateFiles(_root, "*", SearchOption.AllDirectories))
-            yield return Path.GetRelativePath(_root, f).Replace('\\', '/');
+        var options = new EnumerationOptions
+        {
+            RecurseSubdirectories = true,
+            AttributesToSkip = FileAttributes.ReparsePoint,
+        };
+        foreach (string file in Directory.EnumerateFiles(_root, "*", options))
+        {
+            string relative = Path.GetRelativePath(_root, file).Replace('\\', '/');
+            _ = Full(relative); // Keep enumeration subject to the same root-confinement invariant as direct operations.
+            yield return relative;
+        }
+    }
+
+    public void Delete(string path)
+    {
+        string full = Full(path);
+        if (!File.Exists(full)) throw new FileNotFoundException(path);
+        File.Delete(full);
+    }
+
+    public void Move(string sourcePath, string destinationPath)
+    {
+        string source = Full(sourcePath);
+        string destination = Full(destinationPath);
+        if (!File.Exists(source)) throw new FileNotFoundException(sourcePath);
+        if (File.Exists(destination)) throw new IOException($"Destination already exists: {destinationPath}");
+        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+        File.Move(source, destination);
     }
 }
 
 /// <summary>ドキュメント 1 つとファイルの結び付き (path + 外部変更フラグ)。</summary>
 public sealed class DocumentBinding
 {
-    /// <summary>結び付いたファイルパス (SaveAs で変わる)。</summary>
+    /// <summary>結び付いたファイルパス (SaveAs / Rebind で変わる)。</summary>
     public string Path { get; internal set; } = "";
 
-    /// <summary>ファイルが外部で変わったか (エディタ外の編集)。シェルがこれを見て
-    /// 「再読込しますか」を出し、<see cref="DocumentStore.Reload"/> で取り込むか
-    /// <c>Value = false</c> で無視する。</summary>
+    /// <summary>ファイルが外部で変わったか。</summary>
     public Signal<bool> ExternalChange { get; } = new(false);
 
     internal string LastSaved = "";
     internal IDisposable? WatchToken;
+    internal int WatchGeneration;
 }
+
+/// <summary>Atomic document path rebind result. The binding object is preserved for already-bound documents.</summary>
+public sealed record DocumentRebindResult(DocumentBinding Binding, string? PreviousPath, string Path, bool Changed);
+
+/// <summary>Information returned when a document is detached from its file watcher/path.</summary>
+public sealed record DocumentUnbindResult(IEditorDocument Document, DocumentBinding Binding, string Path);
 
 /// <summary>
 /// ドキュメントとファイルを結ぶ永続化コンポーネント (ADR-0010)。open / save / saveAs /
@@ -134,26 +237,21 @@ public sealed class DocumentBinding
 /// </summary>
 public interface IDocumentStore
 {
-    /// <summary>ファイルを開く (読取 → Workspace へ open → path を結ぶ)。既に同じ path が
-    /// 開いていればアクティブ化して返す。無いファイルは FileNotFoundException。</summary>
     IEditorDocument Open(string kind, string path);
-
-    /// <summary>上書き保存 (Serialize → Write、Dirty/ExternalChange 解除)。
-    /// path 未結線 (New で作った doc) は InvalidOperationException — SaveAs を使う。</summary>
     void Save(IEditorDocument doc);
-
-    /// <summary>path を結び直して保存 (新規 doc の初回保存にも)。別 doc が同じ path を
-    /// 開いていれば InvalidOperationException。</summary>
     void SaveAs(IEditorDocument doc, string path);
-
-    /// <summary>外部変更をファイルから取り込み直す (LoadFrom、Dirty/ExternalChange 解除)。</summary>
     void Reload(IEditorDocument doc);
-
-    /// <summary>doc の結び付き。未結線 (New 直後) は null。</summary>
     DocumentBinding? BindingOf(IEditorDocument doc);
-
-    /// <summary>path を開いている doc。無ければ null。</summary>
     IEditorDocument? DocAt(string path);
+
+    /// <summary>
+    /// Rebind an open document to an existing path without serializing/loading it. Used after an asset rename/move.
+    /// The previous watcher remains active if collision, read, or watcher setup fails.
+    /// </summary>
+    DocumentRebindResult Rebind(IEditorDocument doc, string path);
+
+    /// <summary>Detach a document from its path and watcher. Returns null when it was already unbound.</summary>
+    DocumentUnbindResult? Unbind(IEditorDocument doc);
 }
 
 /// <inheritdoc cref="IDocumentStore"/>
@@ -168,7 +266,6 @@ public sealed class DocumentStore : IDocumentStore, IDisposable
     {
         _ws = workspace;
         _storage = storage;
-        // Workspace の開閉に追従 — 閉じた doc の結び付き (watch 込み) を自動で外す
         _prune = Reactive.Effect(() =>
         {
             IReadOnlyList<IEditorDocument> open = _ws.Documents;
@@ -179,6 +276,7 @@ public sealed class DocumentStore : IDocumentStore, IDisposable
 
     public IEditorDocument Open(string kind, string path)
     {
+        path = ValidatePath(path);
         if (DocAt(path) is { } existing)
         {
             _ws.Activate(existing);
@@ -186,35 +284,138 @@ public sealed class DocumentStore : IDocumentStore, IDisposable
         }
         string content = _storage.Read(path) ?? throw new FileNotFoundException(path);
         IEditorDocument doc = _ws.Open(kind, content);
-        Bind(doc, path, content);
-        doc.Dirty.Value = false;
-        return doc;
+        try
+        {
+            _bindings[doc] = CreateBinding(path, content);
+            doc.Dirty.Value = false;
+            return doc;
+        }
+        catch
+        {
+            _ws.Close(doc);
+            throw;
+        }
     }
 
     public void Save(IEditorDocument doc)
     {
         DocumentBinding b = _bindings.GetValueOrDefault(doc)
             ?? throw new InvalidOperationException("path 未結線のドキュメント — SaveAs を使う");
-        string content = doc.Serialize();
-        b.LastSaved = content;   // 自書込の watch エコーを LastSaved 比較で無視するため Write より先
-        _storage.Write(b.Path, content);
-        doc.Dirty.Value = false;
+        bool wasDirty = doc.Dirty.Peek();
+        bool hadExternalChange = b.ExternalChange.Peek();
+        string previousSaved = b.LastSaved;
+        string content;
+        try
+        {
+            content = doc.Serialize();
+            b.LastSaved = content;
+            _storage.Write(b.Path, content);
+        }
+        catch
+        {
+            b.LastSaved = previousSaved;
+            b.ExternalChange.Value = hadExternalChange;
+            doc.Dirty.Value = wasDirty;
+            throw;
+        }
+        doc.AcceptSavedSnapshot(content);
         b.ExternalChange.Value = false;
     }
 
     public void SaveAs(IEditorDocument doc, string path)
     {
-        if (DocAt(path) is { } other && !ReferenceEquals(other, doc))
-            throw new InvalidOperationException($"別のドキュメントが開いている path へは保存できない: {path}");
-        if (_bindings.GetValueOrDefault(doc) is { } old)
-        {
-            old.WatchToken?.Dispose();
-            _bindings.Remove(doc);
-        }
+        path = ValidatePath(path);
+        EnsureOpenDocument(doc);
+        EnsurePathAvailable(doc, path);
+        DocumentBinding? old = _bindings.GetValueOrDefault(doc);
+        if (old?.Path == path) { Save(doc); return; }
+
+        bool wasDirty = doc.Dirty.Peek();
         string content = doc.Serialize();
-        Bind(doc, path, content);
-        _storage.Write(path, content);
-        doc.Dirty.Value = false;
+        bool destinationExisted = _storage.Exists(path);
+        string? destinationContent = destinationExisted
+            ? _storage.Read(path) ?? throw new IOException($"Destination could not be read before Save As: {path}")
+            : null;
+        IDisposable? preparedToken = null;
+        DocumentBinding? committedBinding = null;
+        bool writeAttempted = false;
+        try
+        {
+            // The destination (and, for physical storage, its directory) must exist before watcher setup.
+            writeAttempted = true;
+            _storage.Write(path, content);
+
+            if (old is null)
+            {
+                DocumentBinding replacement = CreateBinding(path, content);
+                preparedToken = replacement.WatchToken;
+                _bindings[doc] = replacement;
+                committedBinding = replacement;
+                preparedToken = null;
+            }
+            else
+            {
+                PreparedWatcher prepared = PrepareWatcher(old, path);
+                preparedToken = prepared.Token;
+                CommitRebind(old, path, content, prepared);
+                committedBinding = old;
+                preparedToken = null;
+            }
+        }
+        catch (Exception failure)
+        {
+            preparedToken?.Dispose();
+            doc.Dirty.Value = wasDirty;
+            if (writeAttempted)
+            {
+                try { RestoreDestination(path, content, destinationExisted, destinationContent); }
+                catch (Exception rollbackFailure)
+                {
+                    throw new AggregateException($"Save As failed and destination rollback also failed: {path}", failure, rollbackFailure);
+                }
+            }
+            throw;
+        }
+        VerifySavedDestination(committedBinding!, path, content);
+        doc.AcceptSavedSnapshot(content);
+    }
+
+    public DocumentRebindResult Rebind(IEditorDocument doc, string path)
+    {
+        path = ValidatePath(path);
+        EnsureOpenDocument(doc);
+        EnsurePathAvailable(doc, path);
+        string lastSaved = _storage.Read(path) ?? throw new FileNotFoundException(path);
+
+        if (!_bindings.TryGetValue(doc, out DocumentBinding? binding))
+        {
+            binding = CreateBinding(path, lastSaved);
+            _bindings.Add(doc, binding);
+            return new(binding, null, path, true);
+        }
+        bool hasExternalChange = binding.ExternalChange.Peek() || lastSaved != binding.LastSaved;
+        if (binding.Path == path)
+        {
+            binding.ExternalChange.Value = hasExternalChange;
+            return new(binding, path, path, false);
+        }
+
+        string previousPath = binding.Path;
+        PreparedWatcher prepared = PrepareWatcher(binding, path);
+        CommitRebind(binding, path, hasExternalChange ? binding.LastSaved : lastSaved, prepared, hasExternalChange);
+        return new(binding, previousPath, path, true);
+    }
+
+    public DocumentUnbindResult? Unbind(IEditorDocument doc)
+    {
+        if (!_bindings.Remove(doc, out DocumentBinding? binding)) return null;
+        string path = binding.Path;
+        binding.WatchGeneration++;
+        IDisposable? token = binding.WatchToken;
+        binding.WatchToken = null;
+        token?.Dispose();
+        binding.ExternalChange.Value = false;
+        return new(doc, binding, path);
     }
 
     public void Reload(IEditorDocument doc)
@@ -231,7 +432,10 @@ public sealed class DocumentStore : IDocumentStore, IDisposable
     public DocumentBinding? BindingOf(IEditorDocument doc) => _bindings.GetValueOrDefault(doc);
 
     public IEditorDocument? DocAt(string path)
-        => _bindings.FirstOrDefault(kv => kv.Value.Path == path).Key;
+    {
+        path = ValidatePath(path);
+        return _bindings.FirstOrDefault(kv => string.Equals(kv.Value.Path, path, StringComparison.Ordinal)).Key;
+    }
 
     public void Dispose()
     {
@@ -239,20 +443,88 @@ public sealed class DocumentStore : IDocumentStore, IDisposable
         foreach (IEditorDocument doc in _bindings.Keys.ToList()) Unbind(doc);
     }
 
-    private void Bind(IEditorDocument doc, string path, string lastSaved)
+    private DocumentBinding CreateBinding(string path, string lastSaved)
     {
-        var b = new DocumentBinding { Path = path, LastSaved = lastSaved };
-        _bindings[doc] = b;
-        b.WatchToken = _storage.Watch(path, () =>
-        {
-            // 自分の Write のエコー (または実質同内容) は無視 — 保存直前に LastSaved を更新している
-            string? now = _storage.Read(path);
-            if (now != null && now != b.LastSaved) b.ExternalChange.Value = true;
-        });
+        var binding = new DocumentBinding { Path = path, LastSaved = lastSaved, WatchGeneration = 1 };
+        int generation = binding.WatchGeneration;
+        binding.WatchToken = _storage.Watch(path, () => ObserveExternalChange(binding, path, generation));
+        return binding;
     }
 
-    private void Unbind(IEditorDocument doc)
+    private PreparedWatcher PrepareWatcher(DocumentBinding binding, string path)
     {
-        if (_bindings.Remove(doc, out DocumentBinding? b)) b.WatchToken?.Dispose();
+        int generation = binding.WatchGeneration + 1;
+        IDisposable? token = _storage.Watch(path, () => ObserveExternalChange(binding, path, generation));
+        return new(generation, token);
     }
+
+    private static void CommitRebind(DocumentBinding binding, string path, string lastSaved, PreparedWatcher prepared,
+        bool externalChange = false)
+    {
+        IDisposable? oldToken = binding.WatchToken;
+        binding.Path = path;
+        binding.LastSaved = lastSaved;
+        binding.ExternalChange.Value = externalChange;
+        binding.WatchGeneration = prepared.Generation;
+        binding.WatchToken = prepared.Token;
+        oldToken?.Dispose();
+    }
+
+    private void ObserveExternalChange(DocumentBinding binding, string watchedPath, int generation)
+    {
+        if (binding.WatchGeneration != generation || binding.Path != watchedPath) return;
+        string? now = _storage.Read(watchedPath);
+        if (now is null || now != binding.LastSaved) binding.ExternalChange.Value = true;
+    }
+
+    private void VerifySavedDestination(DocumentBinding binding, string path, string content)
+    {
+        try
+        {
+            if (_storage.Read(path) != content) binding.ExternalChange.Value = true;
+        }
+        catch
+        {
+            binding.ExternalChange.Value = true;
+        }
+    }
+
+    private void RestoreDestination(string path, string writtenContent, bool existed, string? content)
+    {
+        bool existsNow = _storage.Exists(path);
+        string? current = existsNow ? _storage.Read(path) : null;
+        if (!existed)
+        {
+            if (!existsNow) return;
+            if (current != writtenContent)
+                throw new IOException($"Destination changed concurrently and was not overwritten during rollback: {path}");
+            _storage.Delete(path);
+            return;
+        }
+
+        if (existsNow && current == content) return; // The failed write left the original destination untouched.
+        if (existsNow && current != writtenContent)
+            throw new IOException($"Destination changed concurrently and was not overwritten during rollback: {path}");
+        _storage.Write(path, content!);
+    }
+
+    private void EnsureOpenDocument(IEditorDocument doc)
+    {
+        if (!_ws.Documents.Contains(doc))
+            throw new InvalidOperationException("Only documents open in the workspace can be bound.");
+    }
+
+    private void EnsurePathAvailable(IEditorDocument doc, string path)
+    {
+        if (DocAt(path) is { } other && !ReferenceEquals(other, doc))
+            throw new InvalidOperationException($"別のドキュメントが開いている path へは結べない: {path}");
+    }
+
+    private static string ValidatePath(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return path.Replace('\\', '/');
+    }
+
+    private sealed record PreparedWatcher(int Generation, IDisposable? Token);
 }

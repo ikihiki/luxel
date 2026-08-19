@@ -46,9 +46,6 @@ public static class StudioShellStory
             source: SceneJson.Deserialize(storage.Read("scenes/arena.scene.json")!),
             viewWidth: 420f, viewHeight: 380f);
         SceneInspector inspector = SceneInspector(editor: sceneEditor, schemas: SceneSchemas.BuiltIns(), width: 230f);
-        AssetBrowser assets = AssetBrowser(storage: storage,
-            expanded: new HashSet<string> { "scenes", "scripts", "assets" },
-            onOpen: (_, path) => { if (path.EndsWith(".csx", StringComparison.Ordinal)) store.Open("csx", path); });
 
         Signal<string> problems = ctx.Signal("studioShellProblems", "問題なし");
         Signal<string> status = ctx.Signal("studioShellStatus", "Ready");
@@ -117,7 +114,6 @@ public static class StudioShellStory
         {
             [EditorPaneIds.Scene] = new EditorToolDocument(EditorDocumentProviderIds.Scene, "arena.scene.json", () => sceneEditor),
             [EditorPaneIds.Inspector] = new EditorToolDocument("inspector", "Inspector", () => inspector),
-            [EditorPaneIds.Assets] = new EditorToolDocument("assets", "Assets", () => assets),
             ["script"] = script,
             [EditorPaneIds.Play] = new EditorToolDocument("play", "Play View", PlayerView),
             [EditorPaneIds.Problems] = new EditorToolDocument("problems", "Problems", ProblemsView),

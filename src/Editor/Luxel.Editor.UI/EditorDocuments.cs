@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Luxel.SceneEdit;
 using Luxel.NodeGraph;
 using Luxel.UI;
 using Luxel.Workbench;
@@ -69,12 +70,13 @@ public sealed class TextDocument : IEditorDocument, IDisposable
     public void Undo() => View?.Undo();
     public void Redo() => View?.Redo();
 
-    /// <summary>直列化 = 現在テキスト。**保存点も更新する** — undo で保存内容へ戻れば
-    /// Dirty が消える基準になる (IDocumentStore.Save が直前に呼ぶ契約)。</summary>
-    public string Serialize()
+    /// <summary>現在テキストを副作用なく直列化する。保存点は永続化成功後に進める。</summary>
+    public string Serialize() => Text.Peek();
+
+    public void AcceptSavedSnapshot(string content)
     {
-        _saved = Text.Peek();
-        return _saved;
+        _saved = content;
+        Dirty.Value = Text.Peek() != _saved;
     }
 
     public void LoadFrom(string content)
@@ -135,11 +137,12 @@ public sealed class NodeGraphDocument : IEditorDocument, IDisposable
     public void Undo() => Document.Undo();
     public void Redo() => Document.Redo();
 
-    public string Serialize()
+    public string Serialize() => NodeGraphJson.Serialize(Doc);
+
+    public void AcceptSavedSnapshot(string content)
     {
-        _saved = NodeGraphJson.Serialize(Doc);
-        Dirty.Value = false;
-        return _saved;
+        _saved = content;
+        Dirty.Value = NodeGraphJson.Serialize(Doc) != _saved;
     }
 
     public void LoadFrom(string content)
@@ -156,6 +159,69 @@ public sealed class NodeGraphDocument : IEditorDocument, IDisposable
     }
 
     public void Dispose() => Document.Changed -= OnDocumentChanged;
+}
+
+/// <summary>シーンの document/view/dirty/undo/persistence を接続する Editor アダプタ。</summary>
+public sealed class SceneDocument : IEditorDocument
+{
+    private readonly Func<SceneDoc, SceneEditorView> _viewFactory;
+    private SceneEditorView? _view;
+    private string _saved;
+
+    public SceneDocument(string title, SceneDoc doc, Func<SceneDoc, SceneEditorView> viewFactory,
+        string kind = "scene")
+    {
+        Title = title;
+        Doc = doc;
+        Kind = kind;
+        _viewFactory = viewFactory;
+        _saved = SceneJson.Serialize(doc);
+    }
+
+    public SceneDoc Doc { get; private set; }
+    public string Kind { get; }
+    public string Title { get; set; }
+    public Signal<bool> Dirty { get; } = new(false);
+
+    public SceneEditorView View => _view ??= CreateSceneView();
+    public Widget CreateView() => View;
+    public bool CanUndo => _view?.CanUndo ?? false;
+    public bool CanRedo => _view?.CanRedo ?? false;
+    public void Undo() => _view?.Undo();
+    public void Redo() => _view?.Redo();
+
+    public string Serialize()
+    {
+        if (_view is not null) Doc = _view.Scene.Doc;
+        return SceneJson.Serialize(Doc);
+    }
+
+    public void AcceptSavedSnapshot(string content)
+    {
+        _saved = content;
+        Dirty.Value = SceneJson.Serialize(Doc) != _saved;
+    }
+
+    public void LoadFrom(string content)
+    {
+        Doc = SceneJson.Deserialize(content);
+        _saved = SceneJson.Serialize(Doc);
+        Dirty.Value = false;
+        _view?.Load(Doc);
+    }
+
+    private SceneEditorView CreateSceneView()
+    {
+        SceneEditorView view = _viewFactory(Doc);
+        Action<SceneEditorView>? previous = view.OnEdit;
+        view.OnEdit = editor =>
+        {
+            previous?.Invoke(editor);
+            Doc = editor.Scene.Doc;
+            Dirty.Value = SceneJson.Serialize(Doc) != _saved;
+        };
+        return view;
+    }
 }
 
 /// <summary>
@@ -245,11 +311,12 @@ public sealed class ObjectDocument<T> : IEditorDocument where T : class
 
     [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(
         "ObjectDocument<T> uses reflection-based JSON serialization.")]
-    public string Serialize()
+    public string Serialize() => JsonSerializer.Serialize(Target, JsonOpts);
+
+    public void AcceptSavedSnapshot(string content)
     {
-        _saved = JsonSerializer.Serialize(Target, JsonOpts);
-        Dirty.Value = false;
-        return _saved;
+        _saved = content;
+        UpdateDirty();
     }
 
     [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode(

@@ -99,6 +99,7 @@ public sealed class RealizeScope : IDisposable
     internal readonly List<HitTarget> Hits = new();
     internal readonly List<FocusTarget> Focusables = new();
     internal readonly List<ScrollTarget> Scrollables = new();
+    internal readonly List<OverlayEntry> Overlays = new();
     internal readonly List<Func<float, bool>> Animations = new();
     internal readonly List<IDisposable> Effects = new();
 
@@ -121,12 +122,26 @@ public sealed class RealizeScope : IDisposable
         Children.Clear();
         foreach (IDisposable e in Effects) e.Dispose();
         Effects.Clear();
-        foreach (HitTarget h in Hits) _ctx.Hits.Remove(h);
+        foreach (HitTarget h in Hits)
+        {
+            _ctx.Hits.Remove(h);
+            _ctx.HitScopes.Remove(h);
+        }
         Hits.Clear();
-        foreach (FocusTarget f in Focusables) _ctx.Focusables.Remove(f);
+        foreach (FocusTarget f in Focusables)
+        {
+            _ctx.Focusables.Remove(f);
+            _ctx.FocusScopes.Remove(f);
+        }
         Focusables.Clear();
-        foreach (ScrollTarget s in Scrollables) _ctx.Scrollables.Remove(s);
+        foreach (ScrollTarget s in Scrollables)
+        {
+            _ctx.Scrollables.Remove(s);
+            _ctx.ScrollScopes.Remove(s);
+        }
         Scrollables.Clear();
+        foreach (OverlayEntry overlay in Overlays.ToArray()) _ctx.UnregisterOverlay(overlay);
+        Overlays.Clear();
         foreach (Func<float, bool> animation in Animations)
         {
             _ctx.Animations.Remove(animation);
@@ -206,10 +221,13 @@ public sealed class UiBuildContext
 
     /// <summary>ヒットテスト対象一覧 (入力で使用)。</summary>
     public List<HitTarget> Hits { get; } = new();
+    internal Dictionary<HitTarget, RealizeScope> HitScopes { get; } = new();
     /// <summary>フォーカス対象一覧 (タブ順 = 登録順)。</summary>
     public List<FocusTarget> Focusables { get; } = new();
+    internal Dictionary<FocusTarget, RealizeScope> FocusScopes { get; } = new();
     /// <summary>スクロール対象一覧。</summary>
     public List<ScrollTarget> Scrollables { get; } = new();
+    internal Dictionary<ScrollTarget, RealizeScope> ScrollScopes { get; } = new();
     /// <summary>オーバーレイ (Dialog/Menu/Tooltip/Toast/Drawer)。最前面レイヤへ実体化される。</summary>
     public List<OverlayEntry> Overlays { get; } = new();
     /// <summary>アニメーション (step(dt)→true で完了・除去)。直接追加した登録は常に active とみなす。</summary>
@@ -226,8 +244,53 @@ public sealed class UiBuildContext
         if (!Dirty.Contains(w)) Dirty.Add(w);
     }
 
-    /// <summary>オーバーレイを登録する (実体化は UiHost が最前面で行う)。</summary>
-    public void RegisterOverlay(OverlayEntry e) => Overlays.Add(e);
+    /// <summary>オーバーレイを現在の実体化スコープに登録する。所有スコープの破棄時に自動解除される。</summary>
+    public void RegisterOverlay(OverlayEntry e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        if (e.OwnerScope is not null) throw new InvalidOperationException("OverlayEntry is already registered.");
+        e.OwnerScope = CurrentScope;
+        Overlays.Add(e);
+        CurrentScope.Overlays.Add(e);
+        Host?.OverlayRegistered(e);
+    }
+
+    /// <summary>動的オーバーレイを解除する。未登録は no-op。</summary>
+    public void UnregisterOverlay(OverlayEntry e)
+    {
+        if (e.OwnerScope is null) return;
+        Host?.OverlayUnregistered(e);
+        Overlays.Remove(e);
+        e.OwnerScope.Overlays.Remove(e);
+        e.OwnerScope = null;
+    }
+
+    /// <summary>入力コールバック中だけ登録先スコープを発火元へ戻す。</summary>
+    internal void RunWithScope(RealizeScope? scope, Action action)
+    {
+        RealizeScope? previous = _current;
+        _current = scope is { IsDisposed: false } ? scope : null;
+        try { action(); }
+        finally { _current = previous; }
+    }
+
+    /// <summary>指定所有者の子スコープ内で動的な実体化を行う。</summary>
+    internal RealizeScope RealizeOwned(RealizeScope owner, Action realize)
+    {
+        RealizeScope? previous = _current;
+        var runtime = new RealizeScope(this) { Parent = owner };
+        owner.Children.Add(runtime);
+        _current = runtime;
+        try { realize(); }
+        catch
+        {
+            runtime.Release();
+            throw;
+        }
+        finally { _current = previous; }
+        return runtime;
+    }
+
     /// <summary>継続的に active なアニメーションを登録する (step(dt)→true で完了)。</summary>
     public void AddAnimation(Func<float, bool> step) => AddAnimation(step, static () => true);
 
@@ -278,6 +341,7 @@ public sealed class UiBuildContext
         };
         Hits.Add(h);
         CurrentScope.Hits.Add(h);
+        HitScopes[h] = CurrentScope;
         return h;
     }
 
@@ -298,6 +362,7 @@ public sealed class UiBuildContext
         };
         Focusables.Add(f);
         CurrentScope.Focusables.Add(f);
+        FocusScopes[f] = CurrentScope;
         return f;
     }
 
@@ -309,6 +374,7 @@ public sealed class UiBuildContext
     {
         Focusables.Add(f);
         CurrentScope.Focusables.Add(f);
+        FocusScopes[f] = CurrentScope;
         return f;
     }
 
@@ -320,6 +386,7 @@ public sealed class UiBuildContext
         var s = new ScrollTarget { Node = node, Rect = rect, OnScroll = onScroll, OnScrollPos = onScrollPos };
         Scrollables.Add(s);
         CurrentScope.Scrollables.Add(s);
+        ScrollScopes[s] = CurrentScope;
     }
 }
 

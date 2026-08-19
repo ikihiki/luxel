@@ -30,15 +30,30 @@ public sealed partial class EditorShell : CompositeControl
     [UiParam] private readonly Bindable<string> _productName = "Luxel Editor";
 
     private Toolbar? _toolbar;
+    private Theme? _systemTheme;
+    public EditorDocumentTabs? DocumentTabs { get; private set; }
     public DockHost? DocumentsHost { get; private set; }
 
     protected override void OnRealize(UiBuildContext ctx)
     {
         EditorSession session = Session.Get();
         if (ctx.Host is { } host) ctx.Own(session.Commands.BindShortcuts(host));
+        ctx.AddAnimation(dt =>
+        {
+            session.PumpAutosave(TimeSpan.FromSeconds(MathF.Max(0, dt)));
+            return false;
+        }, () => session.Settings.Current.Peek().AutosaveEnabled);
+        _systemTheme ??= ctx.Theme.Peek();
         bool initialized = false;
         ctx.Own(Reactive.Effect(() =>
         {
+            EditorSettings settings = session.Settings.Current.Value;
+            Theme resolved = settings.ResolveTheme(_systemTheme!);
+            if (ctx.Theme.Peek() != resolved)
+            {
+                ctx.Theme.Value = resolved;
+                MarkNeedsRealize();
+            }
             _ = session.Workspace.AnyDirty.Value;
             _ = session.Workspace.Active.Value;
             if (initialized) _toolbar?.Refresh();
@@ -58,24 +73,27 @@ public sealed partial class EditorShell : CompositeControl
             background: Bind.From(() => UiTheme.T.Surface),
             padding: new Thickness(4, 2),
             hAlign: Align.Stretch)[_toolbar];
+        DocumentTabs = new EditorDocumentTabs(session);
         DocumentsHost = EditorKit.DockHost(session.Layout, session.ResolveDockItem, closeRemoves: false,
-            onCloseTab: (_, id) => session.CloseDocument(id));
-        StatusBar status = StatusBar(
-            left: [Muted(ProductName.Get()), Muted($"{session.OpenDocuments.Count} docs")],
-            right: [Badge(session.StatusText.Peek(), Intent.Primary)]);
+            onCloseTab: (_, id) => session.CloseTab(id));
+        EditorStatusBar status = new(session);
+        EditorDialogs dialogs = new(session);
 
         return Grid(rows:
         [
             GridLength.Px(MenuBar.BarH),
             GridLength.Px(34),
+            GridLength.Px(Luxel.Controls.DocumentTabs.StripH),
             GridLength.Star(),
             GridLength.Px(StatusBar.BarH),
         ])
         [
             menuBar.GridRow(0),
             toolbarChrome.GridRow(1),
-            DocumentsHost.GridRow(2),
-            status.GridRow(3)
+            DocumentTabs.GridRow(2),
+            DocumentsHost.GridRow(3),
+            dialogs.GridRow(3),
+            status.GridRow(4)
         ];
     }
 }

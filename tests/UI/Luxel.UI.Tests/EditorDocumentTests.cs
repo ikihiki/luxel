@@ -11,7 +11,7 @@ namespace Luxel.Tests;
 public class EditorDocumentTests
 {
     [Fact]
-    public void TextDocument_DirtyFollowsText_SerializeResetsBaseline()
+    public void TextDocument_DirtyFollowsAcceptedSavedSnapshot()
     {
         using var doc = new TextDocument("code", "a.cs", _ => throw new NotSupportedException(), "v1");
         Assert.False(doc.Dirty.Value);
@@ -19,9 +19,11 @@ public class EditorDocumentTests
         doc.Text.Value = "v2";
         Assert.True(doc.Dirty.Value);
 
-        // Serialize = 保存点の更新 (IDocumentStore.Save が直前に呼ぶ契約)
-        Assert.Equal("v2", doc.Serialize());
-        doc.Dirty.Value = false;
+        string serialized = doc.Serialize();
+        Assert.Equal("v2", serialized);
+        Assert.True(doc.Dirty.Value); // serialization is pure until persistence succeeds
+        doc.AcceptSavedSnapshot(serialized);
+        Assert.False(doc.Dirty.Value);
         doc.Text.Value = "v3";
         Assert.True(doc.Dirty.Value);
         doc.Text.Value = "v2";          // 保存内容へ戻せばクリーン

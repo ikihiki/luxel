@@ -41,6 +41,9 @@ public sealed partial class SceneEditorView : Widget
     /// 3D → <see cref="SceneSpace3DAdapter"/>)。</summary>
     public ISceneSpaceAdapter? Adapter { get; set; }
 
+    /// <summary>選択変更通知。Hierarchy/Inspector と共有 selection service を同期する。</summary>
+    public Action<SceneEditorView>? OnSelectionChanged { get; set; }
+
     /// <summary>true = ドロップ位置をグリッドにスナップする。</summary>
     public bool SnapToGrid { get; set; }
 
@@ -94,6 +97,18 @@ public sealed partial class SceneEditorView : Widget
     public int SelectionCount => _state.Selection.Entities.Count;
     /// <summary>エンティティが選択されているか。</summary>
     public bool IsSelected(int id) => _state.Selection.Contains(id);
+    /// <summary>外部の Hierarchy 等から単一エンティティを選択する。選択は文書編集ではないため履歴や dirty 状態を変更しない。</summary>
+    public void SelectEntity(int id) => SelectEntities([id], id);
+
+    /// <summary>外部の Hierarchy/selection service から複数エンティティを選択する。</summary>
+    public void SelectEntities(IEnumerable<int> ids, int main = -1)
+    {
+        EnsureInit();
+        int[] selected = ids.Distinct().ToArray();
+        foreach (int id in selected) _ = _state.Doc.Entity(id);
+        Apply(SceneCommands.SelectEntities(_state, selected, main));
+    }
+
     /// <summary>undo できるか。</summary>
     public bool CanUndo => _history.CanUndo;
     /// <summary>redo できるか。</summary>
@@ -106,11 +121,17 @@ public sealed partial class SceneEditorView : Widget
     /// <summary>外部 (インスペクタ等) からの編集を 1 トランザクションとして適用する
     /// (履歴に積まれ undo 可能 — **状態を直接いじらずこれを通すこと**)。</summary>
     public void ApplyEdit(params SceneChange[] changes)
-        => Apply(_state.Update(new SceneTransactionSpec { Changes = changes }));
+    {
+        EnsureInit();
+        Apply(_state.Update(new SceneTransactionSpec { Changes = changes }));
+    }
 
     /// <summary>2D シーンのエンティティ位置 (transform2d.pos)。play/テストの便宜。</summary>
     public Vector2 EntityPos2D(int id)
-        => _state.Doc.Entity(id).Component("transform2d")?.Get("pos")?.AsVec2() ?? default;
+    {
+        EnsureInit();
+        return _state.Doc.Entity(id).Component("transform2d")?.Get("pos")?.AsVec2() ?? default;
+    }
 
     /// <summary>エンティティ中心のクライアント座標 — play が d.Click/d.Drag に渡す用。</summary>
     public Vector2 EntityScreenCenter(int id)
@@ -158,9 +179,19 @@ public sealed partial class SceneEditorView : Widget
     }
 
     /// <summary>undo 1 手。</summary>
-    public void Undo() { _state = _history.Undo(_state); Revision.Value = Revision.Peek() + 1; Refresh(); OnEdit?.Invoke(this); }
+    public void Undo()
+    {
+        SceneSelection before = _state.Selection;
+        _state = _history.Undo(_state); Revision.Value = Revision.Peek() + 1; Refresh(); OnEdit?.Invoke(this);
+        if (!SameSelection(before, _state.Selection)) OnSelectionChanged?.Invoke(this);
+    }
     /// <summary>redo 1 手。</summary>
-    public void Redo() { _state = _history.Redo(_state); Revision.Value = Revision.Peek() + 1; Refresh(); OnEdit?.Invoke(this); }
+    public void Redo()
+    {
+        SceneSelection before = _state.Selection;
+        _state = _history.Redo(_state); Revision.Value = Revision.Peek() + 1; Refresh(); OnEdit?.Invoke(this);
+        if (!SameSelection(before, _state.Selection)) OnSelectionChanged?.Invoke(this);
+    }
 
     /// <summary>カメラを画面量で平行移動する。</summary>
     public void Pan(Vector2 screenDelta) { _space?.Pan(screenDelta); Refresh(); }
@@ -455,12 +486,17 @@ public sealed partial class SceneEditorView : Widget
 
     private void Apply(SceneTransaction tr)
     {
+        SceneSelection before = _state.Selection;
         if (tr.DocChanged) _history.Record(tr);
         _state = tr.State;
         Revision.Value = Revision.Peek() + 1;
         Refresh();
         if (tr.DocChanged) OnEdit?.Invoke(this);
+        if (!SameSelection(before, _state.Selection)) OnSelectionChanged?.Invoke(this);
     }
+
+    private static bool SameSelection(SceneSelection left, SceneSelection right)
+        => left.Main == right.Main && left.Entities.SequenceEqual(right.Entities);
 
     // ---- 描画 (world 側はアダプタ、marquee だけシェル) ----
 
