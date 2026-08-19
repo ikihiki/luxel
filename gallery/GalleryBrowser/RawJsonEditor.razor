@@ -1,0 +1,43 @@
+@using Luxel.Gallery
+
+<div class="raw-json-editor" data-status="@StatusKey">
+    <textarea id="@Id" rows="5" spellcheck="false" value="@Document.Text"
+              aria-describedby="@StatusId @DiagnosticId" aria-invalid="@(Document.IsInvalid ? "true" : "false")"
+              @oninput="OnInput" @onblur="Apply"></textarea>
+    <div class="raw-json-toolbar">
+        <span id="@StatusId" class="raw-json-status" aria-live="polite">@StatusLabel</span>
+        <div class="raw-json-actions" aria-label="JSON編集操作">
+            <button type="button" @onmousedown:preventDefault @onclick="Apply">適用</button>
+            <button type="button" @onmousedown:preventDefault @onclick="() => Format(true)">整形</button>
+            <button type="button" @onmousedown:preventDefault @onclick="() => Format(false)">圧縮</button>
+            <button type="button" @onmousedown:preventDefault @onclick="Discard" disabled="@(!Document.IsDirty && !Document.IsInvalid)">破棄</button>
+        </div>
+    </div>
+    @if (Document.Diagnostic is { } diagnostic)
+    {
+        <p id="@DiagnosticId" class="raw-json-diagnostic" role="alert">
+            <strong>@($"行 {diagnostic.Line}、列 {diagnostic.Column}")</strong>
+            <span>@diagnostic.Message</span>
+        </p>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Id { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public StoryJsonArgDocument Document { get; set; } = null!;
+
+    private string StatusId => Id + "-status";
+    private string DiagnosticId => Id + "-diagnostic";
+    private string StatusKey => Document.IsInvalid ? "invalid" : Document.IsDirty ? "dirty" : "valid";
+    private string StatusLabel => StatusKey switch
+    {
+        "invalid" => "JSONにエラーがあります",
+        "dirty" => "未適用の変更があります",
+        _ => "有効なJSONです",
+    };
+
+    private void OnInput(ChangeEventArgs eventArgs) => Document.SetRawDraft(eventArgs.Value?.ToString() ?? string.Empty);
+    private void Apply() => Document.Apply();
+    private void Format(bool indented) => Document.Format(indented);
+    private void Discard() => Document.Discard();
+}

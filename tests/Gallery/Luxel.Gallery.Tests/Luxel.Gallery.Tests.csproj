@@ -48,6 +48,7 @@
     <ProjectReference Include="..\..\..\src\Graphics\Luxel.Graphics.TwoD\Luxel.Graphics.TwoD.csproj" />
     <ProjectReference Include="..\..\..\src\Graphics\Luxel.Typography\Luxel.Typography.csproj" />
     <ProjectReference Include="..\..\..\src\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.ValueDocument\Luxel.ValueDocument.csproj" />
     <ProjectReference Include="..\..\..\src\UI\Luxel.UI\Luxel.UI.csproj" />
     <ProjectReference Include="..\..\..\src\UI\Luxel.UI.Tailwind\Luxel.UI.Tailwind.csproj" />
     <ProjectReference Include="..\..\..\src\UI\Luxel.Controls\Luxel.Controls.csproj" />

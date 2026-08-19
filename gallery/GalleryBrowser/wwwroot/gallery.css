@@ -204,6 +204,21 @@ body.resizing-story-panel iframe { pointer-events: none; }
 .arg-row label span { grid-column: 1 / -1; color: var(--muted); font-size: 11px; line-height: 1.35; }
 .arg-row input:not([type="checkbox"]), .arg-row select, .arg-row textarea { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid #344357; border-radius: 5px; outline: 0; background: #09111a; color: #e4edf8; }
 .arg-row textarea { resize: vertical; font: 11px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.raw-json-editor { display: grid; min-width: 0; gap: 7px; }
+.raw-json-editor textarea { min-height: 88px; tab-size: 2; }
+.raw-json-editor[data-status="invalid"] textarea { border-color: #b95555; }
+.raw-json-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 7px 12px; }
+.raw-json-status { color: #88c6a3; font-size: 10px; }
+.raw-json-editor[data-status="dirty"] .raw-json-status { color: #e0b86c; }
+.raw-json-editor[data-status="invalid"] .raw-json-status { color: #ff9c94; }
+.raw-json-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+.raw-json-actions button { padding: 4px 7px; border: 1px solid #34475e; border-radius: 4px; background: #142131; color: #bfd0e4; cursor: pointer; font-size: 10px; }
+.raw-json-actions button:hover:not(:disabled) { border-color: #5680b3; background: #1a3049; color: #e4effc; }
+.raw-json-actions button:focus-visible { outline: 2px solid #76a9ff; outline-offset: 2px; }
+.raw-json-actions button:disabled { cursor: default; opacity: .45; }
+.raw-json-diagnostic { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; margin: 0; padding: 7px 9px; border: 1px solid #743f42; border-radius: 5px; background: #261619; color: #ffb0aa; font: 10px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.raw-json-diagnostic strong { white-space: nowrap; }
+.raw-json-diagnostic span { overflow-wrap: anywhere; }
 .arg-color-editor { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 10px; }
 .arg-row .arg-color-editor input[type="color"] { width: 48px; height: 34px; padding: 3px; cursor: pointer; }
 .arg-color-editor output { color: #9fb0c5; font: 11px ui-monospace, SFMono-Regular, Menlo, monospace; }

@@ -170,8 +170,8 @@ else
                                                 }
                                                 else if (definition.EditorKind == StoryArgEditorKind.Json)
                                                 {
-                                                    <textarea id="@ArgId(definition)" rows="3" spellcheck="false" value="@ArgValue(definition)"
-                                                              @onchange="eventArgs => UpdateArgAsync(definition, eventArgs.Value)"></textarea>
+                                                    <RawJsonEditor @key="definition.Name" Id="@ArgId(definition)"
+                                                                   Document="@_jsonArgDocuments[definition.Name]" />
                                                 }
                                                 else
                                                 {
@@ -240,6 +240,7 @@ else
     private IReadOnlyList<StoryInfo> _displayStories = Array.Empty<StoryInfo>();
     private IReadOnlyList<StoryArgDefinition> _argDefinitions = Array.Empty<StoryArgDefinition>();
     private Dictionary<string, JsonElement> _argValues = new(StringComparer.Ordinal);
+    private Dictionary<string, StoryJsonArgDocument> _jsonArgDocuments = new(StringComparer.Ordinal);
     private readonly List<OutputEntry> _output = [];
     private ElementReference _workspace;
     private ElementReference _runtimeFrame;
@@ -311,6 +312,11 @@ else
             .OrderBy(definition => definition.Order).ThenBy(definition => definition.Name, StringComparer.Ordinal).ToArray();
         StoryArgs canonicalArgs = StoryArgs.Parse(_argsJson).WithDefaults(_argDefinitions);
         _argValues = canonicalArgs.Values.ToDictionary(pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+        _jsonArgDocuments = _argDefinitions
+            .Where(definition => definition.EditorKind == StoryArgEditorKind.Json)
+            .ToDictionary(definition => definition.Name,
+                definition => new StoryJsonArgDocument(definition, _argValues[definition.Name],
+                    accepted => AcceptJsonArg(definition, accepted)), StringComparer.Ordinal);
         _argsJson = canonicalArgs.ToJson();
         _runtimeInstance = Guid.NewGuid().ToString("N");
         _revision = 0;
@@ -346,6 +352,11 @@ else
         {
             StoryArgs snapshot = new(args.EnumerateObject().Select(property => KeyValuePair.Create(property.Name, property.Value)));
             _argValues = snapshot.Values.ToDictionary(pair => pair.Key, pair => pair.Value.Clone(), StringComparer.Ordinal);
+            foreach ((string name, StoryJsonArgDocument document) in _jsonArgDocuments)
+            {
+                if (_argValues.TryGetValue(name, out JsonElement acceptedValue))
+                    document.RefreshAccepted(acceptedValue, _revision.ToString(CultureInfo.InvariantCulture));
+            }
             _argsJson = snapshot.ToJson();
         }
 
@@ -377,6 +388,14 @@ else
         }
         StateHasChanged();
         return Task.CompletedTask;
+    }
+
+    private void AcceptJsonArg(StoryArgDefinition definition, JsonElement acceptedValue)
+    {
+        _argValues[definition.Name] = acceptedValue.Clone();
+        _argsJson = new StoryArgs(_argValues).ToJson();
+        _revision = checked(_revision + 1);
+        _ = InvokeAsync(SendArgsAsync);
     }
 
     private async Task UpdateArgAsync(StoryArgDefinition definition, object? rawValue)

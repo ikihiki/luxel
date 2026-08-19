@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <LuxelProjectRole>Production</LuxelProjectRole>
-    <LuxelGalleryCategory>UI</LuxelGalleryCategory>
+    <LuxelGalleryCategory>External</LuxelGalleryCategory>
     <LuxelSubsystem>ValueDocument</LuxelSubsystem>
     <LuxelPlatform>Portable</LuxelPlatform>
     <LuxelArchitectureTier>Foundation</LuxelArchitectureTier>
