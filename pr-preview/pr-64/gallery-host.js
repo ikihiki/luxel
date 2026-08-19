@@ -9,6 +9,20 @@ function postArgs(message) {
   expected?.frame?.contentWindow?.postMessage(message, location.origin);
 }
 
+function matchesExpected(pending) {
+  return pending && expected
+    && pending.frame === expected.frame
+    && pending.story === expected.story
+    && pending.instanceId === expected.instanceId;
+}
+
+function flushPendingArgs() {
+  if (!runtimeReady || !matchesExpected(pendingArgs)) return;
+  const { message } = pendingArgs;
+  pendingArgs = null;
+  postArgs(message);
+}
+
 function runtimeMessage(event) {
   const message = event.data;
   if (!expected || event.origin !== location.origin || event.source !== expected.frame.contentWindow) return;
@@ -16,11 +30,7 @@ function runtimeMessage(event) {
   if (message.story !== expected.story || message.instanceId !== expected.instanceId) return;
   if (message.type === "ready") {
     runtimeReady = true;
-    if (pendingArgs) {
-      const message = pendingArgs;
-      pendingArgs = null;
-      postArgs(message);
-    }
+    flushPendingArgs();
   }
   receiver?.invokeMethodAsync("OnRuntimeMessage", message).catch(error => console.error("Gallery host message failed", error));
 }
@@ -32,8 +42,9 @@ export function initialize(dotNetReceiver) {
 
 export function configure(frame, story, instanceId) {
   expected = { frame, story, instanceId };
-  runtimeReady = false;
-  pendingArgs = null;
+  runtimeReady = frame?.contentWindow?.luxelBrowserState?.state === "pass";
+  if (!matchesExpected(pendingArgs)) pendingArgs = null;
+  flushPendingArgs();
 }
 
 export function setArgs(frame, story, instanceId, revision, requestId, argsJson) {
@@ -47,10 +58,12 @@ export function setArgs(frame, story, instanceId, revision, requestId, argsJson)
     requestId,
     args: JSON.parse(argsJson)
   };
-  if (!expected || frame !== expected.frame || story !== expected.story || instanceId !== expected.instanceId)
+  if (!expected || frame !== expected.frame || story !== expected.story || instanceId !== expected.instanceId) {
+    pendingArgs = { frame, story, instanceId, message };
     return;
+  }
   if (!runtimeReady) {
-    pendingArgs = message;
+    pendingArgs = { frame, story, instanceId, message };
     return;
   }
   postArgs(message);
