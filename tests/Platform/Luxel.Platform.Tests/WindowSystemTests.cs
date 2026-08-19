@@ -30,6 +30,7 @@ public class WindowSystemTests
 
         public Action<int, int>? Resized { get; set; }
         public Action<int, int>? Moved { get; set; }
+        public Func<bool>? Closing { get; set; }
         public Action? Closed { get; set; }
         public Action<bool>? FocusChanged { get; set; }
         public Action<WindowPointerEvent>? PointerMoved { get; set; }
@@ -57,7 +58,7 @@ public class WindowSystemTests
         public void Show() => Shown = true;
         public void Hide() => Hidden = true;
         public void Focus() => Focused = true;
-        public void Close() { CloseRequested = true; IsClosed = true; Closed?.Invoke(); }
+        public void Close() { CloseRequested = true; if (Closing?.Invoke() == false) return; IsClosed = true; Closed?.Invoke(); }
         public void Dispose() => Disposed = true;
     }
 
@@ -110,6 +111,21 @@ public class WindowSystemTests
         public string? GetText() => Text;
         public void SetText(string text) => Text = text;
         public void Dispose() => Disposed = true;
+    }
+
+    [Fact]
+    public void ClosingCallbackCanCancelThenAllowNativeClose()
+    {
+        var backend = new FakeBackend();
+        using var system = new WindowSystem(backend);
+        Window window = system.CreateWindow(new WindowDesc("Close", 320, 200));
+        bool allow = false;
+        window.Closing = () => allow;
+        window.Close();
+        Assert.False(window.IsClosed);
+        allow = true;
+        window.Close();
+        Assert.True(window.IsClosed);
     }
 
     [Fact]

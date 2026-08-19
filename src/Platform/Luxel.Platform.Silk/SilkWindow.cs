@@ -22,6 +22,7 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
     private readonly GlfwCallbacks.KeyCallback _keyCallback;
     private readonly GlfwCallbacks.CharCallback _charCallback;
 
+    private bool _programmaticCloseAccepted;
     private bool _closed;
     private bool _nativeDisposed;
     private bool _closedNotified;
@@ -136,6 +137,7 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
 
     public Action<int, int>? Resized { get; set; }
     public Action<int, int>? Moved { get; set; }
+    public Func<bool>? Closing { get; set; }
     public Action? Closed { get; set; }
     public Action<bool>? FocusChanged { get; set; }
     public Action<WindowPointerEvent>? PointerMoved { get; set; }
@@ -197,10 +199,17 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
     public void Close()
     {
         _backend.VerifyThread();
-        if (_closed) return;
-        _window.Close();
-        NotifyClosed();
+        if (_closed || !AcceptCloseRequest(Closing)) return;
+        _programmaticCloseAccepted = true;
+        try { _window.Close(); }
+        catch
+        {
+            _programmaticCloseAccepted = false;
+            throw;
+        }
     }
+
+    internal static bool AcceptCloseRequest(Func<bool>? closing) => closing?.Invoke() != false;
 
     internal void PumpEvents()
     {
@@ -232,7 +241,18 @@ public sealed unsafe class SilkWindow : IWindowBackendWindow
         if (!_closed) FocusChanged?.Invoke(focused);
     }
 
-    private void OnClosing() => NotifyClosed();
+    private void OnClosing()
+    {
+        if (_closed) return;
+        if (_programmaticCloseAccepted)
+        {
+            _programmaticCloseAccepted = false;
+            NotifyClosed();
+            return;
+        }
+        if (!AcceptCloseRequest(Closing)) { _window.IsClosing = false; return; }
+        NotifyClosed();
+    }
 
     private void OnCursorPosition(WindowHandle* window, double x, double y)
     {

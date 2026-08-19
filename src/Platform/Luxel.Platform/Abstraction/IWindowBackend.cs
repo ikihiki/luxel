@@ -76,6 +76,8 @@ public interface IWindowBackendWindow : IDisposable
     // ---- コールバック (公開ラッパが購読) ----
     Action<int, int>? Resized { get; set; }             // クライアント w,h
     Action<int, int>? Moved { get; set; }               // 外枠 x,y
+    /// <summary>Called before a native close request. Return false to cancel the close.</summary>
+    Func<bool>? Closing { get => null; set { } }
     Action? Closed { get; set; }                        // 破棄時 (1 回)
     Action<bool>? FocusChanged { get; set; }            // キーボードフォーカス得/喪失 (IME 切替等)
     Action<WindowPointerEvent>? PointerMoved { get; set; }

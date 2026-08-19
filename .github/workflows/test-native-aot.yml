@@ -6,8 +6,15 @@ on:
       - '.github/workflows/test-native-aot.yml'
       - 'assets/**'
       - 'eng/desktop/**'
+      - 'editor/EditorNative/**'
+      - 'eng/dogfood-editor-native.sh'
       - 'samples/FileBasedApps/**'
       - 'shaders/**'
+      - 'src/Editor/Luxel.Editor.Native/**'
+      - 'src/Editor/Luxel.Editor.UI/**'
+      - 'src/Platform/Luxel.Platform/**'
+      - 'src/Platform/Luxel.Platform.Silk/**'
+      - 'src/Platform/Luxel.Platform.Windows/**'
       - 'src/Luxel*/**'
   workflow_dispatch:
 
@@ -48,11 +55,23 @@ jobs:
           eng/desktop/healthcheck.sh
           eng/desktop/run-vkcube.sh 120
           eng/desktop/screenshot.sh /tmp/luxel-wayland-vkcube.png
+          dotnet restore editor/EditorNative/Luxel.Editor.Native.csproj
+          eng/dogfood-editor-native.sh editor/EditorNative/Luxel.Editor.Native.csproj /tmp/luxel-editor-native.png
           rm -rf /tmp/luxel-aot-project
           dotnet publish samples/FileBasedApps/HelloLuxel.Aot.Linux.cs \
             -c Release -r linux-x64 -o /tmp/luxel-aot-project -p:TrimmerSingleWarn=false
           file /tmp/luxel-aot-project/HelloLuxel.Aot.Linux | grep -Eq 'ELF 64-bit.*(pie executable|shared object)'
           samples/FileBasedApps/test-package-aot.sh
+
+      - name: Upload native Editor dogfood artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-editor-dogfood
+          path: |
+            /tmp/luxel-editor-native.png
+            /tmp/luxel-editor-native.log
+          if-no-files-found: ignore
 
       - name: Stop test desktop
         if: always()

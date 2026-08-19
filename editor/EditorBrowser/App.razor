@@ -1,0 +1,34 @@
+@using System.Runtime.InteropServices.JavaScript
+@using Luxel.Editor.Browser
+@inject IServiceProvider Services
+@inject IJSRuntime JS
+
+<main class="editor-host">
+  <canvas id="luxel-canvas" tabindex="0" aria-label="Luxel Editor"></canvas>
+  <div id="status" role="status" data-status="loading">Loading Luxel Editor…</div>
+  <div id="error" role="alert" hidden></div>
+</main>
+
+@code {
+  private bool _started;
+  private JSObject? _host;
+  private JSObject? _storage;
+  private JSObject? _webGpu;
+  protected override async Task OnAfterRenderAsync(bool firstRender)
+  {
+    if (!firstRender || _started) return;
+    _started = true;
+    try
+    {
+      _ = await JS.InvokeAsync<IJSObjectReference>("import", "./main.js");
+      _host = await JSHost.ImportAsync("luxel-editor-host", "../main.js");
+      _storage = await JSHost.ImportAsync("luxel-editor-storage", "../editor-storage.js");
+      _webGpu = await JSHost.ImportAsync("./luxel-webgpu-browser.js", "../luxel-webgpu-browser.js");
+      _ = EditorBrowserApplication.RunAsync(Services);
+    }
+    catch (Exception error)
+    {
+      await JS.InvokeVoidAsync("luxelEditorStartupFailure", error.ToString());
+    }
+  }
+}

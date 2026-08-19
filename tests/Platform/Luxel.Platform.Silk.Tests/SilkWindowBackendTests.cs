@@ -22,6 +22,40 @@ public sealed class SilkWindowBackendTests
     }
 
     [Fact]
+    public void ProgrammaticCloseDecisionInvokesAndHonorsClosingCallback()
+    {
+        int calls = 0;
+        Assert.False(SilkWindow.AcceptCloseRequest(() => { calls++; return false; }));
+        Assert.True(SilkWindow.AcceptCloseRequest(() => { calls++; return true; }));
+        Assert.True(SilkWindow.AcceptCloseRequest(null));
+        Assert.Equal(2, calls);
+    }
+
+    [Fact]
+    [Trait("Category", "Integration")]
+    public void ProgrammaticCloseHonorsCancellableClosingContract()
+    {
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("WAYLAND_DISPLAY"))
+            && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DISPLAY"))) return;
+
+        using SilkWindowBackend backend = SilkWindowBackend.Create();
+        using var windows = new WindowSystem(backend);
+        Window window = windows.CreateWindow(new WindowDesc("Luxel Silk cancellable close", 240, 160));
+        bool allow = false;
+        int closing = 0;
+        window.Closing = () => { closing++; return allow; };
+
+        window.Close();
+        Assert.False(window.IsClosed);
+        Assert.Equal(1, closing);
+
+        allow = true;
+        window.Close();
+        Assert.True(window.IsClosed);
+        Assert.Equal(2, closing);
+    }
+
+    [Fact]
     [Trait("Category", "Integration")]
     public void WaylandLifecycleUsesNativeHandlesAndCompositorPlacement()
     {

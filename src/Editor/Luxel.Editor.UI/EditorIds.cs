@@ -12,6 +12,7 @@ public static class EditorCommandIds
     public const string FocusMode = "window.focusMode";
     public const string Undo = "edit.undo";
     public const string Redo = "edit.redo";
+    public const string Build = "run.build";
     public const string Play = "run.play";
     public const string Stop = "run.stop";
 }

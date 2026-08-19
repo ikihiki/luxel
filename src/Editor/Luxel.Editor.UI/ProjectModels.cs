@@ -57,12 +57,27 @@ public sealed class EditorProjectService
 
     public bool TryCreate(NewProjectRequest request, out string? projectId)
     {
-        ProjectValidationResult validation = Validate(request);
-        if (!validation.IsValid) { Error.Value = string.Join(" ", validation.Errors); projectId = null; return false; }
-        return Try(() => _backend.Create(request), out projectId);
+        if (!TryResolveCreate(request, out projectId) || projectId is null) return false;
+        Remember(projectId);
+        return true;
     }
 
-    public bool TryOpen(string candidate, out string? projectId) => Try(() => _backend.Open(candidate), out projectId);
+    public bool TryOpen(string candidate, out string? projectId)
+    {
+        if (!TryResolveOpen(candidate, out projectId) || projectId is null) return false;
+        Remember(projectId);
+        return true;
+    }
+
+    public bool TryResolveCreate(NewProjectRequest request, out string? projectId)
+    {
+        ProjectValidationResult validation = Validate(request);
+        if (!validation.IsValid) { Error.Value = string.Join(" ", validation.Errors); projectId = null; return false; }
+        return TryResolve(() => _backend.Create(request), out projectId);
+    }
+
+    public bool TryResolveOpen(string candidate, out string? projectId)
+        => TryResolve(() => _backend.Open(candidate), out projectId);
 
     public void Remember(string projectId)
     {
@@ -80,12 +95,11 @@ public sealed class EditorProjectService
         Version.Value++;
     }
 
-    private bool Try(Func<string> action, out string? projectId)
+    private bool TryResolve(Func<string> action, out string? projectId)
     {
         try
         {
             projectId = action();
-            Remember(projectId);
             Error.Value = null;
             return true;
         }
@@ -112,7 +126,11 @@ public sealed class EditorProjectService
     private void Persist() => _settings.Write(RecentProjectsKey, JsonSerializer.Serialize(_recent));
 }
 
-public sealed record EditorWelcomeActions(Action? OpenSample = null, Action? OpenGallery = null);
+public sealed record EditorWelcomeAction(string Label, Action Action, bool Enabled = true, string? DisabledReason = null);
+public sealed record EditorWelcomeActions(
+    Action? OpenSample = null,
+    Action? OpenGallery = null,
+    IReadOnlyList<EditorWelcomeAction>? ProjectActions = null);
 
 public sealed class WelcomeView : CompositeControl
 {
@@ -184,6 +202,17 @@ public sealed class WelcomeView : CompositeControl
             Button(_ => OpenProject(), "Open Project"),
             Button(_ => OpenSample(), "Sample Project"),
             Button(_ => OpenGallery(), "Gallery")]);
+        if (Actions.ProjectActions is { Count: > 0 } projectActions)
+        {
+            foreach (EditorWelcomeAction action in projectActions)
+            {
+                rows.Add(action.Enabled
+                    ? Button(_ => InvokeAction(action.Action, $"{action.Label} is unavailable."), action.Label)
+                    : VStack(2)[
+                        Text($"{action.Label} (disabled)", color: Bind.From(() => UiTheme.T.TextMuted)),
+                        Muted(action.DisabledReason ?? "This project action is unavailable on this host.")]);
+            }
+        }
 
         IReadOnlyList<string> validation = ValidationErrors.Value;
         if (validation.Count > 0) rows.AddRange(validation.Select(x => (Widget)Text(x)));

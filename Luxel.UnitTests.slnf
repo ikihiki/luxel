@@ -7,6 +7,8 @@
       "tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj",
       "tests/Audio/Luxel.Audio.Tests/Luxel.Audio.Tests.csproj",
       "tests/DevTools/Luxel.DevTools.Tests/Luxel.DevTools.Tests.csproj",
+      "tests/Editor/Luxel.Editor.Browser.Tests/Luxel.Editor.Browser.Tests.csproj",
+      "tests/Editor/Luxel.Editor.Native.Tests/Luxel.Editor.Native.Tests.csproj",
       "tests/Editor/Luxel.Editor.Tests/Luxel.Editor.Tests.csproj",
       "tests/Editor/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj",
       "tests/Editor/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj",

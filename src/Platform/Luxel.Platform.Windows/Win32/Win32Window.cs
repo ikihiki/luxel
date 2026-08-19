@@ -58,6 +58,7 @@ public sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput
     // ---- IWindowBackendWindow コールバック ----
     public Action<int, int>? Resized { get; set; }
     public Action<int, int>? Moved { get; set; }
+    public Func<bool>? Closing { get; set; }
     public Action? Closed { get; set; }
     public Action<bool>? FocusChanged { get; set; }
     public Action<WindowPointerEvent>? PointerMoved { get; set; }
@@ -262,6 +263,7 @@ public sealed unsafe class Win32Window : IWindowBackendWindow, IWin32RawKeyInput
                     return new LRESULT(0);
                 }
             case PInvoke.WM_CLOSE:
+                if (Closing?.Invoke() == false) return new LRESULT(0);
                 PInvoke.DestroyWindow(hwnd); return new LRESULT(0);
             case PInvoke.WM_DESTROY:
                 // マルチウィンドウ: PostQuitMessage はしない (生存判定はバックエンドのインスタンスリスト)
