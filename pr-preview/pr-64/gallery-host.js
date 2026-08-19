@@ -1,13 +1,27 @@
 const protocolVersion = 2;
 let receiver = null;
 let expected = null;
+let runtimeReady = false;
+let pendingArgs = null;
 const wiredSplitters = new WeakSet();
+
+function postArgs(message) {
+  expected?.frame?.contentWindow?.postMessage(message, location.origin);
+}
 
 function runtimeMessage(event) {
   const message = event.data;
   if (!expected || event.origin !== location.origin || event.source !== expected.frame.contentWindow) return;
   if (!message?.luxelGallery || message.protocolVersion !== protocolVersion) return;
   if (message.story !== expected.story || message.instanceId !== expected.instanceId) return;
+  if (message.type === "ready") {
+    runtimeReady = true;
+    if (pendingArgs) {
+      const message = pendingArgs;
+      pendingArgs = null;
+      postArgs(message);
+    }
+  }
   receiver?.invokeMethodAsync("OnRuntimeMessage", message).catch(error => console.error("Gallery host message failed", error));
 }
 
@@ -18,10 +32,12 @@ export function initialize(dotNetReceiver) {
 
 export function configure(frame, story, instanceId) {
   expected = { frame, story, instanceId };
+  runtimeReady = false;
+  pendingArgs = null;
 }
 
 export function setArgs(frame, story, instanceId, revision, requestId, argsJson) {
-  frame?.contentWindow?.postMessage({
+  const message = {
     luxelGallery: true,
     protocolVersion,
     type: "set-args",
@@ -30,7 +46,14 @@ export function setArgs(frame, story, instanceId, revision, requestId, argsJson)
     revision,
     requestId,
     args: JSON.parse(argsJson)
-  }, location.origin);
+  };
+  if (!expected || frame !== expected.frame || story !== expected.story || instanceId !== expected.instanceId)
+    return;
+  if (!runtimeReady) {
+    pendingArgs = message;
+    return;
+  }
+  postArgs(message);
 }
 
 export function wireSplitter(workspace, splitter) {
@@ -80,5 +103,7 @@ export function dispose() {
   window.removeEventListener("message", runtimeMessage);
   receiver = null;
   expected = null;
+  runtimeReady = false;
+  pendingArgs = null;
   document.body.classList.remove("resizing-story-panel");
 }
