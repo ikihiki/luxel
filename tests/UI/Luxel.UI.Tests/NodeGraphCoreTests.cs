@@ -57,6 +57,31 @@ public class NodeGraphCoreTests
         Assert.Equal([10], doc.EdgesOf(1).Select(e => e.Id));
     }
 
+    [Fact]
+    public void PortLabel_IsOptionalAndJsonRoundTrips()
+    {
+        var unlabeled = new NodePort(0, PortDir.In, "v");
+        var labeled = new NodePort(1, PortDir.Out, "v", "result");
+        var doc = NodeGraphDoc.Of([new GraphNode(1, "op", "node", Vector2.Zero, [unlabeled, labeled])]);
+
+        Assert.Equal("", unlabeled.Label);
+        NodeGraphDoc restored = NodeGraphJson.Deserialize(NodeGraphJson.Serialize(doc));
+        Assert.Equal("", restored.Node(1).Port(0)!.Label);
+        Assert.Equal("result", restored.Node(1).Port(1)!.Label);
+    }
+
+    [Fact]
+    public void Json_MissingPortLabelLoadsAsEmpty()
+    {
+        const string json = """
+            {"nodes":[{"id":1,"kind":"op","title":"node","x":0,"y":0,"ports":[{"id":0,"dir":"in","type":"v"}]}],"edges":[]}
+            """;
+
+        NodeGraphDoc doc = NodeGraphJson.Deserialize(json);
+
+        Assert.Equal("", doc.Node(1).Port(0)!.Label);
+    }
+
     // ---- 個別変更の Apply/Invert ----
 
     [Fact]
@@ -197,6 +222,85 @@ public class NodeGraphCoreTests
 
         var s2 = s0.WithViewport(GraphViewport.Default).State;
         Assert.Equal(GraphViewport.Default, s2.Viewport);
+    }
+
+    // ---- Document/controller ----
+
+    [Fact]
+    public void Document_OwnsStateAndHistoryWithoutAView()
+    {
+        var document = new GraphDocument(NodeGraphDoc.Of([N(1)]));
+        int documentChanges = 0;
+        document.Changed += (_, changed) => { if (changed) documentChanges++; };
+
+        document.Apply(new AddNode(N(2, 60)));
+
+        Assert.True(document.Doc.HasNode(2));
+        Assert.True(document.CanUndo);
+        Assert.Equal(1, documentChanges);
+
+        document.Undo();
+        Assert.False(document.Doc.HasNode(2));
+        Assert.True(document.CanRedo);
+
+        document.Redo();
+        Assert.True(document.Doc.HasNode(2));
+    }
+
+    [Fact]
+    public void Document_LoadClearsHistoryAndReplacesState()
+    {
+        var document = new GraphDocument(NodeGraphDoc.Of([N(1)]));
+        document.Apply(new AddNode(N(2)));
+        Assert.True(document.CanUndo);
+
+        document.Load(NodeGraphDoc.Of([N(3)]));
+
+        Assert.False(document.Doc.HasNode(1));
+        Assert.True(document.Doc.HasNode(3));
+        Assert.False(document.CanUndo);
+        Assert.False(document.CanRedo);
+    }
+
+    [Fact]
+    public void Document_NodeParameterParticipatesInHistoryAndJson()
+    {
+        NodeParameter<float> gain = NodeParameter.Create("gain", 0.5f);
+        var start = N(1) with { Data = NodeParameterValues.Empty.Set(gain.Key, 0.5f).Set("enabled", true) };
+        var document = new GraphDocument(NodeGraphDoc.Of([start]));
+
+        document.Apply(gain.Set(1, 0.8f));
+
+        Assert.Equal(0.8f, gain.Read(document.Doc.Node(1)));
+        string json = NodeGraphJson.Serialize(document.Doc);
+        NodeGraphDoc restored = NodeGraphJson.Deserialize(json);
+        Assert.Equal(0.8f, gain.Read(restored.Node(1)));
+        Assert.True(Assert.IsType<NodeParameterValues>(restored.Node(1).Data).TryGetValue("enabled", out object? enabled));
+        Assert.Equal(true, enabled);
+
+        document.Undo();
+        Assert.Equal(0.5f, gain.Read(document.Doc.Node(1)));
+        document.Redo();
+        Assert.Equal(0.8f, gain.Read(document.Doc.Node(1)));
+    }
+
+    [Fact]
+    public void DocumentBackedParameterSignalSynchronizesWritesUndoAndRedo()
+    {
+        NodeParameter<float> gain = NodeParameter.Create("gain", 0.5f);
+        var node = N(1) with { Data = NodeParameterValues.Empty.Set(gain.Key, 0.5f) };
+        var document = new GraphDocument(NodeGraphDoc.Of([node]));
+        using var binding = new Luxel.Controls.NodeParameterSignal<float>(document, 1, gain);
+
+        binding.Value.Value = 0.75f;
+        Assert.Equal(0.75f, gain.Read(document.Doc.Node(1)));
+        Assert.True(document.CanUndo);
+
+        document.Undo();
+        Assert.Equal(0.5f, binding.Value.Peek());
+
+        document.Redo();
+        Assert.Equal(0.75f, binding.Value.Peek());
     }
 
     // ---- History ----

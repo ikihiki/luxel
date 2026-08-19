@@ -18,6 +18,8 @@ public sealed partial class NodeGraphView : Widget
 {
     /// <summary>初期グラフ (ノード + 辺)。null/空なら空グラフ。</summary>
     [UiParam] private readonly Bindable<NodeGraphDoc> _source = new();
+    /// <summary>共有 document/controller。指定時は source より優先し、履歴も view 間で共有する。</summary>
+    [UiParam] private readonly Bindable<GraphDocument?> _document = new();
     /// <summary>ビュー幅 (px、既定 480)。</summary>
     [UiParam] private readonly Bindable<float> _viewWidth = new();
     /// <summary>ビュー高さ (px、既定 360)。</summary>
@@ -26,8 +28,11 @@ public sealed partial class NodeGraphView : Widget
     /// <summary>ノード配置の設定 (タイトルバー高・ポート行高・ワイヤ接線など)。</summary>
     public GraphConfig Config { get; set; } = new();
 
-    /// <summary>ノード内インライン枠 (<see cref="NodeInlineDecoration"/>) の Key → 実 Widget を解決する (null = ホストしない)。</summary>
-    public Func<object, Widget?>? WidgetResolver { get; set; }
+    /// <summary>
+    /// ノード内インライン枠を解決する NodeGraph 専用 resolver。context は node/key を常に提供し、
+    /// decoration が parameter を宣言した場合は document-backed Signal も提供する。
+    /// </summary>
+    public Func<NodeWidgetContext, Widget?>? WidgetResolver { get; set; }
 
     /// <summary>ホストしたインライン widget のクリップ方式 (既定 = 枠でクリップ)。</summary>
     public WidgetClipMode WidgetClip { get; set; } = WidgetClipMode.Box;
@@ -43,12 +48,19 @@ public sealed partial class NodeGraphView : Widget
     public bool ReadOnly { get; set; }
 
     // ノード内にホストした実 Widget (画面空間に配置し毎 Refresh で WorldToScreen 追従)
-    private sealed class Hosted { public required Widget Widget; public required UiNode Container; public Rect ScreenRect; }
-    private readonly Dictionary<object, Hosted> _widgets = new();
+    private readonly record struct WidgetHostKey(int NodeId, object Key, NodeParameter? Parameter);
+    private sealed class Hosted
+    {
+        public required Widget Widget;
+        public required UiNode Container;
+        public required NodeWidgetContext Context;
+        public Rect ScreenRect;
+    }
+    private readonly Dictionary<WidgetHostKey, Hosted> _widgets = new();
     private UiNode _widgetLayer = null!;
 
     private NodeGraphState _state = NodeGraphState.Create();
-    private readonly GraphHistory _history = new();
+    private GraphDocument _documentModel = null!;
     private GraphGeometry? _geo;
     private bool _init;
     private float _fs = 13;
@@ -98,9 +110,9 @@ public sealed partial class NodeGraphView : Widget
     /// <summary>pan/zoom。</summary>
     public GraphViewport Viewport => _state.Viewport;
     /// <summary>undo できるか。</summary>
-    public bool CanUndo => _history.CanUndo;
+    public bool CanUndo => _documentModel?.CanUndo ?? false;
     /// <summary>redo できるか。</summary>
-    public bool CanRedo => _history.CanRedo;
+    public bool CanRedo => _documentModel?.CanRedo ?? false;
 
     /// <summary>グラフが変わった (編集/undo/redo)。IEditorDocument アダプタのダーティ検知用。</summary>
     public Action<NodeGraphView>? OnEdit { get; set; }
@@ -108,18 +120,18 @@ public sealed partial class NodeGraphView : Widget
     /// <summary>グラフを丸ごと差し替える (選択・履歴はリセット)。</summary>
     public void Load(NodeGraphDoc doc)
     {
-        _state = NodeGraphState.Create(doc);
-        _history.Clear();
+        EnsureInit();
         _preview = null; _drag = Drag.None;
-        Refresh();
+        _documentModel.Load(doc);
+        SynchronizeBeforeRealize();
     }
 
     /// <summary>owner の装飾を差し替える (バッジ/ハイライト/ノード内インライン枠など)。文書は変えない。</summary>
     public void SetDecorations(string owner, GraphDecorationSet set)
     {
         EnsureInit();   // realize 前でも source doc を先に読み込む (でないと空グラフに装飾が乗り消える)
-        _state = _state.WithDecorations(owner, set).State;
-        Refresh();
+        _documentModel.Apply(_state.WithDecorations(owner, set));
+        SynchronizeBeforeRealize();
     }
 
     /// <summary>ノードの画面中心 (ストーリーのクライアント座標) — play が d.Click/d.Drag に渡す用。</summary>
@@ -179,11 +191,15 @@ public sealed partial class NodeGraphView : Widget
     }
 
     /// <summary>undo 1 手。</summary>
-    public void Undo() { _state = _history.Undo(_state); Refresh(); OnEdit?.Invoke(this); }
+    public void Undo() { EnsureInit(); _documentModel.Undo(); SynchronizeBeforeRealize(); }
     /// <summary>redo 1 手。</summary>
-    public void Redo() { _state = _history.Redo(_state); Refresh(); OnEdit?.Invoke(this); }
+    public void Redo() { EnsureInit(); _documentModel.Redo(); SynchronizeBeforeRealize(); }
 
-    private void SetViewport(GraphViewport vp) { _state = _state.WithViewport(vp).State; Refresh(); }
+    private void SetViewport(GraphViewport vp)
+    {
+        _documentModel.Apply(_state.WithViewport(vp));
+        SynchronizeBeforeRealize();
+    }
 
     // ---- レイアウト ----
 
@@ -191,8 +207,8 @@ public sealed partial class NodeGraphView : Widget
     {
         if (_init) return;
         _init = true;
-        NodeGraphDoc? doc = Source.Get();
-        if (doc is not null) _state = NodeGraphState.Create(doc);
+        _documentModel = Document.Get() ?? new GraphDocument(Source.Get());
+        _state = _documentModel.State;
     }
 
     protected override void PerformLayout(Constraints c, LayoutContext ctx)
@@ -209,8 +225,16 @@ public sealed partial class NodeGraphView : Widget
     {
         float titleW = _font?.Measure(n.Title, _fs).width ?? n.Title.Length * _fs * 0.6f;
         int inN = 0, outN = 0;
-        foreach (NodePort p in n.Ports) { if (p.Dir == PortDir.In) inN++; else outN++; }
-        float w = MathF.Max(120, titleW + 28);
+        float inputLabelW = 0, outputLabelW = 0;
+        foreach (NodePort p in n.Ports)
+        {
+            if (p.Dir == PortDir.In) inN++; else outN++;
+            float labelW = _font?.Measure(p.Label, _fs).width ?? p.Label.Length * _fs * 0.6f;
+            if (p.Dir == PortDir.In) inputLabelW = MathF.Max(inputLabelW, labelW);
+            else outputLabelW = MathF.Max(outputLabelW, labelW);
+        }
+        float portLabelsW = inputLabelW + outputLabelW + Config.PortRadius * 4 + 20;
+        float w = MathF.Max(120, MathF.Max(titleW + 28, portLabelsW));
         float h;
         if (n.Collapsed) h = Config.TitleBarHeight;
         else
@@ -232,6 +256,8 @@ public sealed partial class NodeGraphView : Widget
     {
         EnsureInit();
         _ctx = ctx;
+        _documentModel.Changed += OnDocumentChanged;
+        ctx.Own(new GraphDocumentSubscription(_documentModel, OnDocumentChanged));
         _theme = ctx.Theme;
         _fs = _theme.Peek().FontSm;
         _font = ctx.Font;
@@ -326,14 +352,14 @@ public sealed partial class NodeGraphView : Widget
                     var ids = _state.Selection.Nodes.ToList();
                     bool had = ids.Remove(hit.NodeId);
                     if (!had) ids.Add(hit.NodeId);
-                    _state = GraphCommands.SelectNodes(_state, ids, had ? -1 : hit.NodeId).State;
+                    _documentModel.Apply(GraphCommands.SelectNodes(_state, ids, had ? -1 : hit.NodeId));
                     _drag = Drag.None;
                 }
                 break;
             case GraphHitKind.Node:
                 // ノードを掴む — 未選択なら単独選択に置換してから移動開始
                 if (!_state.Selection.ContainsNode(hit.NodeId))
-                    _state = GraphCommands.SelectNodes(_state, [hit.NodeId], hit.NodeId).State;
+                    _documentModel.Apply(GraphCommands.SelectNodes(_state, [hit.NodeId], hit.NodeId));
                 _drag = Drag.Nodes;
                 _dragNodes = _state.Selection.Nodes.ToArray();
                 _dragDelta = Vector2.Zero;
@@ -341,12 +367,12 @@ public sealed partial class NodeGraphView : Widget
                 break;
             case GraphHitKind.Edge:
                 // 辺をクリック → 選択 (Delete で切断できる)
-                _state = GraphCommands.Select(_state, GraphSelection.Edge(hit.EdgeId)).State;
+                _documentModel.Apply(GraphCommands.Select(_state, GraphSelection.Edge(hit.EdgeId)));
                 _drag = Drag.None;
                 break;
             default:
                 // 空白 — 選択を解除して marquee 開始
-                _state = GraphCommands.SelectNone(_state).State;
+                _documentModel.Apply(GraphCommands.SelectNone(_state));
                 _drag = Drag.Marquee;
                 _marqStart = _marqCur = world;
                 break;
@@ -371,7 +397,7 @@ public sealed partial class NodeGraphView : Widget
                 _wireEnd = WorldAt(e);
                 break;
             case Drag.Pan:
-                _state = _state.WithViewport(_state.Viewport with { Pan = _panStartPan + new Vector2(e.DeltaX, e.DeltaY) }).State;
+                _documentModel.Apply(_state.WithViewport(_state.Viewport with { Pan = _panStartPan + new Vector2(e.DeltaX, e.DeltaY) }));
                 break;
             default: return;
         }
@@ -390,7 +416,7 @@ public sealed partial class NodeGraphView : Widget
                 if (box.Width > 2 || box.Height > 2)
                 {
                     var ids = _state.Doc.Nodes.Where(n => _geo!.NodeRect(n.Id).Intersects(box)).Select(n => n.Id).ToList();
-                    _state = GraphCommands.SelectNodes(_state, ids).State;
+                    _documentModel.Apply(GraphCommands.SelectNodes(_state, ids));
                 }
                 break;
             case Drag.Wire:
@@ -409,12 +435,13 @@ public sealed partial class NodeGraphView : Widget
     private void SelectAt(Vector2 world)
     {
         GraphHit hit = _geo!.HitTest(world);
-        _state = hit.Kind switch
+        GraphTransaction selection = hit.Kind switch
         {
-            GraphHitKind.Node or GraphHitKind.InputPort or GraphHitKind.OutputPort => GraphCommands.SelectNodes(_state, [hit.NodeId], hit.NodeId).State,
-            GraphHitKind.Edge => GraphCommands.Select(_state, GraphSelection.Edge(hit.EdgeId)).State,
-            _ => GraphCommands.SelectNone(_state).State,
+            GraphHitKind.Node or GraphHitKind.InputPort or GraphHitKind.OutputPort => GraphCommands.SelectNodes(_state, [hit.NodeId], hit.NodeId),
+            GraphHitKind.Edge => GraphCommands.Select(_state, GraphSelection.Edge(hit.EdgeId)),
+            _ => GraphCommands.SelectNone(_state),
         };
+        _documentModel.Apply(selection);
     }
 
     // 配線ドラッグの終端が互換ポートなら接続する (単入力ポートは既存の入力辺を置換 = 1 undo)
@@ -466,24 +493,28 @@ public sealed partial class NodeGraphView : Widget
     private void HostWidgets()
     {
         if (WidgetResolver is null) { if (_widgets.Count > 0) ClearWidgets(); return; }
-        var seen = new HashSet<object>();
+        var seen = new HashSet<WidgetHostKey>();
         float zoom = _state.Viewport.Zoom;
         foreach (WidgetSlot slot in _geo!.WidgetSlots())
         {
-            seen.Add(slot.Key);
-            if (!_widgets.TryGetValue(slot.Key, out Hosted? h))
+            NodeInlineDecoration? decoration = _state.Decorations.All().OfType<NodeInlineDecoration>()
+                .FirstOrDefault(candidate => candidate.NodeId == slot.NodeId && Equals(candidate.Key, slot.Key));
+            var hostKey = new WidgetHostKey(slot.NodeId, slot.Key, decoration?.Parameter);
+            seen.Add(hostKey);
+            if (!_widgets.TryGetValue(hostKey, out Hosted? h))
             {
-                if (WidgetResolver(slot.Key) is not { } w) continue;
+                var context = new NodeWidgetContext(_documentModel, slot, decoration?.Parameter, ReadOnly);
+                if (WidgetResolver(context) is not { } w) { context.Dispose(); continue; }
                 UiNode container = _ctx.Canvas.AddChild(_widgetLayer);
-                h = new Hosted { Widget = w, Container = container };
-                _widgets[slot.Key] = h;
+                h = new Hosted { Widget = w, Container = container, Context = context };
+                _widgets[hostKey] = h;
             }
             Vector2 pos = _geo.WorldToScreen(slot.Rect.Min);   // world 枠 → 画面矩形 (zoom 反映)
             h.ScreenRect = new Rect(pos.X, pos.Y, slot.Rect.Width * zoom, slot.Rect.Height * zoom);
             RealizeWidget(h);
         }
         if (_widgets.Count > seen.Count)
-            foreach (object k in _widgets.Keys.Where(k => !seen.Contains(k)).ToList())
+            foreach (WidgetHostKey k in _widgets.Keys.Where(k => !seen.Contains(k)).ToList())
             { DisposeHosted(_widgets[k]); _widgets.Remove(k); }
     }
 
@@ -511,6 +542,7 @@ public sealed partial class NodeGraphView : Widget
 
     private void DisposeHosted(Hosted h)
     {
+        h.Context.Dispose();
         h.Widget.Scope?.Release();
         (h.Widget as IDisposable)?.Dispose();
         _ctx.Canvas.Remove(h.Container);
@@ -560,7 +592,7 @@ public sealed partial class NodeGraphView : Widget
     {
         if (ReadOnly)   // 閲覧: 編集キーは無効、Esc の選択解除のみ
         {
-            if (ev.Key == Key.Escape) { _state = GraphCommands.SelectNone(_state).State; Refresh(); return true; }
+            if (ev.Key == Key.Escape) { _documentModel.Apply(GraphCommands.SelectNone(_state)); Refresh(); return true; }
             return false;
         }
         switch (ev.Key)
@@ -574,12 +606,37 @@ public sealed partial class NodeGraphView : Widget
         }
     }
 
+    /// <summary>外部 command/automation から同じ document/history 経路で編集する。</summary>
+    public void ApplyEdit(params GraphChange[] changes)
+    {
+        ArgumentNullException.ThrowIfNull(changes);
+        if (ReadOnly) throw new InvalidOperationException("A read-only node graph cannot be edited.");
+        EnsureInit();
+        _documentModel.Apply(changes);
+        SynchronizeBeforeRealize();
+    }
+
     private void Apply(GraphTransaction tr)
     {
-        if (tr.DocChanged) _history.Record(tr);
-        _state = tr.State;
+        _documentModel.Apply(tr);
+        SynchronizeBeforeRealize();
+    }
+
+    private void SynchronizeBeforeRealize()
+    {
+        if (_ctx is null) _state = _documentModel.State;
+    }
+
+    private void OnDocumentChanged(GraphDocument document, bool docChanged)
+    {
+        _state = document.State;
         Refresh();
-        if (tr.DocChanged) OnEdit?.Invoke(this);
+        if (docChanged) OnEdit?.Invoke(this);
+    }
+
+    private sealed class GraphDocumentSubscription(GraphDocument document, Action<GraphDocument, bool> handler) : IDisposable
+    {
+        public void Dispose() => document.Changed -= handler;
     }
 
     // ---- 描画 ----
@@ -675,11 +732,20 @@ public sealed partial class NodeGraphView : Widget
             foreach (PortGeometry p in nl.Inputs) ports.FillCircle(Color2D.White, p.Anchor.X, p.Anchor.Y, pr - 1);
             foreach (PortGeometry p in nl.Outputs) ports.FillCircle(Color2D.White, p.Anchor.X, p.Anchor.Y, pr - 1);
 
-            if (_font is { } font && node.Title.Length > 0)
+            if (_font is { } font)
             {
-                (float tw, float th) = font.Measure(node.Title, _fs);
-                float baseline = box.Y + (MathF.Min(tb, box.Height) - th) / 2 + font.Ascent(_fs);
-                font.AppendText(titles, node.Title, box.X + 8, baseline, _fs, Color2D.White);
+                if (node.Title.Length > 0)
+                {
+                    (float tw, float th) = font.Measure(node.Title, _fs);
+                    float baseline = box.Y + (MathF.Min(tb, box.Height) - th) / 2 + font.Ascent(_fs);
+                    font.AppendText(titles, node.Title, box.X + 8, baseline, _fs, Color2D.White);
+                }
+
+                if (!node.Collapsed)
+                {
+                    foreach (PortGeometry p in nl.Inputs) AppendPortLabel(font, titles, node.Port(p.Port.Port)!, p.Anchor, input: true, pr);
+                    foreach (PortGeometry p in nl.Outputs) AppendPortLabel(font, titles, node.Port(p.Port.Port)!, p.Anchor, input: false, pr);
+                }
             }
         }
 
@@ -689,6 +755,15 @@ public sealed partial class NodeGraphView : Widget
         _selStrokeN.Content = selStroke;
         _portN.Content = ports;
         _titleN.Content = titles;
+    }
+
+    private void AppendPortLabel(VectorFont font, Scene2D scene, NodePort port, Vector2 anchor, bool input, float portRadius)
+    {
+        if (port.Label.Length == 0) return;
+        (float width, float height) = font.Measure(port.Label, _fs);
+        float x = input ? anchor.X + portRadius + 4 : anchor.X - portRadius - 4 - width;
+        float baseline = anchor.Y - height * 0.5f + font.Ascent(_fs);
+        font.AppendText(scene, port.Label, x, baseline, _fs, Color2D.White);
     }
 
     private void DrawMarquee()

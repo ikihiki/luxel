@@ -11,9 +11,10 @@ public readonly record struct PortId(int Node, int Port);
 
 /// <summary>
 /// ノードのポート 1 個 — 不変。<see cref="TypeKey"/> は接続互換の判定に使うドメイン定義の型キー
-/// (例 "float"/"color")。<see cref="Multi"/> は複数の辺を受け付けるか (既定は 1 本、In ポートは通常単数)。
+/// (例 "float"/"color")。<see cref="Label"/> はノード内のポート横へ表示する任意ラベル。
+/// <see cref="Multi"/> は複数の辺を受け付けるか (既定は 1 本、In ポートは通常単数)。
 /// </summary>
-public sealed record NodePort(int Id, PortDir Dir, string TypeKey, string Label, bool Multi = false);
+public sealed record NodePort(int Id, PortDir Dir, string TypeKey, string Label = "", bool Multi = false);
 
 /// <summary>
 /// グラフのノード 1 個 — **不変**。安定 <see cref="Id"/> を持ち、位置 <see cref="Pos"/> (world) と

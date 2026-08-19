@@ -61,63 +61,33 @@ public static class WorkbenchShellStory
             "s(\"bd sd bd sd\")\n  .fast(2)\n");
         var graph = new NodeGraphDocument("flow.graph", SampleGraph());
 
-        var ws = new Workspace();
         var docs = new Dictionary<string, IEditorDocument>
         { ["code"] = code, ["readme"] = readme, ["beat"] = beat, ["graph"] = graph };
-        foreach (IEditorDocument d in docs.Values) ws.Open(d);
-        ws.Activate(code);
+        var session = new EditorSession(
+            docs, DockTree.Single("code", "readme", "beat", "graph"));
+        Workspace ws = session.Workspace;
+        Signal<DockTree> tree = session.Layout;
 
-        // ---- レイアウト (真実 = DockTree) ----
-        var tree = new Signal<DockTree>(DockTree.Single("code", "readme", "beat", "graph"));
-        DockItem Resolve(string id) => new(docs[id].Title, () => docs[id].CreateView(), docs[id].Dirty);
-        // アクティブタブ → Workspace.Active の同期 (D1 = 単一グループ想定。複数グループの
-        // フォーカス追跡は Gallery 統合で)
-        Reactive.Effect(() =>
-        {
-            DockGroup? g = tree.Value.Groups.FirstOrDefault();
-            if (g is { Active: >= 0 } && g.Active < g.Tabs.Count && docs.TryGetValue(g.Tabs[g.Active], out IEditorDocument? d))
-                ws.Activate(d);
-        });
-
-        // ---- コマンド (真実 = CommandRegistry) ----
-        var reg = new CommandRegistry();
-        reg.Register("file.save", "保存", () =>
+        // ---- コマンド (真実 = EditorSession.Commands) ----
+        CommandRegistry reg = session.Commands;
+        reg.Register(EditorCommandIds.Save, "保存", () =>
         {
             if (ws.Active.Peek() is not { } d) return;
             d.Serialize();                       // D1: 保存点の更新のみ (実ファイルは D2 の IDocumentStore)
             d.Dirty.Value = false;
             ctx.Log($"save: {d.Title}");
         }, enabled: () => ws.Active.Peek()?.Dirty.Peek() == true, key: "Ctrl+S", menuPath: "File/保存", toolbar: true);
-        reg.Register("edit.undo", "元に戻す", () => ws.Undo(), enabled: () => ws.CanUndo, menuPath: "Edit/元に戻す");
-        reg.Register("edit.redo", "やり直す", () => ws.Redo(), enabled: () => ws.CanRedo, menuPath: "Edit/やり直す");
+        reg.Register(EditorCommandIds.Undo, "元に戻す", () => ws.Undo(), enabled: () => ws.CanUndo, menuPath: "Edit/元に戻す");
+        reg.Register(EditorCommandIds.Redo, "やり直す", () => ws.Redo(), enabled: () => ws.CanRedo, menuPath: "Edit/やり直す");
 
-        // ---- シェル chrome (すべて registry / tree / workspace のビュー) ----
-        MenuBar menuBar = MenuBar(reg, contributions: () => ws.Active.Value?.Contributions ?? []);
-        Toolbar toolbar = Toolbar(reg, contributions: () => ws.Active.Value?.Contributions ?? []);
-        DockHost host = DockHost(tree, Resolve, closeRemoves: true,
-            onCloseTab: (_, id) => { if (docs.TryGetValue(id, out IEditorDocument? d)) ws.Close(d); });
-        StatusBar status = StatusBar(
-            left: [Muted("Workbench D1"), Muted("4 docs")],
-            right: [Badge("Ready", Intent.Success)]);
-
-        // enablement (保存の活性) はダーティ変化で再評価
-        Reactive.Effect(() => { _ = ws.AnyDirty.Value; _ = ws.Active.Value; toolbar.Refresh(); });
-
-        menuBar.GridRow(0);
-        toolbar.GridRow(1);
-        host.GridRow(2);
-        status.GridRow(3);
-        Grid shell = Grid(rows: [GridLength.Px(Luxel.Controls.MenuBar.BarH), GridLength.Px(34),
-                                 GridLength.Star(), GridLength.Px(Luxel.Controls.StatusBar.BarH)])[
-            menuBar, toolbar, host, status];
-        shell.HAlign.SetBase(Align.Stretch);
-        shell.VAlign.SetBase(Align.Stretch);
+        // ---- production の portable shell を Gallery fixture からそのまま起動 ----
+        var fixture = new EditorTestFixture { Session = session, ProductName = "Workbench D1" };
 
         ctx.Play(async d =>
         {
-            reg.BindShortcuts(d.Host);                          // keymap を UiHost へ常設 (シェル配線)
             await d.Snap();                                     // code タブ + シンタックス色 + chrome 一式
             // markdown タブへ → live preview の整形が見える
+            DockHost host = fixture.Shell!.DocumentsHost!;
             var t = host.TabCenter("readme")!.Value;
             await d.Click(t.X, t.Y);
             await d.Expect(() => ReferenceEquals(ws.Active.Value, readme), "タブ切替が Workspace.Active に同期");
@@ -144,6 +114,6 @@ public static class WorkbenchShellStory
             await d.Snap("graph");
         });
 
-        return shell;
+        return fixture;
     }
 }

@@ -88,28 +88,29 @@ public sealed class TextDocument : IEditorDocument, IDisposable
 
 /// <summary>
 /// ノードグラフの <see cref="IEditorDocument"/> アダプタ (ADR-0010)。直列化は
-/// <see cref="NodeGraphJson"/> の JSON 往復。ビューの編集 (OnEdit) で真実
-/// (<see cref="Doc"/>) を取り込みダーティにする。
+/// <see cref="NodeGraphJson"/> の JSON 往復。<see cref="GraphDocument"/> がグラフの真実と
+/// undo/redo 履歴を所有し、複数の <see cref="NodeGraphView"/> は同じ document を投影する。
 /// </summary>
-public sealed class NodeGraphDocument : IEditorDocument
+public sealed class NodeGraphDocument : IEditorDocument, IDisposable
 {
     private readonly Action<NodeGraphView>? _configure;
-    private readonly List<NodeGraphView> _views = new();
     private string _saved;
 
     public NodeGraphDocument(string title, NodeGraphDoc doc, Action<NodeGraphView>? configure = null,
                              string kind = "nodegraph", IReadOnlyList<CommandContribution>? contributions = null)
     {
         Title = title;
-        Doc = doc;
+        Document = new GraphDocument(doc);
+        Document.Changed += OnDocumentChanged;
         Kind = kind;
         _configure = configure;
         Contributions = contributions ?? [];
         _saved = NodeGraphJson.Serialize(doc);
     }
 
-    /// <summary>グラフの真実 (ビューの編集で追従)。</summary>
-    public NodeGraphDoc Doc { get; private set; }
+    /// <summary>グラフの真実と共有 undo/redo 履歴。</summary>
+    public GraphDocument Document { get; }
+    public NodeGraphDoc Doc => Document.Doc;
 
     public string Kind { get; }
 
@@ -121,31 +122,18 @@ public sealed class NodeGraphDocument : IEditorDocument
 
     public Widget CreateView()
     {
-        NodeGraphView v = Kit.NodeGraphView(source: Doc);
-        v.OnEdit = view =>
-        {
-            Doc = view.Graph.Doc;
-            Dirty.Value = NodeGraphJson.Serialize(Doc) != _saved;
-        };
-        _configure?.Invoke(v);
-        _views.Add(v);
-        return v;
+        NodeGraphView view = Kit.NodeGraphView(document: Document);
+        _configure?.Invoke(view);
+        return view;
     }
 
-    private NodeGraphView? View
-    {
-        get
-        {
-            for (int i = _views.Count - 1; i >= 0; i--)
-                if (_views[i].Scope is { IsDisposed: false }) return _views[i];
-            return _views.Count > 0 ? _views[^1] : null;
-        }
-    }
+    /// <summary>外部 command/automation から view の有無に依存せず編集する。</summary>
+    public void ApplyEdit(params GraphChange[] changes) => Document.Apply(changes);
 
-    public bool CanUndo => View?.CanUndo ?? false;
-    public bool CanRedo => View?.CanRedo ?? false;
-    public void Undo() => View?.Undo();
-    public void Redo() => View?.Redo();
+    public bool CanUndo => Document.CanUndo;
+    public bool CanRedo => Document.CanRedo;
+    public void Undo() => Document.Undo();
+    public void Redo() => Document.Redo();
 
     public string Serialize()
     {
@@ -156,11 +144,18 @@ public sealed class NodeGraphDocument : IEditorDocument
 
     public void LoadFrom(string content)
     {
-        Doc = NodeGraphJson.Deserialize(content);
-        _saved = NodeGraphJson.Serialize(Doc);
+        NodeGraphDoc doc = NodeGraphJson.Deserialize(content);
+        _saved = NodeGraphJson.Serialize(doc);
+        Document.Load(doc);
         Dirty.Value = false;
-        View?.Load(Doc);
     }
+
+    private void OnDocumentChanged(GraphDocument document, bool docChanged)
+    {
+        if (docChanged) Dirty.Value = NodeGraphJson.Serialize(document.Doc) != _saved;
+    }
+
+    public void Dispose() => Document.Changed -= OnDocumentChanged;
 }
 
 /// <summary>
