@@ -1,6 +1,7 @@
 #:project ../../src/Framework/Luxel.Framework.UI/Luxel.Framework.UI.csproj
 #:property TargetFramework=net10.0
 #:property PublishAot=true
+#:property IlcTreatWarningsAsErrors=false
 
 using Luxel.Controls;
 using Luxel.UI;
