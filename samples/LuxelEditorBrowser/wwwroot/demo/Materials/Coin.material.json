@@ -1,14 +1,46 @@
 {
-  "name": "Coin",
-  "shader": "sprite/unlit",
   "nodes": [
-    { "id": "texture", "type": "Texture2D", "asset": "Assets/Textures/coin.svg" },
-    { "id": "tint", "type": "Color", "value": "#ffd447" },
-    { "id": "output", "type": "SpriteOutput" }
+    {
+      "id": 1,
+      "kind": "texture",
+      "title": "Coin Texture",
+      "x": 32,
+      "y": 48,
+      "collapsed": false,
+      "ports": [
+        { "id": 0, "dir": "out", "type": "color", "label": "rgba", "multi": false }
+      ],
+      "data": "Assets/Textures/coin.svg"
+    },
+    {
+      "id": 2,
+      "kind": "multiply",
+      "title": "Tint",
+      "x": 232,
+      "y": 80,
+      "collapsed": false,
+      "ports": [
+        { "id": 0, "dir": "in", "type": "color", "label": "texture", "multi": false },
+        { "id": 1, "dir": "in", "type": "color", "label": "tint", "multi": false },
+        { "id": 2, "dir": "out", "type": "color", "label": "out", "multi": false }
+      ],
+      "data": "#ffd447"
+    },
+    {
+      "id": 3,
+      "kind": "output",
+      "title": "Sprite Output",
+      "x": 456,
+      "y": 112,
+      "collapsed": false,
+      "ports": [
+        { "id": 0, "dir": "in", "type": "color", "label": "color", "multi": false }
+      ],
+      "data": "optional normal map: Assets/Textures/coin-normal.png"
+    }
   ],
-  "optionalNormalMap": "Assets/Textures/coin-normal.png",
   "edges": [
-    { "from": "texture.rgba", "to": "output.color" },
-    { "from": "tint.rgba", "to": "output.tint" }
+    { "id": 10, "from": { "n": 1, "p": 0 }, "to": { "n": 2, "p": 0 } },
+    { "id": 11, "from": { "n": 2, "p": 2 }, "to": { "n": 3, "p": 0 } }
   ]
 }

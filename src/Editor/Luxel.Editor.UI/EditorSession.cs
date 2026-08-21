@@ -239,7 +239,9 @@ public sealed class EditorSession : IDisposable
     {
         string extension = Path.GetExtension(path).ToLowerInvariant();
         if (extension is ".scene" or ".luxelscene") return EditorDocumentProviderIds.Scene;
-        if (extension is ".graph" or ".nodegraph") return EditorDocumentProviderIds.NodeGraph;
+        if (extension is ".graph" or ".nodegraph"
+            || path.EndsWith(".material.json", StringComparison.OrdinalIgnoreCase))
+            return EditorDocumentProviderIds.NodeGraph;
         return Workspace.ProviderFor(EditorDocumentProviderIds.Text) is not null ? EditorDocumentProviderIds.Text :
             Workspace.Providers.FirstOrDefault()?.Kind ?? throw new InvalidOperationException("No document provider is registered.");
     }
@@ -394,6 +396,12 @@ public sealed class EditorSession : IDisposable
     public SceneDocument? SceneDocument
         => ActiveDocument as SceneDocument ?? _documents.Values.OfType<SceneDocument>().FirstOrDefault();
 
+    public void SelectHierarchyEntity(int entityId)
+    {
+        SceneDocument scene = SceneDocument ?? throw new InvalidOperationException("Scene document is unavailable.");
+        GetHierarchyController(scene).Select(entityId);
+    }
+
     public bool OpenAsset(string path)
     {
         try
@@ -520,13 +528,16 @@ public sealed class EditorSession : IDisposable
     private Widget CreateHierarchyView()
     {
         SceneDocument? scene = SceneDocument;
-        if (scene is null) return MissingPane("Open a scene document to use Hierarchy.");
-        if (!_hierarchyControllers.TryGetValue(scene, out SceneHierarchyController? controller))
-        {
-            controller = new SceneHierarchyController(IdOf(scene) ?? EditorPaneIds.Scene, scene, SelectionService);
-            _hierarchyControllers.Add(scene, controller);
-        }
-        return new SceneHierarchyView(controller);
+        return scene is null ? MissingPane("Open a scene document to use Hierarchy.")
+            : new SceneHierarchyView(GetHierarchyController(scene));
+    }
+
+    private SceneHierarchyController GetHierarchyController(SceneDocument scene)
+    {
+        if (_hierarchyControllers.TryGetValue(scene, out SceneHierarchyController? controller)) return controller;
+        controller = new SceneHierarchyController(IdOf(scene) ?? EditorPaneIds.Scene, scene, SelectionService);
+        _hierarchyControllers.Add(scene, controller);
+        return controller;
     }
 
     private Widget CreateInspectorView()
@@ -720,6 +731,8 @@ public sealed class EditorApplication : IDisposable
         if (Session is { } session) session.CloseCoordinator.BeginProject(CloseProjectCore);
         else CloseProjectCore();
     }
+
+    public void CloseProjectDiscardingChanges() => CloseProjectCore();
 
     public void RequestExit()
     {

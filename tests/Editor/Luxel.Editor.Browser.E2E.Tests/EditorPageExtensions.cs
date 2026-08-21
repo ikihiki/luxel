@@ -40,6 +40,9 @@ internal static class EditorPageExtensions
 
     public static float[] Position(this JsonElement snapshot)
         => snapshot.GetProperty("inspector").GetProperty("position").EnumerateArray().Select(value => value.GetSingle()).ToArray();
+
+    public static float[] MaterialPosition(this JsonElement snapshot)
+        => snapshot.GetProperty("material").GetProperty("firstNodePosition").EnumerateArray().Select(value => value.GetSingle()).ToArray();
 }
 
 internal static class EditorPolling
@@ -100,6 +103,5 @@ internal sealed class EditorPageFailures
 
     private static bool IsExpectedSoftwareGpuDiagnostic(string message)
         => message.Contains("WebGPU device was lost: destroyed: Device was destroyed.", StringComparison.Ordinal)
-           || message.Contains("A valid external Instance reference no longer exists.", StringComparison.Ordinal)
-           || message.Contains("ContentType must be of type Unicode.", StringComparison.Ordinal);
+           || message.Contains("A valid external Instance reference no longer exists.", StringComparison.Ordinal);
 }

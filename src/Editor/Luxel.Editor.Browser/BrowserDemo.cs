@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Text.Json;
 using Luxel.Controls;
+using Luxel.NodeGraph;
 using Luxel.SceneEdit;
 using Luxel.Workbench;
 
@@ -13,7 +14,7 @@ public static class BrowserAutomationContract
     public static IReadOnlyList<string> Actions { get; } =
     [
         "open-demo", "select-entity", "edit-transform", "undo", "redo", "open-path",
-        "edit-active", "save-active", "change-layout", "reset-demo"
+        "edit-active", "edit-material", "save-active", "change-layout", "reset-demo"
     ];
 }
 
@@ -89,12 +90,11 @@ public sealed class BrowserDemoAutomation(
 
     public async Task ResetAsync()
     {
-        _application?.Session?.SaveAll();
-        if (projects.ActiveStorage is BrowserWorkspaceStorage activeStorage)
-            await activeStorage.FlushAsync();
+        EditorApplication application = _application ?? throw new InvalidOperationException("Editor application is not ready.");
+        application.CloseProjectDiscardingChanges();
         await demo.ResetAsync();
-        if (_application?.OpenProject(demo.ProjectId) != true)
-            throw new InvalidOperationException(_application?.WelcomeError.Peek() ?? "The demo project could not be reopened after reset.");
+        if (!application.OpenProject(demo.ProjectId))
+            throw new InvalidOperationException(application.WelcomeError.Peek() ?? "The demo project could not be reopened after reset.");
         Interlocked.Increment(ref _resetRevision);
     }
 
@@ -124,9 +124,7 @@ public sealed class BrowserDemoAutomation(
             case "select-entity":
             {
                 int id = int.Parse(value ?? "2", System.Globalization.CultureInfo.InvariantCulture);
-                SceneDocument scene = session.SceneDocument ?? throw new InvalidOperationException("Scene document is unavailable.");
-                scene.View.SelectEntity(id);
-                session.SelectionService.SelectEntities(session.IdOf(scene) ?? "scene", [id], id);
+                session.SelectHierarchyEntity(id);
                 break;
             }
             case "edit-transform":
@@ -158,18 +156,26 @@ public sealed class BrowserDemoAutomation(
                 }
                 else throw new InvalidOperationException("The active document is not text-editable.");
                 break;
+            case "edit-material":
+                if (session.ActiveDocument is NodeGraphDocument graph)
+                {
+                    int nodeId = graph.Doc.Nodes.First().Id;
+                    graph.ApplyEdit(new MoveNode(nodeId, new Vector2(24, 12)));
+                }
+                else throw new InvalidOperationException("The active document is not a node graph.");
+                break;
             case "save-active": session.Save(); break;
             case "change-layout":
             {
                 DockTree layout = session.Layout.Peek();
-                DockSplit? split = layout.Root as DockSplit;
-                if (split is not null)
-                {
-                    float[] sizes = split.Sizes.Select((_, index) => index == 0 ? 1.4f : 1f).ToArray();
-                    layout = layout.WithSizes(split.Id, sizes);
-                }
-                DockGroup target = layout.Groups.Last();
-                layout = layout.MoveTab("script", target.Id);
+                DockGroup sceneGroup = layout.GroupOf("scene") ?? throw new InvalidOperationException("Scene dock group is unavailable.");
+                layout = layout.Dock("script", sceneGroup.Id, DockSide.Bottom);
+                DockGroup scriptGroup = layout.GroupOf("script") ?? throw new InvalidOperationException("Script dock group is unavailable.");
+                layout = layout.MoveTab("readme", scriptGroup.Id, 0);
+                DockSplit split = layout.Root as DockSplit
+                    ?? throw new InvalidOperationException("Root dock split is unavailable.");
+                float[] sizes = split.Sizes.Select((_, index) => index == 0 ? 3f : 1f).ToArray();
+                layout = layout.WithSizes(split.Id, sizes);
                 session.Layout.Value = layout;
                 session.SettingsStore.Write(EditorLayoutService.SettingsKey, layout.Serialize());
                 break;
@@ -197,6 +203,9 @@ public sealed class BrowserDemoAutomation(
         Vector2? position = selected >= 0
             ? scene?.Doc.Entity(selected).Component("transform2d")?.Get("pos")?.AsVec2()
             : null;
+        NodeGraphDocument? material = session?.OpenDocuments.Values.OfType<NodeGraphDocument>().FirstOrDefault();
+        GraphNode? firstMaterialNode = material?.Doc.Nodes.FirstOrDefault();
+        DockTree? dock = session?.Layout.Peek();
         return JsonSerializer.Serialize(new
         {
             contractVersion = 1,
@@ -208,10 +217,26 @@ public sealed class BrowserDemoAutomation(
             activeText = session?.ActiveDocument is TextDocument activeText ? activeText.Text.Peek() : null,
             selection = new { entityId = selected, sceneSelected = scene?.View.IsSelected(selected) == true },
             inspector = new { entityId = selected, position = position is { } p ? new[] { p.X, p.Y } : null },
-            layout = session?.Layout.Peek().Serialize() ?? "",
+            material = material is null ? null : new
+            {
+                nodeCount = material.Doc.Nodes.Count,
+                edgeCount = material.Doc.Edges.Count,
+                firstNodePosition = firstMaterialNode is null ? null : new[] { firstMaterialNode.Pos.X, firstMaterialNode.Pos.Y }
+            },
+            layout = dock?.Serialize() ?? "",
+            dock = dock is null ? null : new
+            {
+                groupCount = dock.Groups.Count(),
+                splitCount = CountSplits(dock.Root),
+                groups = dock.Groups.Select(group => new { id = group.Id, tabs = group.Tabs }).ToArray(),
+                rootSizes = dock.Root is DockSplit root ? root.Sizes : []
+            },
             files = projects.ActiveStorage?.List().Order(StringComparer.Ordinal).ToArray() ?? [],
             warningCount = session?.DiagnosticsService.Items.Count(x => x.Severity == EditorDiagnosticSeverity.Warning) ?? 0,
             resetRevision = Volatile.Read(ref _resetRevision)
         });
     }
+
+    private static int CountSplits(DockNode node)
+        => node is DockSplit split ? 1 + split.Children.Sum(CountSplits) : 0;
 }

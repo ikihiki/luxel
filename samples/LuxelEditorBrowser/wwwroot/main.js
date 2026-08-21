@@ -13,6 +13,12 @@ async function getAutomationExports() {
 }
 function applyAutomationSnapshot(json) {
   state.automation = JSON.parse(json);
+  const storageMode = document.querySelector('[data-testid="storage-mode"]');
+  const storagePermission = document.querySelector('[data-testid="storage-permission"]');
+  if (storageMode) storageMode.textContent = state.automation.storage || "Browser storage unavailable";
+  if (storagePermission) storagePermission.textContent = state.automation.storagePersistent
+    ? "Browser-managed persistent storage"
+    : "Temporary session; export to keep changes";
   return state.automation;
 }
 export const nextFrame = () => new Promise(resolve => requestAnimationFrame(resolve));

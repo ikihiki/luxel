@@ -3,7 +3,7 @@ name: Editor Browser E2E
 on:
   pull_request:
     paths:
-      - '.github/workflows/editor-browser-e2e.yml'
+      - '.github/workflows/test-editor-browser-e2e.yml'
       - 'assets/**'
       - 'samples/LuxelEditorBrowser/**'
       - 'shaders/**'

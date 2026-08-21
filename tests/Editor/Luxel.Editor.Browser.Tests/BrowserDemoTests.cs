@@ -48,6 +48,7 @@ public sealed class BrowserDemoTests
         Assert.Equal("luxelEditorAutomation.invoke", BrowserAutomationContract.InvokeFunction);
         Assert.Equal(BrowserAutomationContract.Actions.Count, BrowserAutomationContract.Actions.Distinct(StringComparer.Ordinal).Count());
         Assert.Contains("reset-demo", BrowserAutomationContract.Actions);
+        Assert.Contains("edit-material", BrowserAutomationContract.Actions);
         Assert.Contains("change-layout", BrowserAutomationContract.Actions);
         Assert.DoesNotContain(BrowserAutomationContract.Actions, action => action.Contains(' '));
     }

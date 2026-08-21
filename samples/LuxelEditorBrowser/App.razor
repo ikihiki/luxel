@@ -2,13 +2,14 @@
 @using Luxel.Editor.Browser
 @inject IServiceProvider Services
 @inject IJSRuntime JS
+@inject IBrowserDemoProjectProvider Demo
 
 <header class="demo-toolbar" data-testid="demo-toolbar">
   <button data-testid="open-demo" @onclick='() => Invoke("open-demo")'>Open Demo</button>
   <button data-testid="reset-demo" @onclick='() => Invoke("reset-demo")'>Reset Demo</button>
-  <a data-testid="open-gallery" href="../../gallery/">Open Gallery</a>
-  <span data-testid="storage-mode">IndexedDB demo workspace</span>
-  <span data-testid="storage-permission">browser-managed permission</span>
+  <a data-testid="open-gallery" href="@Demo.GalleryUrl">Open Gallery</a>
+  <span data-testid="storage-mode">@Demo.StorageDescription</span>
+  <span data-testid="storage-permission">Checking browser storage…</span>
 </header>
 <main class="editor-host">
   <canvas id="luxel-canvas" tabindex="0" aria-label="Luxel Editor demo" data-testid="editor-canvas"></canvas>

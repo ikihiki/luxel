@@ -61,8 +61,11 @@ public sealed class EditorBrowserAcceptanceTests : PageTest
         _ = await Page.OpenEditorAsync();
 
         JsonElement snapshot = await Page.InvokeEditorAsync("open-path", "Scripts/Player.cs");
+        snapshot = await Page.InvokeEditorAsync("open-path", "Scripts/Player.cs");
         JsonElement document = snapshot.Document("Scripts/Player.cs");
 
+        Assert.Single(snapshot.GetProperty("documents").EnumerateArray(), candidate =>
+            candidate.TryGetProperty("path", out JsonElement path) && path.GetString() == "Scripts/Player.cs");
         Assert.Equal("script", document.GetProperty("id").GetString());
         Assert.Equal("text", document.GetProperty("kind").GetString());
         Assert.True(document.GetProperty("active").GetBoolean());
@@ -141,6 +144,58 @@ public sealed class EditorBrowserAcceptanceTests : PageTest
         Assert.Equal(1, snapshot.GetProperty("warningCount").GetInt32());
         Assert.Equal("ready", await Page.GetByTestId("editor-status").GetAttributeAsync("data-status"));
         await Expect(Page.GetByRole(AriaRole.Alert)).ToBeHiddenAsync();
+        failures.AssertEmpty();
+    }
+
+    [Fact]
+    public async Task Scenario_09_material_node_graph_edit_save_and_reload_round_trip()
+    {
+        EditorPageFailures failures = Page.CollectFailures();
+        _ = await Page.OpenEditorAsync();
+        JsonElement opened = await Page.InvokeEditorAsync("open-path", "Materials/Coin.material.json");
+
+        Assert.Equal("node-graph", opened.Document("Materials/Coin.material.json").GetProperty("kind").GetString());
+        Assert.Equal(3, opened.GetProperty("material").GetProperty("nodeCount").GetInt32());
+        Assert.Equal([32f, 48f], opened.MaterialPosition());
+
+        JsonElement edited = await Page.InvokeEditorAsync("edit-material");
+        Assert.True(edited.Document("Materials/Coin.material.json").GetProperty("dirty").GetBoolean());
+        Assert.Equal([56f, 60f], edited.MaterialPosition());
+        JsonElement saved = await Page.InvokeEditorAsync("save-active");
+        Assert.False(saved.Document("Materials/Coin.material.json").GetProperty("dirty").GetBoolean());
+
+        await Page.GotoAsync("about:blank");
+        await Task.Delay(500);
+        failures.Clear();
+        _ = await Page.OpenEditorAsync();
+        JsonElement reopened = await Page.InvokeEditorAsync("open-path", "Materials/Coin.material.json");
+
+        Assert.Equal([56f, 60f], reopened.MaterialPosition());
+        failures.AssertEmpty();
+    }
+
+    [Fact]
+    public async Task Scenario_10_dock_move_split_resize_and_layout_persistence_are_exercised()
+    {
+        EditorPageFailures failures = Page.CollectFailures();
+        JsonElement initial = await Page.OpenEditorAsync();
+        int initialSplits = initial.GetProperty("dock").GetProperty("splitCount").GetInt32();
+
+        JsonElement changed = await Page.InvokeEditorAsync("change-layout");
+        JsonElement dock = changed.GetProperty("dock");
+        JsonElement[] groups = dock.GetProperty("groups").EnumerateArray().ToArray();
+        JsonElement scriptGroup = groups.Single(group => group.GetProperty("tabs").EnumerateArray()
+            .Any(tab => tab.GetString() == "script"));
+
+        Assert.True(dock.GetProperty("splitCount").GetInt32() > initialSplits);
+        Assert.Contains(scriptGroup.GetProperty("tabs").EnumerateArray().Select(tab => tab.GetString()), tab => tab == "readme");
+        Assert.DoesNotContain(scriptGroup.GetProperty("tabs").EnumerateArray().Select(tab => tab.GetString()), tab => tab == "scene");
+        Assert.NotEqual(0.5f, dock.GetProperty("rootSizes")[0].GetSingle());
+        string changedLayout = changed.GetProperty("layout").GetString()!;
+
+        JsonElement restored = await Page.InvokeEditorAsync("open-demo");
+
+        Assert.Equal(changedLayout, restored.GetProperty("layout").GetString());
         failures.AssertEmpty();
     }
 
