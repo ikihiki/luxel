@@ -15,6 +15,22 @@ public class TextLayoutTests
     }
 
     [Fact]
+    public async Task Measure_SameFontConcurrently_DoesNotCorruptShapingBuffer()
+    {
+        using VectorFont font = F();
+        Task[] workers = Enumerable.Range(0, 8).Select(worker => Task.Run(() =>
+        {
+            for (int iteration = 0; iteration < 500; iteration++)
+            {
+                string text = $"worker {worker} iteration {iteration}";
+                Assert.True(font.Measure(text, 16).width > 0);
+            }
+        })).ToArray();
+
+        await Task.WhenAll(workers);
+    }
+
+    [Fact]
     public void Segmenter_SpaceCjkKinsoku()
     {
         var seg = new SimpleSegmenter();

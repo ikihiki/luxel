@@ -11,7 +11,8 @@ namespace Luxel.Typography;
 /// **シェーピングは HarfBuzz** (カーニング/リガチャ/合字/複雑文字対応 — 単純な1文字1グリフ変換ではない)、
 /// アウトラインはOpenTypeのglyf/locaテーブルを直接読む (TrueType輪郭。CFF/OTFは未対応)。
 /// 描画backendとの統合は専用adapter assemblyが担う。TTCはfontIndexで番号指定。
-/// スレッド所有: シェーピングバッファを再利用するため、1 インスタンスは 1 スレッド (UI 島) から使うこと。
+/// シェーピングバッファは同期して再利用する。ブラウザの UI 描画と JS export が別スレッドから
+/// 同じインスタンスへ入っても、HarfBuzz の入力/グリフ状態を相互に破壊しない。
 /// </summary>
 public sealed class VectorFont : IDisposable
 {
@@ -22,6 +23,7 @@ public sealed class VectorFont : IDisposable
     private readonly Face _face;
     private readonly HbFont _font;
     private readonly HbBuffer _buffer = new();
+    private readonly object _shapeLock = new();
     private readonly GlyfOutlines _glyf;
     private readonly Dictionary<uint, GlyphOutline?> _cache = new();   // glyph id → 輪郭 (フォント単位, 合成解決済み)
     private ColorGlyphs? _color;            // COLR/CPAL (カラー絵文字)。遅延ロード、無ければ null
@@ -128,12 +130,15 @@ public sealed class VectorFont : IDisposable
     public (float width, float height) Measure(string text, float pixelHeight)
     {
         if (string.IsNullOrEmpty(text)) return (0, pixelHeight);
-        float scale = Scale(pixelHeight);
-        HbBuffer buf = Shape(text);
-        ReadOnlySpan<GlyphPosition> pos = buf.GetGlyphPositionSpan();
-        float w = 0;
-        foreach (ref readonly GlyphPosition p in pos) w += p.XAdvance;
-        return (w * scale, pixelHeight);
+        lock (_shapeLock)
+        {
+            float scale = Scale(pixelHeight);
+            HbBuffer buf = Shape(text);
+            ReadOnlySpan<GlyphPosition> pos = buf.GetGlyphPositionSpan();
+            float w = 0;
+            foreach (ref readonly GlyphPosition p in pos) w += p.XAdvance;
+            return (w * scale, pixelHeight);
+        }
     }
 
     /// <summary>ベースライン位置 (上端からの距離, px)。テキストノードの配置に使う。</summary>
@@ -145,16 +150,19 @@ public sealed class VectorFont : IDisposable
     internal ShapedGlyph[] ShapeRun(string text, float pixelHeight)
     {
         if (string.IsNullOrEmpty(text)) return [];
-        float scale = Scale(pixelHeight);
-        HbBuffer buf = Shape(text);
-        ReadOnlySpan<GlyphInfo> infos = buf.GetGlyphInfoSpan();
-        ReadOnlySpan<GlyphPosition> pos = buf.GetGlyphPositionSpan();
-        var run = new ShapedGlyph[infos.Length];
-        for (int i = 0; i < infos.Length; i++)
-            run[i] = new ShapedGlyph(infos[i].Codepoint, (int)infos[i].Cluster,
-                pos[i].XAdvance * scale, pos[i].XOffset * scale, pos[i].YOffset * scale,
-                pos[i].YAdvance * scale);
-        return run;
+        lock (_shapeLock)
+        {
+            float scale = Scale(pixelHeight);
+            HbBuffer buf = Shape(text);
+            ReadOnlySpan<GlyphInfo> infos = buf.GetGlyphInfoSpan();
+            ReadOnlySpan<GlyphPosition> pos = buf.GetGlyphPositionSpan();
+            var run = new ShapedGlyph[infos.Length];
+            for (int i = 0; i < infos.Length; i++)
+                run[i] = new ShapedGlyph(infos[i].Codepoint, (int)infos[i].Cluster,
+                    pos[i].XAdvance * scale, pos[i].XOffset * scale, pos[i].YOffset * scale,
+                    pos[i].YAdvance * scale);
+            return run;
+        }
     }
 
     /// <summary>コードポイントを収載しているか (フォールバック判定用。.notdef は不収載扱い)。</summary>
