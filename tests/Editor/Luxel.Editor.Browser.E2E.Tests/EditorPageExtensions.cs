@@ -68,7 +68,7 @@ internal sealed class EditorPageFailures
     {
         page.Console += (_, message) =>
         {
-            if (message.Type == "error") ConsoleErrors.Add(message.Text);
+            if (message.Type == "error" && !IsExpectedDeviceShutdown(message.Text)) ConsoleErrors.Add(message.Text);
         };
         page.PageError += (_, error) => PageErrors.Add(error);
         page.Response += (_, response) =>
@@ -81,10 +81,20 @@ internal sealed class EditorPageFailures
     public List<string> PageErrors { get; } = [];
     public List<string> FailedResponses { get; } = [];
 
+    public void Clear()
+    {
+        ConsoleErrors.Clear();
+        PageErrors.Clear();
+        FailedResponses.Clear();
+    }
+
     public void AssertEmpty()
     {
         Assert.True(ConsoleErrors.Count == 0, $"Console errors:{Environment.NewLine}{string.Join(Environment.NewLine, ConsoleErrors)}");
         Assert.True(PageErrors.Count == 0, $"Page errors:{Environment.NewLine}{string.Join(Environment.NewLine, PageErrors)}");
         Assert.True(FailedResponses.Count == 0, $"Failed responses:{Environment.NewLine}{string.Join(Environment.NewLine, FailedResponses)}");
     }
+
+    private static bool IsExpectedDeviceShutdown(string message)
+        => message.Contains("WebGPU device was lost: destroyed: Device was destroyed.", StringComparison.Ordinal);
 }

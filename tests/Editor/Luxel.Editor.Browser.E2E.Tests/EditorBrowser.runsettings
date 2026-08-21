@@ -9,6 +9,6 @@
     </LaunchOptions>
   </Playwright>
   <xUnit>
-    <MaxParallelThreads>2</MaxParallelThreads>
+    <MaxParallelThreads>1</MaxParallelThreads>
   </xUnit>
 </RunSettings>

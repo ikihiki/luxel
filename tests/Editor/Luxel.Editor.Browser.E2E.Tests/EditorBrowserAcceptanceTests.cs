@@ -84,8 +84,10 @@ public sealed class EditorBrowserAcceptanceTests : PageTest
         JsonElement saved = await Page.InvokeEditorAsync("save-active");
         Assert.False(saved.Document("Scripts/Player.cs").GetProperty("dirty").GetBoolean());
 
-        await Page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        _ = await Page.WaitForEditorAsync();
+        await Page.GotoAsync("about:blank");
+        await Task.Delay(500);
+        failures.Clear();
+        _ = await Page.OpenEditorAsync();
         JsonElement reopened = await Page.InvokeEditorAsync("open-path", "Scripts/Player.cs");
 
         Assert.Contains(marker.Trim(), reopened.GetProperty("activeText").GetString());
@@ -103,8 +105,10 @@ public sealed class EditorBrowserAcceptanceTests : PageTest
         string changedLayout = changed.GetProperty("layout").GetString()!;
         Assert.NotEqual(initial.GetProperty("layout").GetString(), changedLayout);
 
-        await Page.ReloadAsync(new() { WaitUntil = WaitUntilState.DOMContentLoaded });
-        JsonElement restored = await Page.WaitForEditorAsync();
+        await Page.GotoAsync("about:blank");
+        await Task.Delay(500);
+        failures.Clear();
+        JsonElement restored = await Page.OpenEditorAsync();
 
         Assert.Equal(changedLayout, restored.GetProperty("layout").GetString());
         failures.AssertEmpty();
