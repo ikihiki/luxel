@@ -12,6 +12,8 @@ public interface IHostCapabilities
     bool FileWatching { get; }
     bool ProcessBuild { get; }
     bool RevealInFileManager { get; }
+    bool AssetImport { get; }
+    string? AssetImportUnavailableReason { get; }
 }
 
 public readonly record struct EditorHostCapabilities(
@@ -20,7 +22,17 @@ public readonly record struct EditorHostCapabilities(
     bool NativeDialogs = false,
     bool FileWatching = false,
     bool ProcessBuild = false,
-    bool RevealInFileManager = false) : IHostCapabilities;
+    bool RevealInFileManager = false,
+    bool AssetImport = false,
+    string? AssetImportUnavailableReason = null) : IHostCapabilities;
+
+/// <summary>Optional storage status exposed by hosts whose synchronous writes become durable asynchronously.</summary>
+public interface IEditorStorageStatus
+{
+    bool IsDurable { get; }
+    bool RequiresUnloadWarning { get; }
+    string StatusText { get; }
+}
 
 public interface IProjectPicker { string? PickProject(); }
 public interface IEditorSettingsStore { string? Read(string key); void Write(string key, string value); }
@@ -33,6 +45,14 @@ public sealed class MemoryEditorSettingsStore : IEditorSettingsStore
     public void Write(string key, string value) => _values[key] = value;
 }
 
+public interface IEditorProjectStorageProvider
+{
+    /// <summary>Creates isolated storage for a resolved project without mutating the active project.</summary>
+    IFileStorage CreateStorage(string projectId);
+    /// <summary>Called only after the replacement session has been created and activated successfully.</summary>
+    void ProjectActivated(string projectId, IFileStorage storage) { }
+}
+
 public interface IEditorHost
 {
     IFileStorage Files { get; }
@@ -40,6 +60,7 @@ public interface IEditorHost
     IEditorSettingsStore Settings { get; }
     IBuildService Builds { get; }
     IHostCapabilities Capabilities { get; }
+    IEditorProjectStorageProvider? ProjectStorage => null;
     IEditorSavePathPicker SavePaths => NullEditorSavePathPicker.Instance;
     IEditorProjectBackend ProjectBackend => PassthroughEditorProjectBackend.Instance;
     IEditorAssetHost AssetHost => NullEditorAssetHost.Instance;
@@ -139,8 +160,9 @@ public sealed class EditorSession : IDisposable
         _autosaveScheduler = new EditorAutosaveScheduler(Settings, intervalScheduler, () => Autosave());
         Assets = new AssetOperations(new FileAssetStorage(files),
             Capabilities.RevealInFileManager ? new(EditorCapabilityAvailability.Enabled) : null,
-            Capabilities.NativeDialogs ? new(EditorCapabilityAvailability.Enabled) :
-                new(EditorCapabilityAvailability.Disabled, "Import requires a host file picker."));
+            Capabilities.AssetImport ? new(EditorCapabilityAvailability.Enabled) :
+                new(EditorCapabilityAvailability.Disabled,
+                    Capabilities.AssetImportUnavailableReason ?? "Import requires a host file picker."));
         Assets.Mutated += ApplyAssetMutation;
         RegisterStandardPanes();
         RegisterCoreCommands();
@@ -267,8 +289,16 @@ public sealed class EditorSession : IDisposable
         try
         {
             Documents.Save(document);
-            OutputService.Write("Save", $"Saved {document.Title}.");
-            StatusText.Value = $"Saved {document.Title}";
+            if (Files is IEditorStorageStatus { IsDurable: false } storageStatus)
+            {
+                OutputService.Write("Save", $"Saved {document.Title} in memory; {storageStatus.StatusText}", EditorOutputLevel.Warning);
+                StatusText.Value = storageStatus.StatusText;
+            }
+            else
+            {
+                OutputService.Write("Save", $"Saved {document.Title}.");
+                StatusText.Value = $"Saved {document.Title}";
+            }
             return true;
         }
         catch (Exception ex) { ReportFailure("save", ex, document); return false; }
@@ -292,7 +322,16 @@ public sealed class EditorSession : IDisposable
         try
         {
             Documents.SaveAs(document, path);
-            OutputService.Write("Save", $"Saved {document.Title} as {path}.");
+            if (Files is IEditorStorageStatus { IsDurable: false } storageStatus)
+            {
+                OutputService.Write("Save", $"Saved {document.Title} as {path} in memory; {storageStatus.StatusText}", EditorOutputLevel.Warning);
+                StatusText.Value = storageStatus.StatusText;
+            }
+            else
+            {
+                OutputService.Write("Save", $"Saved {document.Title} as {path}.");
+                StatusText.Value = $"Saved {document.Title} as {path}";
+            }
             return true;
         }
         catch (Exception ex) { ReportFailure("save", ex, document); return false; }
@@ -613,27 +652,12 @@ public sealed class EditorApplication : IDisposable
             WelcomeError.Value = "Close or save dirty documents before opening another project.";
             return false;
         }
-        if (!Projects.TryOpen(projectId, out string? resolved)) { WelcomeError.Value = Projects.Error.Peek(); return false; }
-        EditorSession? next = null;
-        try
+        if (!Projects.TryResolveOpen(projectId, out string? resolved) || resolved is null)
         {
-            next = _createSession(Host.Files);
-            next.CloseProjectRequested = CloseProjectCore;
-            next.ExitRequested = ExitCore;
-        }
-        catch (Exception ex)
-        {
-            next?.Dispose();
-            WelcomeError.Value = ex.Message;
+            WelcomeError.Value = Projects.Error.Peek();
             return false;
         }
-        Session?.Dispose();
-        Session = next;
-        ProjectId = resolved;
-        Host.Settings.Write(LastProjectKey, resolved!);
-        WelcomeError.Value = null;
-        Version.Value++;
-        return true;
+        return ActivateResolvedProject(resolved);
     }
 
     public bool CreateProject(NewProjectRequest request)
@@ -643,7 +667,50 @@ public sealed class EditorApplication : IDisposable
             WelcomeError.Value = "Close or save dirty documents before creating another project.";
             return false;
         }
-        return Projects.TryCreate(request, out string? project) && project is not null && OpenProject(project);
+        return Projects.TryResolveCreate(request, out string? project) && project is not null && ActivateResolvedProject(project);
+    }
+
+    private bool ActivateResolvedProject(string resolved)
+    {
+        EditorSession? next = null;
+        IFileStorage? storage = null;
+        try
+        {
+            storage = Host.ProjectStorage?.CreateStorage(resolved) ?? Host.Files;
+            next = _createSession(storage);
+            next.CloseProjectRequested = CloseProjectCore;
+            next.ExitRequested = ExitCore;
+        }
+        catch (Exception ex)
+        {
+            next?.Dispose();
+            WelcomeError.Value = ex.Message;
+            return false;
+        }
+
+        EditorSession? previous = Session;
+        string? previousProjectId = ProjectId;
+        Session = next;
+        ProjectId = resolved;
+        try
+        {
+            Host.ProjectStorage?.ProjectActivated(resolved, storage);
+        }
+        catch (Exception ex)
+        {
+            Session = previous;
+            ProjectId = previousProjectId;
+            next.Dispose();
+            WelcomeError.Value = ex.Message;
+            return false;
+        }
+
+        previous?.Dispose();
+        Projects.Remember(resolved);
+        Host.Settings.Write(LastProjectKey, resolved);
+        WelcomeError.Value = null;
+        Version.Value++;
+        return true;
     }
 
     public bool OpenPickedProject() => Host.Projects.PickProject() is { } project && OpenProject(project);

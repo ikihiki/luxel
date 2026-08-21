@@ -102,6 +102,7 @@ public sealed class Window : IDisposable
         // バックエンドのコールバックを公開イベントへ中継 (set 上書きでなく購読合成できるよう event 化)
         _win.Resized = (w, h) => Resized?.Invoke(w, h);
         _win.Moved = (x, y) => Moved?.Invoke(x, y);
+        _win.Closing = () => Closing?.Invoke() ?? true;
         _win.Closed = () => Closed?.Invoke();
         _win.FocusChanged = f => FocusChanged?.Invoke(f);
         _win.PointerMoved = input => Dispatch(input, PointerMoved, static (h, value) => h.PointerMoved(value));
@@ -134,6 +135,8 @@ public sealed class Window : IDisposable
     // ---- イベント ----
     public event Action<int, int>? Resized;
     public event Action<int, int>? Moved;
+    /// <summary>Invoked before close; return false to keep the window open.</summary>
+    public Func<bool>? Closing { get; set; }
     public event Action? Closed;
     public event Action<bool>? FocusChanged;
     public event Action<WindowPointerEvent>? PointerMoved;

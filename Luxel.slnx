@@ -101,6 +101,8 @@
   </Folder>
   <Folder Name="/src/Editor/">
     <Project Path="src/Editor/Luxel.Editor.UI/Luxel.Editor.UI.csproj" />
+    <Project Path="src/Editor/Luxel.Editor.Browser/Luxel.Editor.Browser.csproj" />
+    <Project Path="src/Editor/Luxel.Editor.Native/Luxel.Editor.Native.csproj" />
     <Project Path="src/Editor/Luxel.Editor.Gallery.Native/Luxel.Editor.Gallery.Native.csproj" />
     <Project Path="src/Editor/Luxel.Editor.Gallery/Luxel.Editor.Gallery.csproj" />
     <Project Path="src/Editor/Luxel.SceneEdit/Luxel.SceneEdit.csproj" />
@@ -133,6 +135,10 @@
     <Project Path="src/Gallery/Luxel.Gallery.Stories/Luxel.Gallery.Stories.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery.UI/Luxel.Gallery.UI.csproj" />
     <Project Path="src/Gallery/Luxel.Gallery/Luxel.Gallery.csproj" />
+  </Folder>
+  <Folder Name="/editor/">
+    <Project Path="editor/EditorBrowser/EditorBrowser.csproj" />
+    <Project Path="editor/EditorNative/Luxel.Editor.Native.csproj" />
   </Folder>
   <Folder Name="/gallery/">
     <Project Path="gallery/GalleryBrowser/GalleryBrowser.csproj" />
@@ -171,6 +177,8 @@
     <Project Path="tests/Editor/Luxel.Editor.Tests/Luxel.Editor.Tests.csproj" />
     <Project Path="tests/Editor/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />
     <Project Path="tests/Editor/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj" />
+    <Project Path="tests/Editor/Luxel.Editor.Browser.Tests/Luxel.Editor.Browser.Tests.csproj" />
+    <Project Path="tests/Editor/Luxel.Editor.Native.Tests/Luxel.Editor.Native.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Framework/">
     <Project Path="tests/Framework/Luxel.Framework.Tests/Luxel.Framework.Tests.csproj" />

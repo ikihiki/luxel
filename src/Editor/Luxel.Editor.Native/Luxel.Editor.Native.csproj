@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <LuxelProjectRole>Tool</LuxelProjectRole>
+    <LuxelGalleryCategory>Editor</LuxelGalleryCategory>
+    <LuxelSubsystem>Editor.Native</LuxelSubsystem>
+    <LuxelPlatform>Native</LuxelPlatform>
+    <LuxelArchitectureTier>Native</LuxelArchitectureTier>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Luxel.Editor.UI\Luxel.Editor.UI.csproj" />
+    <ProjectReference Include="..\..\Framework\Luxel.Framework.UI\Luxel.Framework.UI.csproj" />
+  </ItemGroup>
+</Project>

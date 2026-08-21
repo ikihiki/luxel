@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Luxel.Editor.Native.Host</AssemblyName>
+    <OutputType>Exe</OutputType>
+    <LuxelProjectRole>Tool</LuxelProjectRole>
+    <LuxelGalleryCategory>Editor</LuxelGalleryCategory>
+    <LuxelSubsystem>Editor.Native</LuxelSubsystem>
+    <LuxelPlatform>Native</LuxelPlatform>
+    <LuxelArchitectureTier>Host</LuxelArchitectureTier>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Editor\Luxel.Editor.Native\Luxel.Editor.Native.csproj" />
+  </ItemGroup>
+</Project>

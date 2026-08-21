@@ -88,7 +88,7 @@ public class AssetOperationsTests
         using var session = new EditorSession(files,
             new Dictionary<string, IEditorDocument> { ["doc"] = new AssetDoc() }, DockTree.Single("doc"),
             assetHost: host,
-            capabilities: new EditorHostCapabilities(false, NativeDialogs: true, RevealInFileManager: true));
+            capabilities: new EditorHostCapabilities(false, NativeDialogs: true, RevealInFileManager: true, AssetImport: true));
         var browser = Assert.IsType<AssetBrowser>(session.ResolveDockItem(EditorPaneIds.Assets).CreateView());
 
         browser.OnImportRequest.Invoke(browser);
