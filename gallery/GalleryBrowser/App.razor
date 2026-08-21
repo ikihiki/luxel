@@ -24,24 +24,29 @@
 }
 else
 {
-    <div class="@(_compact ? "gallery-compact" : "gallery-shell")">
+    <div class="@ShellClass()" data-navigation-open="@(_navigationOpen ? "true" : "false")"
+         @onkeydown="OnShellKeyDown">
         @if (!_compact)
         {
-        <aside class="gallery-sidebar">
+        <button class="navigation-backdrop" type="button" tabindex="-1" aria-label="ナビゲーションを閉じる"
+                @onclick="CloseNavigationAsync"></button>
+        <aside id="gallery-navigation" class="gallery-sidebar" aria-label="ストーリーナビゲーション">
             <header class="gallery-brand">
-                <span class="gallery-mark">L</span>
-                <span><strong>Luxel</strong><small>Gallery</small></span>
+                <span class="gallery-mark" aria-hidden="true">L</span>
+                <span><strong>Luxel</strong><small>コントロールギャラリー</small></span>
+                <button class="sidebar-close" type="button" title="ナビゲーションを閉じる"
+                        aria-label="ナビゲーションを閉じる" @onclick="CloseNavigationAsync">×</button>
             </header>
             <label class="gallery-search">
                 <span aria-hidden="true">⌕</span>
-                <input type="search" placeholder="Storyを検索" aria-label="Storyを検索"
+                <input id="gallery-story-search" type="search" placeholder="ストーリーを検索" aria-label="ストーリーを検索"
                        @bind="_search" @bind:event="oninput" />
                 @if (!string.IsNullOrWhiteSpace(_search))
                 {
-                    <button type="button" title="検索をクリア" @onclick="ClearSearch">×</button>
+                    <button type="button" title="検索内容をクリア" aria-label="検索内容をクリア" @onclick="ClearSearch">×</button>
                 }
             </label>
-            <nav class="story-navigation" aria-label="Storyナビゲーション">
+            <nav class="story-navigation" aria-label="ストーリーナビゲーション">
                 @{ IReadOnlyList<GalleryStoryTreeNode> tree = FilteredTree(); }
                 @if (tree.Count > 0)
                 {
@@ -50,10 +55,10 @@ else
                 }
                 else
                 {
-                    <p class="empty-search">一致するStoryはありません</p>
+                    <p class="empty-search">一致するストーリーはありません。</p>
                 }
             </nav>
-            <footer class="gallery-sidebar-footer">@Catalog.All.Count 件のStory</footer>
+            <footer class="gallery-sidebar-footer">ストーリー @Catalog.All.Count 件</footer>
         </aside>
         }
 
@@ -61,11 +66,20 @@ else
             @if (!_compact)
             {
             <header class="story-toolbar">
-                <div>
+                <button id="gallery-navigation-toggle" class="mobile-navigation-toggle" type="button"
+                        aria-label="@(_navigationOpen ? "ナビゲーションを閉じる" : "ナビゲーションを開く")" aria-controls="gallery-navigation"
+                        aria-expanded="@(_navigationOpen ? "true" : "false")" @onclick="ToggleNavigationAsync">
+                    <span aria-hidden="true">☰</span>
+                </button>
+                <div class="story-toolbar-heading">
                     <p>@_story.Component</p>
                     <h1>@_story.Name</h1>
                 </div>
-                <a class="open-alone" href="@EmbeddedStoryHref(_story.Path, _argsJson)" target="_blank" rel="noopener">キャンバスを開く</a>
+                <div class="story-toolbar-actions">
+                    <GalleryThemePicker Value="@_shellTheme" ValueChanged="SetShellThemeAsync" />
+                    <a class="open-alone" href="@EmbeddedStoryHref(_story.Path, _argsJson)" target="_blank" rel="noopener"
+                       title="プレビューを新しいタブで開く">プレビューを開く <span aria-hidden="true">↗</span></a>
+                </div>
             </header>
             }
             @if (_documentHtml is not null)
@@ -94,7 +108,7 @@ else
             else
             {
                 <div class="story-workspace" @ref="_workspace">
-                    <section class="story-preview" aria-label="Storyプレビュー">
+                    <section class="story-preview" aria-label="ストーリープレビュー">
                         @if (_compact)
                         {
                             <canvas id="luxel-canvas" tabindex="0" aria-label="Luxel browser WebGPU"></canvas>
@@ -108,10 +122,10 @@ else
                         }
                     </section>
                     <div class="story-splitter" @ref="_splitter" role="separator" tabindex="0"
-                         aria-label="Storyプレビューと詳細の大きさを変更" aria-orientation="horizontal"
+                         aria-label="ストーリープレビューと詳細の大きさを変更" aria-orientation="horizontal"
                          aria-valuemin="150" aria-valuemax="800" aria-valuenow="260"></div>
-                    <section class="story-lower-panel" aria-label="Storyの詳細">
-                        <div class="story-tabs" role="tablist" aria-label="Storyの詳細">
+                    <section class="story-lower-panel" aria-label="ストーリーの詳細">
+                        <div class="story-tabs" role="tablist" aria-label="ストーリーの詳細">
                             @foreach (string tab in Tabs)
                             {
                                 <button id="@TabId(tab)" type="button" role="tab"
@@ -126,7 +140,7 @@ else
                             {
                                 @if (_argDefinitions.Count == 0)
                                 {
-                                    <p class="panel-empty">このStoryには編集可能な引数がありません。</p>
+                                    <p class="panel-empty">このストーリーには編集可能な引数がありません。</p>
                                 }
                                 else
                                 {
@@ -210,7 +224,7 @@ else
                             }
                             else
                             {
-                                <pre class="story-source"><code>@SourceText()</code></pre>
+                                <SourcePanel Source="@_story.Source" />
                             }
                         </div>
                     </section>
@@ -225,6 +239,9 @@ else
     private bool _started;
     private bool _embedded;
     private bool _compact;
+    private bool _navigationOpen;
+    private bool _shellThemeLoaded;
+    private string _shellTheme = "system";
     private string _argsJson = "{}";
     private string _search = "";
     private string? _documentHtml;
@@ -233,7 +250,7 @@ else
     private string _runtimeInstance = "";
     private string _activeTab = "Args";
     private string _runtimeState = "loading";
-    private string _runtimeSummary = "Storyランタイムを待機しています。";
+    private string _runtimeSummary = "ストーリーランタイムを待機しています。";
     private int _sentRevision;
     private int _revision;
     private StoryInfo _story = null!;
@@ -283,6 +300,12 @@ else
         }
 
         _galleryHostModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
+        if (!_shellThemeLoaded)
+        {
+            _shellTheme = await _galleryHostModule.InvokeAsync<string>("getShellTheme");
+            _shellThemeLoaded = true;
+            StateHasChanged();
+        }
         if (_galleryHostReceiver is null)
         {
             _galleryHostReceiver = DotNetObjectReference.Create(this);
@@ -322,7 +345,7 @@ else
         _revision = 0;
         _sentRevision = 0;
         _runtimeState = "loading";
-        _runtimeSummary = "Storyランタイムを待機しています。";
+        _runtimeSummary = "ストーリーランタイムを待機しています。";
         _output.Clear();
         _runtimeUrl = _embedded || _compact || _documentHtml is not null
             ? ""
@@ -381,7 +404,7 @@ else
                 break;
             case "story-error":
                 _runtimeState = "fail";
-                _runtimeSummary = message.TryGetProperty("error", out JsonElement error) ? error.GetString() ?? "Storyの実行に失敗しました。" : "Storyの実行に失敗しました。";
+                _runtimeSummary = message.TryGetProperty("error", out JsonElement error) ? error.GetString() ?? "ストーリーの実行に失敗しました。" : "ストーリーの実行に失敗しました。";
                 AddOutput("error", _runtimeSummary);
                 _activeTab = "Output";
                 break;
@@ -496,10 +519,45 @@ else
             : url + "&args=" + Uri.EscapeDataString(argsJson);
     }
 
-    private void SelectStory(StoryInfo story)
+    private string ShellClass() => _compact
+        ? "gallery-compact"
+        : _navigationOpen ? "gallery-shell navigation-open" : "gallery-shell";
+
+    private async Task SetShellThemeAsync(string theme)
     {
-        if (story.Path == _story.Path) return;
-        Navigation.NavigateTo(StoryHref(story.Path), forceLoad: false);
+        if (theme is not ("system" or "light" or "dark")) return;
+        _shellTheme = theme;
+        _galleryHostModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
+        await _galleryHostModule.InvokeAsync<string>("setShellTheme", theme);
+    }
+
+    private async Task ToggleNavigationAsync()
+    {
+        _navigationOpen = !_navigationOpen;
+        await FocusNavigationTargetAsync(_navigationOpen ? "gallery-story-search" : "gallery-navigation-toggle");
+    }
+
+    private async Task CloseNavigationAsync()
+    {
+        if (!_navigationOpen) return;
+        _navigationOpen = false;
+        await FocusNavigationTargetAsync("gallery-navigation-toggle");
+    }
+
+    private Task OnShellKeyDown(KeyboardEventArgs eventArgs)
+        => eventArgs.Key == "Escape" && _navigationOpen ? CloseNavigationAsync() : Task.CompletedTask;
+
+    private async Task FocusNavigationTargetAsync(string id)
+    {
+        _galleryHostModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
+        await _galleryHostModule.InvokeVoidAsync("focusElement", id);
+    }
+
+    private Task SelectStory(StoryInfo story)
+    {
+        _navigationOpen = false;
+        if (story.Path != _story.Path) Navigation.NavigateTo(StoryHref(story.Path), forceLoad: false);
+        return Task.CompletedTask;
     }
 
     private void SelectTab(string tab) => _activeTab = tab;

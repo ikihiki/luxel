@@ -1,0 +1,85 @@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<section class="source-panel" data-wrap="@(_wrap ? "true" : "false")" aria-label="ストーリーのソースコード">
+    <header class="source-toolbar">
+        <div>
+            <strong>ソースコード</strong>
+            @if (HasSource)
+            {
+                <span>@Lines.Length 行</span>
+            }
+        </div>
+        <div class="source-actions">
+            <button type="button" aria-pressed="@(_wrap ? "true" : "false")"
+                    title="長い行の折り返しを切り替えます" @onclick="ToggleWrap">
+                @(_wrap ? "折り返しを解除" : "行を折り返す")
+            </button>
+            <button type="button" disabled="@(!HasSource)" title="ソースコードをクリップボードへコピーします"
+                    @onclick="CopyAsync">ソースをコピー</button>
+        </div>
+    </header>
+    @if (!HasSource)
+    {
+        <p class="panel-empty">このストーリーのソースは表示できません。</p>
+    }
+    else
+    {
+        <div class="source-scroll" tabindex="0" role="region" aria-label="行番号付きソースコード">
+            <ol class="source-lines">
+                @foreach (string line in Lines)
+                {
+                    <li><code>@(line.Length == 0 ? "\u00a0" : line)</code></li>
+                }
+            </ol>
+        </div>
+    }
+    <span class="source-copy-status" role="status" aria-live="polite">@_copyStatus</span>
+</section>
+
+@code {
+    private IJSObjectReference? _module;
+    private bool _wrap;
+    private string _copyStatus = string.Empty;
+
+    [Parameter] public string? Source { get; set; }
+
+    private bool HasSource => !string.IsNullOrWhiteSpace(Source);
+    private string[] Lines => (Source ?? string.Empty).Replace("\r\n", "\n", StringComparison.Ordinal)
+        .Replace('\r', '\n').Split('\n');
+
+    private void ToggleWrap()
+    {
+        _wrap = !_wrap;
+        _copyStatus = string.Empty;
+    }
+
+    private async Task CopyAsync()
+    {
+        if (!HasSource) return;
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
+            bool copied = await _module.InvokeAsync<bool>("copyText", Source);
+            _copyStatus = copied ? "コピーしました。" : "コピーできませんでした。";
+        }
+        catch (JSException)
+        {
+            _copyStatus = "コピーできませんでした。";
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null) return;
+        try
+        {
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The browser has already torn down the JS runtime.
+        }
+    }
+}

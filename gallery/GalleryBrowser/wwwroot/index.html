@@ -1,13 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="ja" data-gallery-theme="system">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <base href="./">
-  <title>Luxel Gallery Browser</title>
+  <title>Luxel コントロールギャラリー</title>
+  <script>
+    (() => {
+      const key = "luxel.gallery.shell-theme";
+      try {
+        const stored = localStorage.getItem(key);
+        const theme = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+        const resolved = theme === "system"
+          ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+          : theme;
+        document.documentElement.dataset.galleryTheme = theme;
+        document.documentElement.dataset.galleryColorScheme = resolved;
+        document.documentElement.style.colorScheme = resolved;
+      } catch {
+        document.documentElement.dataset.galleryColorScheme = "light";
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="gallery.css">
+  <link rel="stylesheet" href="gallery-redesign.css">
   <link rel="preload" id="webassembly">
   <script type="importmap"></script>
 </head>
-<body><main id="app"><div class="loading-progress" role="status" aria-live="polite" aria-label="Galleryを読み込み中"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42"></circle><circle cx="50" cy="50" r="42"></circle></svg><p>Galleryを読み込んでいます…</p><div class="loading-progress-text"></div></div><div id="status" hidden data-status="loading"></div></main><script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script></body>
+<body><main id="app"><div class="loading-progress" role="status" aria-live="polite" aria-label="ギャラリーを読み込み中"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42"></circle><circle cx="50" cy="50" r="42"></circle></svg><p>コントロールギャラリーを読み込んでいます…</p><div class="loading-progress-text"></div></div><div id="status" hidden data-status="loading"></div></main><script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script></body>
 </html>

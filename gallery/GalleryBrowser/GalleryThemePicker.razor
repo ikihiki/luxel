@@ -1,0 +1,25 @@
+<div class="gallery-theme-picker" role="group" aria-label="表示テーマ">
+    <span class="theme-picker-label">表示</span>
+    @foreach (ThemeOption option in Options)
+    {
+        <button type="button" class="@(Value == option.Value ? "active" : null)"
+                aria-pressed="@(Value == option.Value ? "true" : "false")"
+                title="@option.Description" @onclick="() => ValueChanged.InvokeAsync(option.Value)">
+            <span aria-hidden="true">@option.Icon</span><span>@option.Label</span>
+        </button>
+    }
+</div>
+
+@code {
+    private static readonly ThemeOption[] Options =
+    [
+        new("system", "システム", "◐", "OS の表示設定に合わせます。プレビューのテーマは変更しません。"),
+        new("light", "ライト", "☀", "ギャラリーの外観をライトにします。プレビューのテーマは変更しません。"),
+        new("dark", "ダーク", "☾", "ギャラリーの外観をダークにします。プレビューのテーマは変更しません。"),
+    ];
+
+    [Parameter, EditorRequired] public string Value { get; set; } = "system";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private sealed record ThemeOption(string Value, string Label, string Icon, string Description);
+}

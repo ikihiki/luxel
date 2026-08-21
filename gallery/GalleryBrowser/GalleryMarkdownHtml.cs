@@ -29,7 +29,7 @@ internal static partial class GalleryMarkdownHtml
     {
         if (!int.TryParse(match.Groups[1].Value, out int index)
             || index < 0 || index >= result.References.Count)
-            return "<aside class=\"markdown-embed-unavailable\">埋め込みStoryの参照が正しくありません。</aside>";
+            return GalleryApiTableHtml.Unavailable("Story", null, "埋め込みストーリーの参照が正しくありません。");
 
         StoryReference reference = result.References[index];
         return StoryEmbed(reference.Path, reference.Args);
@@ -39,9 +39,12 @@ internal static partial class GalleryMarkdownHtml
     {
         if (!int.TryParse(match.Groups[1].Value, out int index)
             || index < 0 || index >= result.Embeds.Count)
-            return "<aside class=\"markdown-embed-unavailable\">Widget埋め込みの参照が正しくありません。</aside>";
+            return GalleryApiTableHtml.Unavailable("Widget", null, "Widget 埋め込みの参照が正しくありません。");
 
-        return "<aside class=\"markdown-embed-unavailable\">対話型Widgetはブラウザの文書表示へ直接埋め込めません。</aside>";
+        StoryMarkdownEmbed embed = result.Embeds[index];
+        if (GalleryApiTableHtml.TryRender(embed, out string html)) return html;
+        return GalleryApiTableHtml.Unavailable(embed.Kind, embed.Reference,
+            "この対話型 Widget はブラウザの文書表示へ直接埋め込めません。");
     }
 
     private static string StoryEmbed(string referencePath, StoryArgs argsValue)
@@ -52,7 +55,7 @@ internal static partial class GalleryMarkdownHtml
         if (args != "{}") url += "&amp;args=" + WebUtility.HtmlEncode(Uri.EscapeDataString(args));
         return $"""
             <section class="markdown-story-embed">
-              <header><strong>{path}</strong><a href="?story={WebUtility.HtmlEncode(Uri.EscapeDataString(referencePath))}">Storyを開く</a></header>
+              <header><strong>{path}</strong><a href="?story={WebUtility.HtmlEncode(Uri.EscapeDataString(referencePath))}">ストーリーを開く</a></header>
               <iframe src="{url}" title="{path}" loading="lazy"></iframe>
             </section>
             """;

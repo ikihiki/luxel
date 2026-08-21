@@ -4,6 +4,77 @@ let expected = null;
 let runtimeReady = false;
 let pendingArgs = null;
 const wiredSplitters = new WeakSet();
+const shellThemeKey = "luxel.gallery.shell-theme";
+const shellThemes = new Set(["system", "light", "dark"]);
+let shellThemeMedia = null;
+let shellThemeMediaHandler = null;
+
+function storedShellTheme() {
+  try {
+    const value = localStorage.getItem(shellThemeKey);
+    return shellThemes.has(value) ? value : "system";
+  } catch {
+    return "system";
+  }
+}
+
+function applyShellTheme(theme) {
+  const preference = shellThemes.has(theme) ? theme : "system";
+  const resolved = preference === "system"
+    ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : preference;
+  document.documentElement.dataset.galleryTheme = preference;
+  document.documentElement.dataset.galleryColorScheme = resolved;
+  document.documentElement.style.colorScheme = resolved;
+  return preference;
+}
+
+function ensureShellThemeListener() {
+  if (shellThemeMedia) return;
+  shellThemeMedia = matchMedia("(prefers-color-scheme: dark)");
+  shellThemeMediaHandler = () => {
+    if (storedShellTheme() === "system") applyShellTheme("system");
+  };
+  shellThemeMedia.addEventListener?.("change", shellThemeMediaHandler);
+}
+
+export function getShellTheme() {
+  ensureShellThemeListener();
+  return applyShellTheme(storedShellTheme());
+}
+
+export function setShellTheme(theme) {
+  const preference = shellThemes.has(theme) ? theme : "system";
+  try {
+    localStorage.setItem(shellThemeKey, preference);
+  } catch {
+    // Storage can be unavailable in privacy-restricted contexts; the active document still updates.
+  }
+  ensureShellThemeListener();
+  return applyShellTheme(preference);
+}
+
+export function focusElement(id) {
+  requestAnimationFrame(() => document.getElementById(id)?.focus());
+}
+
+export async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text ?? "");
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text ?? "";
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    return copied;
+  }
+}
 
 function postArgs(message) {
   expected?.frame?.contentWindow?.postMessage(message, location.origin);
@@ -114,6 +185,10 @@ export function wireSplitter(workspace, splitter) {
 
 export function dispose() {
   window.removeEventListener("message", runtimeMessage);
+  if (shellThemeMedia && shellThemeMediaHandler)
+    shellThemeMedia.removeEventListener?.("change", shellThemeMediaHandler);
+  shellThemeMedia = null;
+  shellThemeMediaHandler = null;
   receiver = null;
   expected = null;
   runtimeReady = false;
