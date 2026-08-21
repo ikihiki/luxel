@@ -1,0 +1,86 @@
+name: Editor Browser E2E
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/editor-browser-e2e.yml'
+      - 'assets/**'
+      - 'samples/LuxelEditorBrowser/**'
+      - 'shaders/**'
+      - 'src/Editor/Luxel.Editor.Browser/**'
+      - 'src/Editor/Luxel.Editor.UI/**'
+      - 'src/Editor/Luxel.SceneEdit/**'
+      - 'src/Editor/Luxel.Workbench/**'
+      - 'src/Graphics/**'
+      - 'src/Platform/Luxel.Platform.Web/**'
+      - 'src/UI/**'
+      - 'tests/Editor/Luxel.Editor.Browser.E2E.Tests/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: editor-browser-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      LUXEL_E2E_SOFTWARE_GPU: '1'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install browser WebAssembly workload
+        run: dotnet workload install wasm-tools
+
+      - name: Restore Editor browser acceptance projects
+        run: |
+          dotnet restore samples/LuxelEditorBrowser/LuxelEditorBrowser.csproj
+          dotnet restore tests/Editor/Luxel.Editor.Browser.E2E.Tests/Luxel.Editor.Browser.E2E.Tests.csproj
+
+      - name: Publish Editor browser demo
+        run: >
+          dotnet publish samples/LuxelEditorBrowser/LuxelEditorBrowser.csproj
+          --configuration Release
+          --no-restore
+          --output artifacts/editor-browser
+          -p:BlazorFingerprintBlazorJs=false
+
+      - name: Build Editor browser E2E tests
+        run: >
+          dotnet build tests/Editor/Luxel.Editor.Browser.E2E.Tests/Luxel.Editor.Browser.E2E.Tests.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Install Playwright Chromium and Linux dependencies
+        run: >
+          pwsh tests/Editor/Luxel.Editor.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1
+          install --with-deps chromium
+
+      - name: Run Editor browser acceptance suite
+        run: >
+          dotnet test tests/Editor/Luxel.Editor.Browser.E2E.Tests/Luxel.Editor.Browser.E2E.Tests.csproj
+          --configuration Release
+          --no-restore
+          --no-build
+          --logger 'trx;LogFileName=editor-browser-e2e.trx'
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: editor-browser-e2e-failure
+          path: |
+            tests/Editor/Luxel.Editor.Browser.E2E.Tests/TestResults/**
+            tests/Editor/Luxel.Editor.Browser.E2E.Tests/bin/Release/net10.0/playwright-report/**
+            tests/Editor/Luxel.Editor.Browser.E2E.Tests/bin/Release/net10.0/test-results/**
+          if-no-files-found: ignore

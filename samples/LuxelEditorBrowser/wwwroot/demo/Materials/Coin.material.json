@@ -1,0 +1,14 @@
+{
+  "name": "Coin",
+  "shader": "sprite/unlit",
+  "nodes": [
+    { "id": "texture", "type": "Texture2D", "asset": "Assets/Textures/coin.svg" },
+    { "id": "tint", "type": "Color", "value": "#ffd447" },
+    { "id": "output", "type": "SpriteOutput" }
+  ],
+  "optionalNormalMap": "Assets/Textures/coin-normal.png",
+  "edges": [
+    { "from": "texture.rgba", "to": "output.color" },
+    { "from": "tint.rgba", "to": "output.tint" }
+  ]
+}
