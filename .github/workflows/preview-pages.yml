@@ -41,6 +41,7 @@ jobs:
         if: github.event.action != 'closed'
         run: |
           eng/stage-pages.sh \
+            eng/pages/index.html \
             gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot \
             editor/EditorBrowser/bin/Release/net10.0/publish/wwwroot \
             .pages
