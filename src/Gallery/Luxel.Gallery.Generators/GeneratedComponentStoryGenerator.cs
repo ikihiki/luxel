@@ -532,20 +532,26 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
                 .Append(", static _ => Docs_").Append(index).Append("(), Source: ")
                 .Append(Lit("Generated component docs for " + widget.TypeFq))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
-                .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Docs));");
+                .Append("], Kind: global::Luxel.Gallery.StoryKind.Docs, ShortDescription: ")
+                .Append(Lit(CanonicalControlName(widget.ClassName) + " の概要、使い方、APIを確認します。"))
+                .AppendLine("));");
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Basic"))
                 .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
                 .Append(Lit("Generated static direct typed factory for " + widget.TypeFq))
                 .Append(", ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>(), CapabilityNote: ").Append(Lit(CapabilityNote(widget, hasVisibleWidgetFixture)))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
-                .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Basic));");
+                .Append("], Kind: global::Luxel.Gallery.StoryKind.Basic, ShortDescription: ")
+                .Append(Lit(CanonicalControlName(widget.ClassName) + " の基本的な表示例です。"))
+                .AppendLine("));");
             if (!IsGalleryInfrastructure(widget))
                 sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Playground"))
                     .Append(", static ctx => Playground_").Append(index).Append("(ctx), Source: ")
                     .Append(Lit("Generated editable direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
                     .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget, hasVisibleWidgetFixture)))
                     .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
-                    .AppendLine("], Kind: global::Luxel.Gallery.StoryKind.Playground));");
+                    .Append("], Kind: global::Luxel.Gallery.StoryKind.Playground, ShortDescription: ")
+                    .Append(Lit(CanonicalControlName(widget.ClassName) + " の引数を変更して動作を確認できます。"))
+                    .AppendLine("));");
         }
         sb.AppendLine("        }");
         for (int index = 0; index < components.Count; index++)
