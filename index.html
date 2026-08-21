@@ -2,30 +2,62 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <base href="./">
-  <title>Luxel Gallery Browser</title>
-  <link rel="stylesheet" href="gallery.css">
-  <link href="_framework/dotnet.lrl1v17vl1.js" rel="preload" as="script" fetchpriority="high" crossorigin="anonymous" integrity="sha256-j4jNoHBhs/G0pA43gsAZFH+DPY0hfh9K066+dU2+MzE=" />
-  <script type="importmap">{
-  "imports": {
-    "./_framework/blazor.webassembly.js": "./_framework/blazor.webassembly.w3qd1tpl0e.js",
-    "./_framework/dotnet.js": "./_framework/dotnet.lrl1v17vl1.js",
-    "./_framework/dotnet.native.js": "./_framework/dotnet.native.m6x6l359wr.js",
-    "./_framework/dotnet.runtime.js": "./_framework/dotnet.runtime.zbexyp8zrs.js"
-  },
-  "scopes": {},
-  "integrity": {
-    "./_framework/blazor.webassembly.js": "sha256-lDXsDYFgm62F+YUvxES7IOTCXYpiHpU3uR45YdC6mq4=",
-    "./_framework/blazor.webassembly.w3qd1tpl0e.js": "sha256-lDXsDYFgm62F+YUvxES7IOTCXYpiHpU3uR45YdC6mq4=",
-    "./_framework/dotnet.js": "sha256-j4jNoHBhs/G0pA43gsAZFH+DPY0hfh9K066+dU2+MzE=",
-    "./_framework/dotnet.lrl1v17vl1.js": "sha256-j4jNoHBhs/G0pA43gsAZFH+DPY0hfh9K066+dU2+MzE=",
-    "./_framework/dotnet.native.js": "sha256-gmGpAmVP5DL+BCregPK4e0EQECmpBk4wQUsXbeuqhgE=",
-    "./_framework/dotnet.native.m6x6l359wr.js": "sha256-gmGpAmVP5DL+BCregPK4e0EQECmpBk4wQUsXbeuqhgE=",
-    "./_framework/dotnet.runtime.js": "sha256-MZMguyke9CroSQl+L/SHIGFkPTD+LtYGXkXjAvwWx40=",
-    "./_framework/dotnet.runtime.zbexyp8zrs.js": "sha256-MZMguyke9CroSQl+L/SHIGFkPTD+LtYGXkXjAvwWx40="
-  }
-}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Luxel</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: system-ui, sans-serif;
+    }
+
+    body {
+      display: grid;
+      min-height: 100vh;
+      margin: 0;
+      place-items: center;
+      background: #111827;
+      color: #f9fafb;
+    }
+
+    main {
+      width: min(42rem, calc(100% - 2rem));
+      text-align: center;
+    }
+
+    nav {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    a {
+      padding: 1.5rem;
+      border: 1px solid #4b5563;
+      border-radius: 0.75rem;
+      background: #1f2937;
+      color: inherit;
+      font-size: 1.25rem;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    a:hover,
+    a:focus-visible {
+      border-color: #60a5fa;
+      outline: 3px solid #60a5fa;
+      outline-offset: 3px;
+    }
+  </style>
 </head>
-<body><main id="app"><div class="loading-progress" role="status" aria-live="polite" aria-label="Galleryを読み込み中"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42"></circle><circle cx="50" cy="50" r="42"></circle></svg><p>Galleryを読み込んでいます…</p><div class="loading-progress-text"></div></div><div id="status" hidden data-status="loading"></div></main><script src="_framework/blazor.webassembly.w3qd1tpl0e.js"></script></body>
+<body>
+  <main>
+    <h1>Luxel</h1>
+    <p>Choose an app to open.</p>
+    <nav aria-label="Luxel applications">
+      <a href="gallery/">Gallery</a>
+      <a href="editor/">Editor</a>
+    </nav>
+  </main>
+</body>
 </html>
