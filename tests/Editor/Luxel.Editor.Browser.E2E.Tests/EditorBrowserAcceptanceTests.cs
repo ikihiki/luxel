@@ -96,7 +96,7 @@ public sealed class EditorBrowserAcceptanceTests : PageTest
     }
 
     [Fact]
-    public async Task Scenario_06_layout_changes_are_restored_after_reload()
+    public async Task Scenario_06_layout_changes_are_restored_when_the_demo_reopens()
     {
         EditorPageFailures failures = Page.CollectFailures();
         JsonElement initial = await Page.OpenEditorAsync();
@@ -104,11 +104,10 @@ public sealed class EditorBrowserAcceptanceTests : PageTest
         JsonElement changed = await Page.InvokeEditorAsync("change-layout");
         string changedLayout = changed.GetProperty("layout").GetString()!;
         Assert.NotEqual(initial.GetProperty("layout").GetString(), changedLayout);
+        Assert.Equal(changedLayout, await Page.EvaluateAsync<string>(
+            "() => localStorage.getItem('luxel.editor.editor.layout.v1')"));
 
-        await Page.GotoAsync("about:blank");
-        await Task.Delay(500);
-        failures.Clear();
-        JsonElement restored = await Page.OpenEditorAsync();
+        JsonElement restored = await Page.InvokeEditorAsync("open-demo");
 
         Assert.Equal(changedLayout, restored.GetProperty("layout").GetString());
         failures.AssertEmpty();

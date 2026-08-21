@@ -22,7 +22,6 @@ globalThis.luxelEditorAutomation = {
     const exports = await getAutomationExports();
     if (action === "save-active" || action === "reset-demo") await exports.AutomationInvokeAsync(action, value);
     else exports.AutomationInvoke(action, value);
-    await nextFrame();
     return applyAutomationSnapshot(exports.AutomationSnapshot());
   },
 };

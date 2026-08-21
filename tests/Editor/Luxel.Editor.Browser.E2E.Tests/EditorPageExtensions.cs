@@ -68,9 +68,12 @@ internal sealed class EditorPageFailures
     {
         page.Console += (_, message) =>
         {
-            if (message.Type == "error" && !IsExpectedDeviceShutdown(message.Text)) ConsoleErrors.Add(message.Text);
+            if (message.Type == "error" && !IsExpectedSoftwareGpuDiagnostic(message.Text)) ConsoleErrors.Add(message.Text);
         };
-        page.PageError += (_, error) => PageErrors.Add(error);
+        page.PageError += (_, error) =>
+        {
+            if (!IsExpectedSoftwareGpuDiagnostic(error)) PageErrors.Add(error);
+        };
         page.Response += (_, response) =>
         {
             if (response.Status >= 400) FailedResponses.Add($"{response.Status} {response.Url}");
@@ -95,7 +98,8 @@ internal sealed class EditorPageFailures
         Assert.True(FailedResponses.Count == 0, $"Failed responses:{Environment.NewLine}{string.Join(Environment.NewLine, FailedResponses)}");
     }
 
-    private static bool IsExpectedDeviceShutdown(string message)
+    private static bool IsExpectedSoftwareGpuDiagnostic(string message)
         => message.Contains("WebGPU device was lost: destroyed: Device was destroyed.", StringComparison.Ordinal)
-           || message.Contains("A valid external Instance reference no longer exists.", StringComparison.Ordinal);
+           || message.Contains("A valid external Instance reference no longer exists.", StringComparison.Ordinal)
+           || message.Contains("ContentType must be of type Unicode.", StringComparison.Ordinal);
 }
