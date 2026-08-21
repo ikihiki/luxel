@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "assemblies": [
+    "Luxel.Controls.dll",
+    "Luxel.Graphics.dll",
+    "Luxel.Graphics.TwoD.dll",
+    "Luxel.Scripting.dll",
+    "Luxel.Scripting.Roslyn.Web.dll",
+    "Luxel.UI.dll",
+    "mscorlib.dll",
+    "netstandard.dll",
+    "System.Collections.dll",
+    "System.Console.dll",
+    "System.Linq.dll",
+    "System.Memory.dll",
+    "System.Numerics.Vectors.dll",
+    "System.Runtime.dll"
+  ]
+}
