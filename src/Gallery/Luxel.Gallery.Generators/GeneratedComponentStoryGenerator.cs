@@ -530,15 +530,15 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             string route = RoutePrefix(widget);
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Docs"))
                 .Append(", static _ => Docs_").Append(index).Append("(), Source: ")
-                .Append(Lit("Generated component docs for " + widget.TypeFq))
+                .Append(Lit(widget.TypeFq + " の生成ドキュメント。"))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                 .Append("], Kind: global::Luxel.Gallery.StoryKind.Docs, ShortDescription: ")
                 .Append(Lit(CanonicalControlName(widget.ClassName) + " の概要、使い方、APIを確認します。"))
                 .AppendLine("));");
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Basic"))
                 .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
-                .Append(Lit("Generated static direct typed factory for " + widget.TypeFq))
-                .Append(", ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>(), CapabilityNote: ").Append(Lit(CapabilityNote(widget, hasVisibleWidgetFixture)))
+                .Append(Lit(widget.TypeFq + " を型付きファクトリで構築する生成済み基本例。"))
+                .Append(", ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>(), CapabilityNote: ").Append(Lit(StoryDescription(widget, hasVisibleWidgetFixture, editable: false)))
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                 .Append("], Kind: global::Luxel.Gallery.StoryKind.Basic, ShortDescription: ")
                 .Append(Lit(CanonicalControlName(widget.ClassName) + " の基本的な表示例です。"))
@@ -546,8 +546,9 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             if (!IsGalleryInfrastructure(widget))
                 sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Playground"))
                     .Append(", static ctx => Playground_").Append(index).Append("(ctx), Source: ")
-                    .Append(Lit("Generated editable direct typed factory for " + widget.TypeFq)).Append(", ArgDefinitions: Args_")
-                    .Append(index).Append(", CapabilityNote: ").Append(Lit(CapabilityNote(widget, hasVisibleWidgetFixture)))
+                    .Append(Lit(widget.TypeFq + " の引数を編集できる生成済みプレイグラウンド。"))
+                    .Append(", ArgDefinitions: Args_").Append(index).Append(", CapabilityNote: ")
+                    .Append(Lit(StoryDescription(widget, hasVisibleWidgetFixture, editable: true)))
                     .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                     .Append("], Kind: global::Luxel.Gallery.StoryKind.Playground, ShortDescription: ")
                     .Append(Lit(CanonicalControlName(widget.ClassName) + " の引数を変更して動作を確認できます。"))
@@ -610,8 +611,8 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         "Box" or "Border" or "Center" or "Spacer" or "Stack" or "Grid" or "WrapPanel" or "Splitter" => "Layout",
         "Button" or "CheckBox" or "Switch" or "Slider" or "SegmentedControl" or "RadioGroup" or "Select" or "ColorPicker" or "LengthField" => "Input",
         "Text" or "TextField" or "SearchField" or "RichTextView" or "LinkText" => "Text",
-        "ListView" or "TreeView" or "NavigationView" or "Tabs" or "Accordion" or "DocumentTabs" or "AssetBrowser" or "ScrollViewer" => "Collections",
-        "Dialog" or "Toast" or "Drawer" or "Dropdown" or "Tooltip" or "MenuRow" or "MenuBar" or "Toolbar" => "Overlay",
+        "ListView" or "TreeView" or "GridView" or "DataGrid" or "NavigationView" or "Tabs" or "TabStrip" or "Accordion" or "DocumentTabs" or "AssetBrowser" or "ScrollViewer" => "Collections",
+        "Dialog" or "Popover" or "Toast" or "Drawer" or "Dropdown" or "Tooltip" or "MenuRow" or "MenuBar" or "Toolbar" => "Overlay",
         "Icon" or "ImageView" or "ImageBlock" or "TableBlock" or "SurfaceView" or "Canvas2D" or "GpuView" or "DiagramBlock" or "MathBlockView" or "Sparkline" or "Spinner" or "ParticleView" => "Rendering",
         "DockHost" or "NodeGraphView" or "PropertyGrid" or "SceneEditorView" or "SceneInspector" or "StatusBar" or "TextEditorView" => "Editor",
         "ApiTable" or "KnobsTable" or "TypeApiTable" => "Infrastructure",
@@ -667,9 +668,9 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         if (field.TypeFq == LengthType) return StoryDefault(field);
         if (field.Kind == BindKind.Parsable) return "default(" + field.TypeFq + ").ToString() ?? string.Empty";
         if (TryGetSupportedSignalValueType(field, out string valueType)) return StoryScalarDefault(field, valueType);
-        if (IsStringCollection(field)) return Lit("One, Two, Three");
+        if (IsStringCollection(field)) return Lit("項目 1, 項目 2, 項目 3");
         if (IsGridLengthCollection(field)) return Lit("1*, 1*");
-        if (UsesPreset(field)) return Lit(IsWidget(field) || IsWidgetCollection(field) ? "Generated fixture" : "Component default");
+        if (UsesPreset(field)) return Lit(IsWidget(field) || IsWidgetCollection(field) ? "生成済みサンプル" : "コンポーネント既定値");
         return StoryDefault(field);
     }
 
@@ -681,7 +682,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         if (type is "float" or "global::System.Single") return StoryNumberDefault(field, "f");
         if (type is "double" or "global::System.Double") return StoryNumberDefault(field, "d");
         if (type is "uint" or "global::System.UInt32") return field.Name.Contains("Foreground", StringComparison.OrdinalIgnoreCase) ? "0xff202020u" : "0xffdbeafeu";
-        return Lit(field.Name is "Text" or "Label" ? "Example" : "Sample");
+        return Lit(field.Name is "Text" or "Label" ? "例" : "サンプル");
     }
 
     private static string StoryNumberDefault(FieldModel field, string suffix)
@@ -706,15 +707,15 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             return "new " + field.TypeFq + "(" + StoryScalarDefault(field, valueType) + ")";
         if (IsWidget(field)) return VisibleWidgetFixture(hasVisibleWidgetFixture, field.Name);
         if (IsWidgetCollection(field)) return "new global::Luxel.UI.Widget[] { " + VisibleWidgetFixture(hasVisibleWidgetFixture, field.Name) + " }";
-        if (IsStringCollection(field)) return "new string[] { \"One\", \"Two\", \"Three\" }";
+        if (IsStringCollection(field)) return "new string[] { \"項目 1\", \"項目 2\", \"項目 3\" }";
         if (IsGridLengthCollection(field)) return "new global::Luxel.UI.GridLength[] { global::Luxel.UI.GridLength.Star(), global::Luxel.UI.GridLength.Star() }";
         return null;
     }
 
     private static string VisibleWidgetFixture(bool hasVisibleWidgetFixture, string name)
         => hasVisibleWidgetFixture
-            ? "global::Luxel.Controls.Kit.Text(\"Generated " + ParamName(name) + "\", 16f)"
-            : "new global::Luxel.Gallery.StoryCapabilityFallback(" + Lit(name + " fixture") + ", \"Generated in-memory child widget.\")";
+            ? "global::Luxel.Controls.Kit.Text(\"生成サンプル: " + ParamName(name) + "\", 16f)"
+            : "new global::Luxel.Gallery.StoryCapabilityFallback(" + Lit(name + " 用サンプル") + ", \"メモリ内で生成した子 Widget です。\")";
 
     private static IEnumerable<FieldModel> StoryArgs(WidgetModel widget)
     {
@@ -740,7 +741,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         }
         else if (UsesPreset(field))
         {
-            string preset = IsWidget(field) || IsWidgetCollection(field) ? "Generated fixture" : "Component default";
+            string preset = IsWidget(field) || IsWidgetCollection(field) ? "生成済みサンプル" : "コンポーネント既定値";
             sb.Append(", options: new string[] { ").Append(Lit(preset)).Append(" }");
         }
         sb.AppendLine("),");
@@ -749,16 +750,19 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
     private static void EmitGeneratedDocs(StringBuilder sb, WidgetModel widget, List<FieldModel> args, int index)
     {
         string controlName = CanonicalControlName(widget.ClassName);
-        string summaryFallback = widget.DocSummary.Length > 0 ? widget.DocSummary : controlName + " は Luxel UI の production component です。";
+        string route = RoutePrefix(widget);
+        string summaryFallback = widget.DocSummary.Length > 0 ? widget.DocSummary : controlName + " は Luxel UI の公開コンポーネントです。";
         string own = string.Join(", ", widget.Fields.Where(static field => field.Own).Select(static field => "`" + field.Name + "`").DefaultIfEmpty("固有パラメーターなし"));
         string events = string.Join(", ", widget.Events.Where(static value => value.Own).Select(static value => "`" + value.Name + "`").DefaultIfEmpty("宣言イベントなし"));
         string exampleArgs = string.Join(", ", args.Where(static field => field.Own).Take(4).Select(field => ParamName(field.Name) + ": " + StoryDefault(field)));
         string example = widget.FactoryName + "(" + exampleArgs + ")";
-        string prefix = "# " + controlName + "\n\n";
-        string suffix = "\n\n```luxel-story\n0\n```\n\n## 実装例\n\n```csharp\n" + example + "\n```\n\n## パターンとバリエーション\n\n- 型付きファクトリの基本利用\n- 編集可能な代表的 scalar args\n- 対応する継承レイアウト引数\n- capability 入力向けの決定的 fallback\n\n## イベント、パラメーター、API\n\n**イベント:** " + events + "\n\n**固有パラメーター:** " + own + "\n\n完全な継承 API は生成された API table を参照してください。\n";
+        string related = "- [基本例 (`Basic`)](story:" + route + "/Basic)\n";
+        if (!IsGalleryInfrastructure(widget)) related += "- [プレイグラウンド (`Playground`)](story:" + route + "/Playground)\n";
+        string prefix = "# " + controlName + "\n\n## 概要\n\n";
+        string suffix = "\n\n## 使う場面・避ける場面\n\nこの生成ページは型情報から確実に取得できる内容を示します。採用判断に固有の注意が必要な場合は、対象画面の要件と執筆済みドキュメントを確認してください。\n\n## 主な使用例\n\n```luxel-story\n0\n```\n\n```csharp\n" + example + "\n```\n\n## バリエーション・状態とその所有\n\n- 型付きファクトリの基本利用\n- 編集できる代表的な単純値 Args\n- Widget 共通の継承レイアウト引数\n- 複雑な入力に対する決定的なサンプルまたはコンポーネント既定値\n\n状態の寿命と更新責務は呼び出し側で定め、Signal などの公開パラメーターを通して渡します。\n\n## 操作・キーボード・アクセシビリティ\n\n型情報だけから操作、キー割り当て、支援技術向けの意味を一律に推論しません。実装と対象ホストで確認し、必要なラベルや代替操作を用意してください。\n\n## テーマ・レイアウト・サイズ\n\nWidget 共通の寸法とレイアウト引数を利用できます。固有の最小寸法、折り返し、テーマ追従は実装とプレイグラウンド（`Playground`）で確認してください。\n\n## 制約・ライフサイクル・対応プラットフォーム\n\n複雑な入力には生成サンプルまたはコンポーネント既定値を使います。資源の所有、破棄、プラットフォーム能力に固有の契約は実装または執筆済みドキュメントで確認してください。\n\n## パラメーター・イベント・API\n\n**イベント:** " + events + "\n\n**固有パラメーター:** " + own + "\n\n完全な継承 API は ControlApiRegistry の API リファレンスで確認してください。\n\n## 関連する例・コンポーネント\n\n" + related;
         sb.Append("        private static global::Luxel.Gallery.StoryResult Docs_").Append(index).Append("() => global::Luxel.Gallery.StoryResult.FromMarkdown(")
             .Append(Lit(prefix)).Append(" + ").Append(ResolveExpression(XmlTypeKey(widget), summaryFallback)).Append(" + ").Append(Lit(suffix))
-            .Append(", global::Luxel.Gallery.StoryReference.To(").Append(Lit(RoutePrefix(widget) + "/Basic")).AppendLine("));");
+            .Append(", global::Luxel.Gallery.StoryReference.To(").Append(Lit(route + "/Basic")).AppendLine("));");
     }
 
     private static void EmitGeneratedBasic(StringBuilder sb, WidgetModel widget, int index, string factoryDefault, bool hasVisibleWidgetFixture)
@@ -878,7 +882,7 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             return "0" + suffix;
         }
         if (field.Kind == BindKind.Bool) return field.Name.Contains("Vertical", StringComparison.OrdinalIgnoreCase) ? "true" : "false";
-        if (field.Kind is BindKind.String or BindKind.Text) return Lit(field.Name is "Text" or "Label" ? "Example" : field.Name.Contains("Placeholder", StringComparison.OrdinalIgnoreCase) ? "Type here" : "Sample");
+        if (field.Kind is BindKind.String or BindKind.Text) return Lit(field.Name is "Text" or "Label" ? "例" : field.Name.Contains("Placeholder", StringComparison.OrdinalIgnoreCase) ? "ここに入力" : "サンプル");
         if (field.Kind == BindKind.Enum)
         {
             string name = field.EnumHint.StartsWith("enum:", StringComparison.Ordinal) ? field.EnumHint.Substring(5).Split('|').FirstOrDefault() ?? "0" : "0";
@@ -940,17 +944,21 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
         };
     }
 
-    private static string CapabilityNote(WidgetModel widget, bool hasVisibleWidgetFixture)
+    private static string StoryDescription(WidgetModel widget, bool hasVisibleWidgetFixture, bool editable)
     {
+        string prefix = editable
+            ? "公開パラメーターを Args で編集し、イベントログを確認できる生成済みプレイグラウンドです。"
+            : "型付きファクトリの既定構成を確認する生成済み基本例です。";
         string[] fixtures = widget.Fields.Where(static field => field.Own && field.Kind == BindKind.Other && !UsesPreset(field))
             .Select(static field => field.Name).ToArray();
         string[] presets = widget.Fields.Where(static field => field.Own && UsesPreset(field))
             .Select(static field => field.Name).ToArray();
         if (presets.Length > 0)
-            return "Direct generated factory with per-parameter component-default presets where adapters are required: " + string.Join(", ", presets) + ".";
-        return fixtures.Length == 0
-            ? "Direct generated factory with browser-safe scalar args and generated event logging."
-            : "Direct generated factory with deterministic in-memory fixtures for complex inputs: " + string.Join(", ", fixtures) + ".";
+            return prefix + " アダプターが必要な `" + string.Join("`, `", presets) + "` にはコンポーネント既定値を使います。";
+        if (fixtures.Length == 0)
+            return prefix + " ブラウザーで扱える単純値引数と生成イベントログを使います。";
+        string fixtureDescription = hasVisibleWidgetFixture ? "メモリ内の決定的なサンプル" : "安全な説明表示";
+        return prefix + " 複雑な入力 `" + string.Join("`, `", fixtures) + "` には" + fixtureDescription + "を使います。";
     }
 
     /// <summary>[UiComponent] 毎に ControlApiRegistry.Register を module initializer で焼き込む。

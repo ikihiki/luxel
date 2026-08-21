@@ -64,6 +64,99 @@ public sealed class ProductionDocsCompletenessTests
         Assert.True(invalid.Length == 0, $"Noncanonical control stories: {string.Join(", ", invalid)}");
     }
 
+    [Theory]
+    [InlineData("DataGrid", "Collections")]
+    [InlineData("GridView", "Collections")]
+    [InlineData("Popover", "Overlay")]
+    [InlineData("TabStrip", "Collections")]
+    public void Newly_authored_ui_docs_use_expected_categories_japanese_sections_and_canonical_api_links(
+        string controlName, string expectedCategory)
+    {
+        GeneratedComponentStoryDescriptor descriptor = Assert.Single(
+            global::Luxel.UI.Gallery.UiGalleryProject.ProductionComponents,
+            item => item.ControlName == controlName);
+        Assert.Equal(expectedCategory, descriptor.Category);
+        Assert.Equal($"Controls/{expectedCategory}/{controlName}/Docs", descriptor.DocsPath);
+
+        StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
+        StoryInfo docs = Assert.IsType<StoryInfo>(catalog.Find(descriptor.DocsPath));
+        Assert.Equal(StoryRegistrationKind.Authored, docs.RegistrationKind);
+        Assert.Contains("日本語", Assert.IsType<string>(docs.Source), StringComparison.Ordinal);
+
+        using var context = new StoryContext();
+        StoryResult result = docs.Build(context);
+        Assert.Equal(StoryResultKind.Markdown, result.Kind);
+        Assert.Equal(descriptor.BasicPath, Assert.Single(result.References).Path);
+
+        string[] headings =
+        [
+            "## 概要",
+            "## 使う場面・避ける場面",
+            "## 主な使用例",
+            "## バリエーション・状態とその所有",
+            "## 操作・キーボード・アクセシビリティ",
+            "## テーマ・レイアウト・サイズ",
+            "## 制約・ライフサイクル・対応プラットフォーム",
+            "## パラメーター・イベント・API",
+            "## 関連する例・コンポーネント",
+        ];
+        Assert.All(headings, heading => Assert.Contains(heading, result.Markdown, StringComparison.Ordinal));
+        Assert.Contains($"story:{descriptor.BasicPath}", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains($"story:{descriptor.PlaygroundPath}", result.Markdown, StringComparison.Ordinal);
+
+        StoryMarkdownEmbed api = Assert.Single(result.Embeds);
+        Assert.Equal("ControlApiTable", api.Kind);
+        Assert.Equal(controlName, api.Reference);
+        Assert.True(api.IncludeInherited);
+
+        string prose = string.Join('\n', docs.Source, result.Markdown);
+        string[] englishFallbacks =
+        [
+            "Generated component docs",
+            "production component",
+            "scalar args",
+            "capability input",
+            "API table",
+            "Unsupported capability/constructor inputs use a deterministic fallback",
+        ];
+        Assert.All(englishFallbacks, fallback => Assert.DoesNotContain(fallback, prose, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Canonical_basic_and_playground_stories_have_concise_japanese_descriptions()
+    {
+        foreach ((StoryCatalog catalog, IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors) in OwnerCatalogs())
+        {
+            foreach (GeneratedComponentStoryDescriptor descriptor in descriptors.Where(static item => item.IsUserFacing))
+            {
+                StoryInfo basic = Assert.IsType<StoryInfo>(catalog.Find(descriptor.BasicPath));
+                StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find(descriptor.PlaygroundPath));
+                Assert.True(ContainsJapanese(basic.CapabilityNote), $"{descriptor.BasicPath} needs a Japanese description.");
+                Assert.True(ContainsJapanese(playground.CapabilityNote), $"{descriptor.PlaygroundPath} needs a Japanese description.");
+            }
+        }
+    }
+
+    [Fact]
+    public void Representative_authored_control_stories_expose_japanese_descriptions()
+    {
+        StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
+        string[] paths =
+        [
+            "Controls/Input/Button/Examples/Counter",
+            "Controls/Collections/TreeView/Examples/Interactive",
+            "Controls/Collections/Tabs/Examples/Interactive",
+            "Controls/Collections/Tabs/Examples/SelectionChanged",
+            "Controls/Overlay/Dialog/Basic",
+        ];
+
+        foreach (string path in paths)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(path));
+            Assert.True(ContainsJapanese(story.CapabilityNote), $"{path} needs a Japanese description.");
+        }
+    }
+
     [Fact]
     public void Each_owner_catalog_has_one_docs_basic_and_user_facing_playground_story_with_matching_ownership()
     {
@@ -322,6 +415,10 @@ public sealed class ProductionDocsCompletenessTests
 
         Assert.Same(localized, ControlApiRegistry.Find("Probe.Priority.Localized"));
     }
+
+    private static bool ContainsJapanese(string? value)
+        => !string.IsNullOrWhiteSpace(value) && value.Any(static character =>
+            character is >= '\u3040' and <= '\u30ff' or >= '\u3400' and <= '\u9fff');
 
     private static string LowerFirst(string value) => char.ToLowerInvariant(value[0]) + value[1..];
 

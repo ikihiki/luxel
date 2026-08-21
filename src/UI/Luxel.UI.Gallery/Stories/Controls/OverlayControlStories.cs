@@ -11,17 +11,18 @@ public static class OverlayControlStories
 {
     [Story(Path = "Controls/Collections/Tabs/Basic")]
     public static StoryResult TabsBasic(StoryContext ctx)
-        => ctx.Snap(Tabs(["One", "Two", "Three"],
-            [Label("Content of tab one"), Label("Content of tab two"), Label("Content of tab three")],
+        => ctx.Snap(Tabs(["1つ目", "2つ目", "3つ目"],
+            [Label("1つ目の内容"), Label("2つ目の内容"), Label("3つ目の内容")],
             new Signal<int>(0), width: 380, height: 160));
 
-    [Story(Path = "Controls/Collections/Tabs/Examples/SelectionChanged")]
+    [Story(Path = "Controls/Collections/Tabs/Examples/SelectionChanged",
+        CapabilityNote = "selected の変更と、選択したタブ内容の操作を確認する例です。")]
     public static StoryResult TabsEvnet(StoryContext ctx)
-    => Frame(Tabs(["One", "Two", "Three"],
+    => Frame(Tabs(["1つ目", "2つ目", "3つ目"],
         [
-            Button(_ => ctx.Log("Content of tab one clicked"), "Content of tab one", margin: new Thickness(0,0,0,0)),
-            Button(_ => ctx.Log("Content of tab two clicked"), "Content of tab two", margin: new Thickness(10,0,0,0)),
-            Button(_ => ctx.Log("Content of tab three clicked"), "Content of tab three", margin: new Thickness(20,0,0,0))
+            Button(_ => ctx.Log("1つ目の内容をクリック"), "1つ目の内容", margin: new Thickness(0,0,0,0)),
+            Button(_ => ctx.Log("2つ目の内容をクリック"), "2つ目の内容", margin: new Thickness(10,0,0,0)),
+            Button(_ => ctx.Log("3つ目の内容をクリック"), "3つ目の内容", margin: new Thickness(20,0,0,0))
         ],
         ctx.Signal("selected", 0), width: 380, height: 160));
 
@@ -42,11 +43,12 @@ public static class OverlayControlStories
     public static StoryResult MenuRowBasic() =>
         MenuRow("Open...", _ => { }, width: 220);
 
-    [Story(Path = "Controls/Overlay/Dialog/Basic")]
+    [Story(Path = "Controls/Overlay/Dialog/Basic",
+        CapabilityNote = "open Signal、Escape、起点ボタンによる開閉経路を確認する基本例です。")]
     public static StoryResult DialogBasic(StoryContext ctx)
     {
         Signal<bool> open = new(true);
-        Button opener = Button(_ => open.Value = true, "Open dialog");
+        Button opener = Button(_ => open.Value = true, "ダイアログを開く");
         // play: 初期 (開) → Esc で閉じる → 再度開く (E2E の対話ショーケース)
         ctx.Play(async d =>
         {
@@ -62,9 +64,9 @@ public static class OverlayControlStories
         return VStack(8)[
             opener,
             Dialog(open, Card(VStack(8)[
-                Heading("Dialog title", 2),
+                Heading("ダイアログ", 2),
                 Muted("Esc か外側クリックで閉じる"),
-                Button(_ => open.Value = false, "Close")]))];
+                Button(_ => open.Value = false, "閉じる")]))];
     }
 
     [Story(Path = "Controls/Overlay/Toast/Basic")]

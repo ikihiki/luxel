@@ -8,9 +8,9 @@ namespace Luxel.Gallery.Stories;
 
 [ComponentStory(typeof(Luxel.Controls.Button), "Controls/Input/Button/Examples/Interactive", Factory = typeof(Kit),
     Template = nameof(Template))]
-[ComponentArg(nameof(Luxel.Controls.Button.Text), "Click me", Description = "Button label", Order = 10)]
-[ComponentArg(nameof(Luxel.Controls.Button.Variant), Variant.Filled, Description = "Visual variant", Order = 20)]
-[ComponentArg("Disabled", false, Apply = nameof(ApplyDisabled), Description = "Disable interaction", Order = 30)]
+[ComponentArg(nameof(Luxel.Controls.Button.Text), "クリック", Description = "ボタンのラベル。", Order = 10)]
+[ComponentArg(nameof(Luxel.Controls.Button.Variant), Variant.Filled, Description = "表示バリエーション。", Order = 20)]
+[ComponentArg("Disabled", false, Apply = nameof(ApplyDisabled), Description = "操作を無効にします。", Order = 30)]
 internal static class ButtonPlaygroundStory
 {
     internal static void ApplyDisabled(Button button, bool disabled) => button.Enabled = !disabled;
@@ -25,7 +25,7 @@ public static class InputControlStories
     // ---- Button ----
 
     [Story(Path = "Controls/Input/Button/Basic", ArgsEnabled = false)]
-    public static StoryResult ButtonPrimary() => Button(_ => { }, "Click me");
+    public static StoryResult ButtonPrimary() => Button(_ => { }, "クリック");
 
     // ---- ColorPicker ----
 
@@ -92,13 +92,13 @@ public static class InputControlStories
 
     public static IReadOnlyList<StoryArgDefinition> CounterArgs() =>
     [
-        StoryArgDefinition.Create("count", "int", 0, "Current counter value.", min: -999, max: 999, step: 1),
+        StoryArgDefinition.Create("count", "int", 0, "現在のカウンター値。", min: -999, max: 999, step: 1),
     ];
 
     public static StoryResult ButtonCounter(StoryContext ctx)
     {
         CanonicalCounterRecipe.Result recipe = CanonicalCounterRecipe.Build(ctx.Arg("count", 0,
-            new StoryArgOptions<int> { Description = "Current counter value.", Min = -999, Max = 999, Step = 1 }));
+            new StoryArgOptions<int> { Description = "現在のカウンター値。", Min = -999, Max = 999, Step = 1 }));
         // play: クリック → signal 反映 → クリック後の絵 (E2E の対話ショーケース)
         ctx.Play(async d =>
         {

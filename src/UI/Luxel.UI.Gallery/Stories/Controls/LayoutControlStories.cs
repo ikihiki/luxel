@@ -58,20 +58,21 @@ public static class LayoutControlStories
 
     public static IReadOnlyList<StoryArgDefinition> TreeViewPlaygroundArgs() =>
     [
-        StoryArgDefinition.Create("selected", "string", "docs/gpu/device", "Selected node key."),
-        StoryArgDefinition.Create("filter", "string", "", "Tree filter text."),
+        StoryArgDefinition.Create("selected", "string", "docs/gpu/device", "選択中のノードキー。"),
+        StoryArgDefinition.Create("filter", "string", "", "ツリーの絞り込み文字列。"),
     ];
 
-    [Story(Path = "Controls/Collections/TreeView/Examples/Interactive", Args = nameof(TreeViewPlaygroundArgs))]
+    [Story(Path = "Controls/Collections/TreeView/Examples/Interactive", Args = nameof(TreeViewPlaygroundArgs),
+        CapabilityNote = "selected と filter を変更し、階層の選択・展開・絞り込みを確認する例です。")]
     public static StoryResult TreeViewPlayground(StoryContext ctx)
     {
         Signal<string> selected = ctx.Arg("selected", "docs/gpu/device",
-            new StoryArgOptions<string> { Description = "Selected node key." });
+            new StoryArgOptions<string> { Description = "選択中のノードキー。" });
         Signal<string> filter = ctx.Arg("filter", "",
-            new StoryArgOptions<string> { Description = "Tree filter text." });
+            new StoryArgOptions<string> { Description = "ツリーの絞り込み文字列。" });
         // The filter field is a structural trigger for TreeView's filtering behavior.
         return VStack(8)[
-            TextField(filter, placeholder: "Filter tree..."),
+            TextField(filter, placeholder: "ツリーを絞り込む..."),
             TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu" },
                 selected: selected, filter: filter, onSelect: (_, node) => selected.Value = node.Key, width: 300)];
     }
@@ -268,20 +269,21 @@ public static class LayoutControlStories
 
     public static IReadOnlyList<StoryArgDefinition> TabsPlaygroundArgs() =>
     [
-        StoryArgDefinition.Create("labels", "string", "Overview,Settings,Activity", "カンマ区切りのタブラベル。"),
+        StoryArgDefinition.Create("labels", "string", "概要,設定,アクティビティ", "カンマ区切りのタブラベル。"),
         StoryArgDefinition.Create("selected", "int", 0, "選択中のタブ。", min: 0, max: 2, step: 1),
         StoryArgDefinition.Create("foreground", "color", Tw.Slate200, "タブ文字色。"),
     ];
 
-    [Story(Path = "Controls/Collections/Tabs/Examples/Interactive", Args = nameof(TabsPlaygroundArgs))]
+    [Story(Path = "Controls/Collections/Tabs/Examples/Interactive", Args = nameof(TabsPlaygroundArgs),
+        CapabilityNote = "labels と selected を変更し、タブ見出しと内容の対応を確認する例です。")]
     public static StoryResult TabsPlayground(StoryContext ctx)
     {
-        string[] labels = ctx.Arg("labels", "Overview,Settings,Activity").Value
+        string[] labels = ctx.Arg("labels", "概要,設定,アクティビティ").Value
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (labels.Length == 0) labels = ["Tab"];
+        if (labels.Length == 0) labels = ["タブ"];
         Widget[] contents = labels.Select((label, index) => (Widget)Border(
             background: index % 2 == 0 ? Tw.Slate800 : Tw.Slate700, padding: new Thickness(20),
-            width: 360, height: 120)[Label($"{label} content")]).ToArray();
+            width: 360, height: 120)[Label($"{label} の内容")]).ToArray();
         Signal<int> selected = ctx.Arg("selected", 0);
         if (selected.Value >= labels.Length) selected.Value = labels.Length - 1;
         return Tabs(labels, contents, selected, foreground: ctx.Arg("foreground", Tw.Slate200), width: 380);
