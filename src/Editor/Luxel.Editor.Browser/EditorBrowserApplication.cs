@@ -153,7 +153,11 @@ public static partial class EditorBrowserApplication
     public static string AutomationSnapshot() => _automation?.Snapshot() ?? "{}";
 
     [JSExport]
-    public static Task<string> AutomationInvoke(string action, string value)
+    public static string AutomationInvoke(string action, string value)
+        => _automation?.Invoke(action, value) ?? throw new InvalidOperationException("Editor automation is not ready.");
+
+    [JSExport]
+    public static Task<string> AutomationInvokeAsync(string action, string value)
         => _automation?.InvokeAsync(action, value) ?? throw new InvalidOperationException("Editor automation is not ready.");
 
     [JSExport]

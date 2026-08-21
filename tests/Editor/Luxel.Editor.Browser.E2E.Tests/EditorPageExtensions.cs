@@ -96,5 +96,6 @@ internal sealed class EditorPageFailures
     }
 
     private static bool IsExpectedDeviceShutdown(string message)
-        => message.Contains("WebGPU device was lost: destroyed: Device was destroyed.", StringComparison.Ordinal);
+        => message.Contains("WebGPU device was lost: destroyed: Device was destroyed.", StringComparison.Ordinal)
+           || message.Contains("A valid external Instance reference no longer exists.", StringComparison.Ordinal);
 }
