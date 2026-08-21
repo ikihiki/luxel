@@ -8,7 +8,8 @@ namespace Luxel.Gallery;
 /// <summary>Blazor Gallery のOutputパネルに合わせたNativeイベント一覧。</summary>
 internal sealed class GalleryOutputPane(
     Signal<IReadOnlyList<StoryLogEntry>> entries,
-    float width) : CompositeControl
+    float width,
+    GalleryChromeTokens chrome) : CompositeControl
 {
     protected override Widget Build()
     {
@@ -16,16 +17,16 @@ internal sealed class GalleryOutputPane(
         var children = new List<Widget>
         {
             HStack(8)[
-                Border(background: GalleryChromeTheme.Success, rounded: 4,
+                Border(background: chrome.Success, rounded: 4,
                     width: 8, height: 8, margin: new Thickness(0, 3, 0, 0)),
-                Text("準備完了", 11, color: GalleryChromeTheme.TreeHoverText),
-                Text("Storyランタイムの準備が完了しました。", 11,
+                Text(NativeGalleryLabels.OutputReady, 12, color: chrome.TreeHoverText),
+                Text(NativeGalleryLabels.OutputReadySummary, 12,
                     color: Bind.From(() => UiTheme.T.TextMuted))],
         };
 
         if (snapshot.Count == 0)
         {
-            children.Add(Text("ランタイムのイベントとエラーがここに表示されます。", 13,
+            children.Add(Text(NativeGalleryLabels.OutputEmptySummary, 13,
                 color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(2, 10, 0, 0)));
             return VStack(8)[children.ToArray()];
         }
@@ -34,15 +35,15 @@ internal sealed class GalleryOutputPane(
         foreach (StoryLogEntry entry in snapshot)
         {
             string time = entry.Time.Length >= 8 ? entry.Time[..8] : entry.Time;
-            float messageWidth = MathF.Max(80, width - 2 - 18 - 58 - 50 - 16);
+            float messageWidth = MathF.Max(80, width - 2 - 18 - 58 - 58 - 16);
             Widget content = HStack(8)[
-                Text(time, 11, color: GalleryChromeTheme.OutputTime, width: 58),
-                Text("イベント", 10, color: GalleryChromeTheme.OutputKind, width: 50),
-                Text(entry.Message, 11, color: GalleryChromeTheme.OutputText,
+                Text(time, 12, color: chrome.OutputTime, width: 58),
+                Text("イベント", 12, color: chrome.OutputKind, width: 58),
+                Text(entry.Message, 12, color: chrome.OutputText,
                     width: messageWidth, wrap: TextWrap.Word)];
-            rows.Add(Border(background: GalleryChromeTheme.Border, padding: new Thickness(1),
+            rows.Add(Border(background: chrome.Border, padding: new Thickness(1),
                 rounded: 5, clip: true, width: width)[
-                    Border(background: GalleryChromeTheme.OutputRow, padding: new Thickness(9, 7),
+                    Border(background: chrome.OutputRow, padding: new Thickness(9, 7),
                         rounded: 4, width: width - 2)[content]]);
         }
         children.Add(VStack(5)[rows.ToArray()]);

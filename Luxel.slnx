@@ -188,6 +188,7 @@
     <Project Path="tests/Gallery/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj" />
     <Project Path="tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj" />
     <Project Path="tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj" />
+    <Project Path="tests/Gallery/Luxel.Gallery.Native.Tests/Luxel.Gallery.Native.Tests.csproj" />
     <Project Path="tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj" />
     <Project Path="tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj" />
     <Project Path="tests/Gallery/Luxel.Gallery.Tests/Luxel.Gallery.Tests.csproj" />
