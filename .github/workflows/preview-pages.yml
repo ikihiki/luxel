@@ -1,4 +1,4 @@
-name: Preview Gallery Pages
+name: Preview Pages
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: gallery-pages-branch
+  group: pages-branch
   cancel-in-progress: false
 
 jobs:
@@ -24,19 +24,30 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Install browser WebAssembly workload
-        if: github.event_name != 'pull_request' || github.event.action != 'closed'
+        if: github.event.action != 'closed'
         run: dotnet workload install wasm-tools
 
-      - name: Restore
+      - name: Restore browser apps
         if: github.event.action != 'closed'
-        run: dotnet restore gallery/GalleryBrowser/GalleryBrowser.csproj
-      - name: Publish Blazor Gallery
+        run: |
+          dotnet restore gallery/GalleryBrowser/GalleryBrowser.csproj
+          dotnet restore editor/EditorBrowser/EditorBrowser.csproj
+      - name: Publish Gallery and Editor
         if: github.event.action != 'closed'
-        run: dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release
+        run: |
+          dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release -p:BlazorFingerprintBlazorJs=false
+          dotnet publish editor/EditorBrowser/EditorBrowser.csproj --no-restore --configuration Release -p:BlazorFingerprintBlazorJs=false
+      - name: Stage Pages
+        if: github.event.action != 'closed'
+        run: |
+          eng/stage-pages.sh \
+            gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot \
+            editor/EditorBrowser/bin/Release/net10.0/publish/wwwroot \
+            .pages
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1.8.1
         with:
-          source-dir: gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
+          source-dir: .pages
           preview-branch: gh-pages
           umbrella-dir: pr-preview
           action: auto

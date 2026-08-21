@@ -1,4 +1,4 @@
-name: Deploy Gallery Pages
+name: Deploy Pages
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: gallery-pages-branch
+  group: pages-branch
   cancel-in-progress: false
 
 jobs:
@@ -22,14 +22,24 @@ jobs:
           dotnet-version: 10.0.x
       - name: Install browser WebAssembly workload
         run: dotnet workload install wasm-tools
-      - name: Restore
-        run: dotnet restore gallery/GalleryBrowser/GalleryBrowser.csproj
-      - name: Publish Blazor Gallery
-        run: dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release
-      - name: Deploy production Gallery
+      - name: Restore browser apps
+        run: |
+          dotnet restore gallery/GalleryBrowser/GalleryBrowser.csproj
+          dotnet restore editor/EditorBrowser/EditorBrowser.csproj
+      - name: Publish Gallery and Editor
+        run: |
+          dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release -p:BlazorFingerprintBlazorJs=false
+          dotnet publish editor/EditorBrowser/EditorBrowser.csproj --no-restore --configuration Release -p:BlazorFingerprintBlazorJs=false
+      - name: Stage Pages
+        run: |
+          eng/stage-pages.sh \
+            gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot \
+            editor/EditorBrowser/bin/Release/net10.0/publish/wwwroot \
+            .pages
+      - name: Deploy production Pages
         uses: JamesIves/github-pages-deploy-action@v4.8.0
         with:
           branch: gh-pages
-          folder: gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot
+          folder: .pages
           clean-exclude: pr-preview
           force: false
