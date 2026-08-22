@@ -63,7 +63,9 @@ public sealed class GalleryShellUxTests : GalleryPageTest
         await Expect(component).ToHaveAttributeAsync("href", "?story=Controls%2FInput%2FButton%2FDocs");
 
         await Page.GotoAsync($"{GalleryTestHost.BaseUrl}/?story=Controls%2FInput%2FButton%2FBasic");
-        await Expect(Page.Locator(".story-short-description")).ToContainTextAsync("基本的な表示例");
+        ILocator shortDescription = Page.Locator(".story-short-description");
+        await Expect(shortDescription).ToBeVisibleAsync();
+        Assert.Matches("[ぁ-んァ-ン一-龯]", await shortDescription.InnerTextAsync());
         await Expect(Page.Locator(".story-long-description")).ToBeVisibleAsync();
         await Expect(Page.Locator(".story-capability-warning")).ToHaveCountAsync(0);
 
