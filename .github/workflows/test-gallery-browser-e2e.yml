@@ -1,0 +1,116 @@
+name: Test Gallery Browser E2E
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/test-gallery-browser-e2e.yml'
+      - 'Directory.*'
+      - 'NuGet.config'
+      - 'assets/**'
+      - 'gallery/GalleryBrowser/**'
+      - 'shaders/**'
+      - 'src/**'
+      - 'tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-gallery-browser-e2e.yml'
+      - 'Directory.*'
+      - 'NuGet.config'
+      - 'assets/**'
+      - 'gallery/GalleryBrowser/**'
+      - 'shaders/**'
+      - 'src/**'
+      - 'tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gallery-browser-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swiftshader:
+    name: Deterministic SwiftShader software-GPU E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      LUXEL_E2E_SOFTWARE_GPU: '1'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install browser WebAssembly workload
+        run: dotnet workload install wasm-tools
+
+      - name: Restore Gallery Browser and E2E tests
+        run: |
+          dotnet restore gallery/GalleryBrowser/GalleryBrowser.csproj
+          dotnet restore tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj
+
+      - name: Publish Gallery Browser
+        run: >-
+          dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj
+          --configuration Release
+          --no-restore
+          --output artifacts/gallery-browser
+
+      - name: Build Gallery Browser E2E tests
+        run: >-
+          dotnet build tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj
+          --configuration Release
+          --no-restore
+
+      - name: Install Playwright Chromium
+        run: >-
+          pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwright.ps1
+          install --with-deps chromium
+
+      - name: Record deterministic software-GPU scope
+        shell: bash
+        run: |
+          mkdir -p playwright-report test-results artifacts/gallery-browser-e2e/logs
+          cat > playwright-report/ci-scope.txt <<'EOF'
+          Gallery Browser E2E uses the Playwright .NET xUnit adapter.
+          Detailed TRX output and teardown screenshots are stored under test-results/.
+          This job intentionally uses Chromium SwiftShader and is not hardware-GPU validation.
+          EOF
+          {
+            echo '### Gallery Browser E2E adapter scope'
+            echo
+            echo 'This job intentionally forces Chromium SwiftShader for deterministic software-GPU validation.'
+            echo 'A pass is not hardware-GPU coverage.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Run Gallery Browser Playwright tests
+        shell: bash
+        run: |
+          set -o pipefail
+          dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj \
+            --configuration Release \
+            --no-build \
+            --no-restore \
+            --logger 'trx;LogFileName=gallery-browser-e2e.trx' \
+            --results-directory test-results \
+            2>&1 | tee artifacts/gallery-browser-e2e/logs/dotnet-test.log
+
+      - name: Upload Gallery Browser E2E failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gallery-browser-e2e-failure-${{ github.run_id }}
+          path: |
+            playwright-report/**
+            test-results/**
+            artifacts/gallery-browser-e2e/**
+            tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/**/playwright-report/**
+            tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/**/test-results/**
+          if-no-files-found: warn
+          retention-days: 14

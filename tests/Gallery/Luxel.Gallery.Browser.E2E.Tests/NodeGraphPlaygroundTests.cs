@@ -1,11 +1,10 @@
 using System.Text.Json.Nodes;
 using Microsoft.Playwright;
-using Microsoft.Playwright.Xunit;
 using static Microsoft.Playwright.Assertions;
 
 namespace Luxel.Gallery.Browser.E2E.Tests;
 
-public sealed class NodeGraphPlaygroundTests : PageTest
+public sealed class NodeGraphPlaygroundTests : GalleryPageTest
 {
     [Fact]
     public async Task Json_arg_edited_before_runtime_ready_is_replayed_to_the_canvas()

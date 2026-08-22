@@ -1,0 +1,212 @@
+name: Test Gallery Native
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/test-gallery-native.yml'
+      - 'Directory.*'
+      - 'Luxel.UnitTests.slnf'
+      - 'Luxel.slnx'
+      - 'NuGet.config'
+      - 'assets/**'
+      - 'eng/check-gallery-ownership.py'
+      - 'eng/check-project-dependencies.py'
+      - 'eng/check-unit-test-solution-filter.py'
+      - 'eng/desktop/**'
+      - 'eng/project-architecture-baseline.json'
+      - 'eng/tests/**'
+      - 'gallery/GalleryNative/**'
+      - 'shaders/**'
+      - 'src/**'
+      - 'tests/Gallery/Luxel.Gallery.Native.Tests/**'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-gallery-native.yml'
+      - 'Directory.*'
+      - 'Luxel.UnitTests.slnf'
+      - 'Luxel.slnx'
+      - 'NuGet.config'
+      - 'assets/**'
+      - 'eng/check-gallery-ownership.py'
+      - 'eng/check-project-dependencies.py'
+      - 'eng/check-unit-test-solution-filter.py'
+      - 'eng/desktop/**'
+      - 'eng/project-architecture-baseline.json'
+      - 'eng/tests/**'
+      - 'gallery/GalleryNative/**'
+      - 'shaders/**'
+      - 'src/**'
+      - 'tests/Gallery/Luxel.Gallery.Native.Tests/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gallery-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  managed-architecture:
+    name: Managed contracts and architecture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate solution filter and architecture
+        run: |
+          python3 eng/check-unit-test-solution-filter.py
+          python3 eng/check-project-dependencies.py
+          python3 eng/check-gallery-ownership.py
+          python3 -m unittest discover -s eng/tests -p 'test_*.py' -v
+
+      - name: Restore Gallery Native managed tests
+        run: dotnet restore tests/Gallery/Luxel.Gallery.Native.Tests/Luxel.Gallery.Native.Tests.csproj
+
+      - name: Run Gallery Native managed tests
+        run: >-
+          dotnet test tests/Gallery/Luxel.Gallery.Native.Tests/Luxel.Gallery.Native.Tests.csproj
+          --configuration Release
+          --no-restore
+          --logger 'trx;LogFileName=gallery-native-managed.trx'
+          --results-directory artifacts/gallery-native-managed
+
+      - name: Upload managed-test failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gallery-native-managed-failure-${{ github.run_id }}
+          path: artifacts/gallery-native-managed/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+  linux-wayland-vulkan:
+    name: Linux Wayland and Vulkan validation
+    needs: managed-architecture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      LUXEL_DESKTOP_AUDIO: 'off'
+      LUXEL_DESKTOP_RENDERER: lavapipe
+      LUXEL_DESKTOP_STATE_DIR: ${{ runner.temp }}/luxel-gallery-desktop
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Install Wayland and Vulkan prerequisites
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            sway wayvnc novnc websockify wayland-utils grim wlr-randr \
+            fonts-dejavu-core fonts-noto-cjk mesa-vulkan-drivers libvulkan1 vulkan-tools \
+            libdecor-0-0 libdrm2 libgbm1 libgl1 libwayland-client0 libwayland-cursor0 \
+            libwayland-egl1 libxkbcommon0
+
+      - name: Restore Native Gallery
+        run: dotnet restore gallery/GalleryNative/GalleryNative.csproj
+
+      - name: Build Native Gallery
+        run: dotnet build gallery/GalleryNative/GalleryNative.csproj --configuration Release --no-restore
+
+      - name: Start deterministic Wayland desktop
+        run: eng/desktop/start.sh
+
+      - name: Run bounded Wayland and Vulkan GalleryApp smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1090
+          source "$LUXEL_DESKTOP_STATE_DIR/environment"
+          mkdir -p "$LUXEL_DESKTOP_STATE_DIR/logs" "$LUXEL_DESKTOP_STATE_DIR/screenshots"
+
+          eng/desktop/healthcheck.sh 2>&1 | tee "$LUXEL_DESKTOP_STATE_DIR/logs/healthcheck.log"
+
+          gallery_log="$LUXEL_DESKTOP_STATE_DIR/logs/gallery-native.log"
+          windows_json="$LUXEL_DESKTOP_STATE_DIR/logs/gallery-windows.json"
+          gallery_pid=''
+          cleanup_gallery() {
+            if [[ -n "$gallery_pid" ]] && kill -0 "$gallery_pid" 2>/dev/null; then
+              kill "$gallery_pid" 2>/dev/null || true
+              wait "$gallery_pid" 2>/dev/null || true
+            fi
+          }
+          trap cleanup_gallery EXIT
+
+          timeout --signal=TERM 35s dotnet run \
+            --project gallery/GalleryNative/GalleryNative.csproj \
+            --configuration Release --no-build --no-restore -- vk 5180 15 \
+            >"$gallery_log" 2>&1 &
+          gallery_pid=$!
+
+          ready=0
+          for _ in $(seq 1 120); do
+            if curl --fail --silent --show-error http://127.0.0.1:5180/windows >"$windows_json"; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$gallery_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 0.25
+          done
+          if [[ "$ready" -ne 1 ]]; then
+            tail -n 120 "$gallery_log" >&2 || true
+            exit 1
+          fi
+
+          test -s "$windows_json"
+          eng/desktop/screenshot.sh "$LUXEL_DESKTOP_STATE_DIR/screenshots/gallery-native.png"
+          set +e
+          wait "$gallery_pid"
+          gallery_status=$?
+          set -e
+          gallery_pid=''
+          trap - EXIT
+          if [[ "$gallery_status" -ne 0 && "$gallery_status" -ne 124 ]]; then
+            tail -n 120 "$gallery_log" >&2 || true
+            exit "$gallery_status"
+          fi
+          if ! grep -q 'gallery: shutting down' "$gallery_log"; then
+            tail -n 120 "$gallery_log" >&2 || true
+            exit 1
+          fi
+
+          {
+            echo '### Native Gallery Linux scope'
+            echo
+            echo 'Validated a bounded GalleryApp startup on the repository Wayland desktop using Vulkan through lavapipe.'
+            echo 'This is a runtime smoke with a diagnostic screenshot, not story-golden or complete shell-golden regression coverage.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop test desktop
+        if: always()
+        run: eng/desktop/stop.sh
+
+      - name: Upload Linux Native validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gallery-native-linux-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/luxel-gallery-desktop/logs/**
+            ${{ runner.temp }}/luxel-gallery-desktop/screenshots/**
+          if-no-files-found: ignore
+          retention-days: 14

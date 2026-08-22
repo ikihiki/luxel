@@ -1,10 +1,9 @@
 using Microsoft.Playwright;
-using Microsoft.Playwright.Xunit;
 using static Microsoft.Playwright.Assertions;
 
 namespace Luxel.Gallery.Browser.E2E.Tests;
 
-public sealed class GalleryShellUxTests : PageTest
+public sealed class GalleryShellUxTests : GalleryPageTest
 {
     [Fact]
     public async Task Japanese_shell_labels_and_theme_choice_persist_across_reload()
