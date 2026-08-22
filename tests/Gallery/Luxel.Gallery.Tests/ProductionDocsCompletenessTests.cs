@@ -131,8 +131,12 @@ public sealed class ProductionDocsCompletenessTests
             {
                 StoryInfo basic = Assert.IsType<StoryInfo>(catalog.Find(descriptor.BasicPath));
                 StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find(descriptor.PlaygroundPath));
-                Assert.True(ContainsJapanese(basic.CapabilityNote), $"{descriptor.BasicPath} needs a Japanese description.");
-                Assert.True(ContainsJapanese(playground.CapabilityNote), $"{descriptor.PlaygroundPath} needs a Japanese description.");
+                Assert.True(ContainsJapanese(basic.ShortDescription), $"{descriptor.BasicPath} needs a Japanese short description.");
+                Assert.True(ContainsJapanese(basic.LongDescription), $"{descriptor.BasicPath} needs a Japanese long description.");
+                Assert.True(ContainsJapanese(playground.ShortDescription), $"{descriptor.PlaygroundPath} needs a Japanese short description.");
+                Assert.True(ContainsJapanese(playground.LongDescription), $"{descriptor.PlaygroundPath} needs a Japanese long description.");
+                Assert.Null(basic.CapabilityNote);
+                Assert.Null(playground.CapabilityNote);
             }
         }
     }
@@ -153,7 +157,8 @@ public sealed class ProductionDocsCompletenessTests
         foreach (string path in paths)
         {
             StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(path));
-            Assert.True(ContainsJapanese(story.CapabilityNote), $"{path} needs a Japanese description.");
+            Assert.True(ContainsJapanese(story.ShortDescription), $"{path} needs a Japanese description.");
+            Assert.Null(story.CapabilityNote);
         }
     }
 

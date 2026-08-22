@@ -1,4 +1,5 @@
 using Luxel.Controls;
+using Luxel.Gallery.Presentation;
 using Luxel.Typography;
 using Luxel.UI;
 using static Luxel.Controls.Kit;
@@ -9,7 +10,7 @@ namespace Luxel.Gallery;
 internal sealed class GalleryOutputPane(
     Signal<IReadOnlyList<StoryLogEntry>> entries,
     float width,
-    GalleryChromeTokens chrome) : CompositeControl
+    NativeGalleryChrome chrome) : CompositeControl
 {
     protected override Widget Build()
     {

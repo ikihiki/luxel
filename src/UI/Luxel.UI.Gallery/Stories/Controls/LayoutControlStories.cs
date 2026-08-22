@@ -63,7 +63,7 @@ public static class LayoutControlStories
     ];
 
     [Story(Path = "Controls/Collections/TreeView/Examples/Interactive", Args = nameof(TreeViewPlaygroundArgs),
-        CapabilityNote = "selected と filter を変更し、階層の選択・展開・絞り込みを確認する例です。")]
+        ShortDescription = "selected と filter を変更し、階層の選択・展開・絞り込みを確認する例です。")]
     public static StoryResult TreeViewPlayground(StoryContext ctx)
     {
         Signal<string> selected = ctx.Arg("selected", "docs/gpu/device",
@@ -275,7 +275,7 @@ public static class LayoutControlStories
     ];
 
     [Story(Path = "Controls/Collections/Tabs/Examples/Interactive", Args = nameof(TabsPlaygroundArgs),
-        CapabilityNote = "labels と selected を変更し、タブ見出しと内容の対応を確認する例です。")]
+        ShortDescription = "labels と selected を変更し、タブ見出しと内容の対応を確認する例です。")]
     public static StoryResult TabsPlayground(StoryContext ctx)
     {
         string[] labels = ctx.Arg("labels", "概要,設定,アクティビティ").Value

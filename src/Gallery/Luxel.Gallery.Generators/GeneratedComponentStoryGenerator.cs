@@ -538,20 +538,21 @@ public sealed class GeneratedComponentStoryGenerator : IIncrementalGenerator
             sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Basic"))
                 .Append(", static ctx => Basic_").Append(index).Append("(ctx), Source: ")
                 .Append(Lit(widget.TypeFq + " を型付きファクトリで構築する生成済み基本例。"))
-                .Append(", ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>(), CapabilityNote: ").Append(Lit(StoryDescription(widget, hasVisibleWidgetFixture, editable: false)))
+                .Append(", ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>()")
                 .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                 .Append("], Kind: global::Luxel.Gallery.StoryKind.Basic, ShortDescription: ")
                 .Append(Lit(CanonicalControlName(widget.ClassName) + " の基本的な表示例です。"))
+                .Append(", LongDescription: ").Append(Lit(StoryDescription(widget, hasVisibleWidgetFixture, editable: false)))
                 .AppendLine("));");
             if (!IsGalleryInfrastructure(widget))
                 sb.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(").Append(Lit(route + "/Playground"))
                     .Append(", static ctx => Playground_").Append(index).Append("(ctx), Source: ")
                     .Append(Lit(widget.TypeFq + " の引数を編集できる生成済みプレイグラウンド。"))
-                    .Append(", ArgDefinitions: Args_").Append(index).Append(", CapabilityNote: ")
-                    .Append(Lit(StoryDescription(widget, hasVisibleWidgetFixture, editable: true)))
+                    .Append(", ArgDefinitions: Args_").Append(index)
                     .Append(", RegistrationKind: global::Luxel.Gallery.StoryRegistrationKind.GeneratedComponentFallback, ProductionComponent: Descriptors[").Append(index)
                     .Append("], Kind: global::Luxel.Gallery.StoryKind.Playground, ShortDescription: ")
                     .Append(Lit(CanonicalControlName(widget.ClassName) + " の引数を変更して動作を確認できます。"))
+                    .Append(", LongDescription: ").Append(Lit(StoryDescription(widget, hasVisibleWidgetFixture, editable: true)))
                     .AppendLine("));");
         }
         sb.AppendLine("        }");

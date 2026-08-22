@@ -7,12 +7,16 @@
 @using Microsoft.JSInterop
 @using Luxel.Gallery
 @using Luxel.Gallery.Browser
+@using Luxel.Gallery.Presentation
+@using Luxel.UI
 @implements IDisposable
 @implements IAsyncDisposable
 @inject StoryCatalog Catalog
 @inject IServiceProvider Services
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+
+<style id="gallery-shared-tokens">@((MarkupString)GalleryChromeCss.RenderStyleSheet())</style>
 
 @if (_embedded)
 {
@@ -28,26 +32,26 @@ else
          @onkeydown="OnShellKeyDown">
         @if (!_compact)
         {
-        <button class="navigation-backdrop" type="button" tabindex="-1" aria-label="ナビゲーションを閉じる"
+        <button class="navigation-backdrop" type="button" tabindex="-1" aria-label="@GalleryLabels.CloseNavigation"
                 @onclick="CloseNavigationAsync"></button>
-        <aside id="gallery-navigation" class="gallery-sidebar" aria-label="ストーリーナビゲーション">
+        <aside id="gallery-navigation" class="gallery-sidebar" aria-label="@GalleryLabels.StoryNavigation">
             <header class="gallery-brand">
                 <span class="gallery-mark" aria-hidden="true">L</span>
                 <span><strong>Luxel</strong><small>コントロールギャラリー</small></span>
-                <button class="sidebar-close" type="button" title="ナビゲーションを閉じる"
-                        aria-label="ナビゲーションを閉じる" @onclick="CloseNavigationAsync">×</button>
+                <button class="sidebar-close" type="button" title="@GalleryLabels.CloseNavigation"
+                        aria-label="@GalleryLabels.CloseNavigation" @onclick="CloseNavigationAsync">×</button>
             </header>
             <label class="gallery-search">
                 <span aria-hidden="true">⌕</span>
-                <input id="gallery-story-search" type="search" placeholder="ストーリーを検索" aria-label="ストーリーを検索"
+                <input id="gallery-story-search" type="search" placeholder="@GalleryLabels.SearchStories" aria-label="@GalleryLabels.SearchStories"
                        @bind="_search" @bind:event="oninput" />
                 @if (!string.IsNullOrWhiteSpace(_search))
                 {
-                    <button type="button" title="検索内容をクリア" aria-label="検索内容をクリア" @onclick="ClearSearch">×</button>
+                    <button type="button" title="@GalleryLabels.ClearSearch" aria-label="@GalleryLabels.ClearSearch" @onclick="ClearSearch">×</button>
                 }
             </label>
-            <nav class="story-navigation" aria-label="ストーリーナビゲーション">
-                @{ IReadOnlyList<GalleryStoryTreeNode> tree = FilteredTree(); }
+            <nav class="story-navigation" aria-label="@GalleryLabels.StoryNavigation">
+                @{ IReadOnlyList<GalleryNavigationNode> tree = FilteredTree(); }
                 @if (tree.Count > 0)
                 {
                     <StoryTree Nodes="tree" ActivePath="@_story.Path" SearchActive="@(!string.IsNullOrWhiteSpace(_search))"
@@ -55,10 +59,10 @@ else
                 }
                 else
                 {
-                    <p class="empty-search">一致するストーリーはありません。</p>
+                    <p class="empty-search">@GalleryLabels.NoStories</p>
                 }
             </nav>
-            <footer class="gallery-sidebar-footer">ストーリー @Catalog.All.Count 件</footer>
+            <footer class="gallery-sidebar-footer">@StoryCountLabel()</footer>
         </aside>
         }
 
@@ -67,16 +71,41 @@ else
             {
             <header class="story-toolbar">
                 <button id="gallery-navigation-toggle" class="mobile-navigation-toggle" type="button"
-                        aria-label="@(_navigationOpen ? "ナビゲーションを閉じる" : "ナビゲーションを開く")" aria-controls="gallery-navigation"
+                        aria-label="@(_navigationOpen ? GalleryLabels.CloseNavigation : GalleryLabels.OpenNavigation)" aria-controls="gallery-navigation"
                         aria-expanded="@(_navigationOpen ? "true" : "false")" @onclick="ToggleNavigationAsync">
                     <span aria-hidden="true">☰</span>
                 </button>
                 <div class="story-toolbar-heading">
-                    <p>@_story.Component</p>
-                    <h1>@_story.Name</h1>
+                    <p class="story-component">@_story.Component</p>
+                    <h1>@StoryDisplayLabel()</h1>
+                    @if (!string.IsNullOrWhiteSpace(_story.ShortDescription))
+                    {
+                        <p class="story-short-description">@_story.ShortDescription</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_story.LongDescription))
+                    {
+                        <p class="story-long-description">@_story.LongDescription</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_story.CapabilityNote))
+                    {
+                        <aside class="story-capability-warning" role="note">
+                            <strong>@GalleryLabels.CapabilityWarning</strong><span>@_story.CapabilityNote</span>
+                        </aside>
+                    }
                 </div>
                 <div class="story-toolbar-actions">
-                    <GalleryThemePicker Value="@_shellTheme" ValueChanged="SetShellThemeAsync" />
+                    <div class="story-theme-controls">
+                        <GalleryThemePicker Value="@_shellTheme" Label="@GalleryLabels.ShellTheme"
+                                            AriaLabel="@GalleryLabels.ShellTheme" ValueChanged="SetShellThemeAsync" />
+                        <GalleryThemePicker Value="@_previewTheme" Label="@GalleryLabels.PreviewTheme"
+                                            AriaLabel="@GalleryLabels.PreviewTheme" IncludeSystem="false"
+                                            ValueChanged="SetPreviewThemeAsync" />
+                        <button class="theme-synchronization" type="button"
+                                aria-pressed="@(_synchronizePreviewTheme ? "true" : "false")"
+                                title="@GalleryLabels.SynchronizePreviewTheme" @onclick="TogglePreviewThemeSynchronizationAsync">
+                            <span aria-hidden="true">↔</span><span>@GalleryLabels.SynchronizePreviewTheme</span>
+                        </button>
+                    </div>
                     <a class="open-alone" href="@EmbeddedStoryHref(_story.Path, _argsJson)" target="_blank" rel="noopener"
                        title="プレビューを新しいタブで開く">プレビューを開く <span aria-hidden="true">↗</span></a>
                 </div>
@@ -108,7 +137,7 @@ else
             else
             {
                 <div class="story-workspace" @ref="_workspace">
-                    <section class="story-preview" aria-label="ストーリープレビュー">
+                    <section class="story-preview" aria-label="@GalleryLabels.Preview" data-label="@GalleryLabels.Preview">
                         @if (_compact)
                         {
                             <canvas id="luxel-canvas" tabindex="0" aria-label="Luxel browser WebGPU"></canvas>
@@ -240,8 +269,10 @@ else
     private bool _embedded;
     private bool _compact;
     private bool _navigationOpen;
-    private bool _shellThemeLoaded;
+    private bool _appearanceLoaded;
+    private bool _synchronizePreviewTheme;
     private string _shellTheme = "system";
+    private string _previewTheme = "light";
     private string _argsJson = "{}";
     private string _search = "";
     private string? _documentHtml;
@@ -254,6 +285,7 @@ else
     private int _sentRevision;
     private int _revision;
     private StoryInfo _story = null!;
+    private GalleryNavigationModel _navigation = null!;
     private IReadOnlyList<StoryInfo> _displayStories = Array.Empty<StoryInfo>();
     private IReadOnlyList<StoryArgDefinition> _argDefinitions = Array.Empty<StoryArgDefinition>();
     private Dictionary<string, JsonElement> _argValues = new(StringComparer.Ordinal);
@@ -272,7 +304,8 @@ else
 
     protected override void OnInitialized()
     {
-        _displayStories = StoryPresentationOrder.Apply(Catalog.All);
+        _navigation = GalleryNavigationBuilder.Build(Catalog);
+        _displayStories = _navigation.Stories.Select(story => story.Info).ToArray();
         LoadLocation(Navigation.Uri);
         if (!_embedded) Navigation.LocationChanged += OnLocationChanged;
     }
@@ -300,10 +333,14 @@ else
         }
 
         _galleryHostModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
-        if (!_shellThemeLoaded)
+        if (!_appearanceLoaded)
         {
             _shellTheme = await _galleryHostModule.InvokeAsync<string>("getShellTheme");
-            _shellThemeLoaded = true;
+            _previewTheme = await _galleryHostModule.InvokeAsync<string>("getPreviewTheme");
+            _synchronizePreviewTheme = await _galleryHostModule.InvokeAsync<bool>("getPreviewThemeSynchronization");
+            if (_synchronizePreviewTheme)
+                _previewTheme = await _galleryHostModule.InvokeAsync<string>("getResolvedShellTheme");
+            _appearanceLoaded = true;
             StateHasChanged();
         }
         if (_galleryHostReceiver is null)
@@ -314,6 +351,7 @@ else
         if (_documentHtml is null)
         {
             await _galleryHostModule.InvokeVoidAsync("configure", _runtimeFrame, _story.Path, _runtimeInstance);
+            await _galleryHostModule.InvokeVoidAsync("applyPreviewTheme", _previewTheme);
             await SendArgsAsync();
             await _galleryHostModule.InvokeVoidAsync("wireSplitter", _workspace, _splitter);
         }
@@ -495,18 +533,59 @@ else
         }
     }
 
-    private IReadOnlyList<GalleryStoryTreeNode> FilteredTree()
+    private IReadOnlyList<GalleryNavigationNode> FilteredTree()
     {
         string needle = _search.Trim();
-        IEnumerable<StoryInfo> stories = _displayStories;
-        if (needle.Length > 0)
-            stories = stories.Where(story => SearchText(story).Contains(needle, StringComparison.OrdinalIgnoreCase));
-        return GalleryStoryTree.Build(stories);
+        return needle.Length == 0 ? _navigation.Categories : FilterNodes(_navigation.Categories, needle);
+    }
+
+    private IReadOnlyList<GalleryNavigationNode> FilterNodes(
+        IReadOnlyList<GalleryNavigationNode> nodes,
+        string needle)
+    {
+        var filtered = new List<GalleryNavigationNode>();
+        foreach (GalleryNavigationNode node in nodes)
+        {
+            bool nodeMatches = node.DisplayLabel.Contains(needle, StringComparison.OrdinalIgnoreCase)
+                || node.CanonicalPath.Contains(needle, StringComparison.OrdinalIgnoreCase);
+            bool storyMatches = node.Story is { Info: { } story }
+                && SearchText(story).Contains(needle, StringComparison.OrdinalIgnoreCase);
+            IReadOnlyList<GalleryNavigationNode> children = nodeMatches
+                ? node.Children
+                : FilterNodes(node.Children, needle);
+            if (nodeMatches || storyMatches || children.Count > 0)
+                filtered.Add(node with { Children = children });
+        }
+        return filtered;
     }
 
     private string SearchText(StoryInfo story)
-        => string.Join('\n', story.Path, story.Name, story.Component, story.Source ?? "", story.CapabilityNote ?? "",
-            string.Join('\n', Catalog.AliasesFor(story.Path)));
+    {
+        var parts = new List<string?>
+        {
+            story.Path,
+            story.Name,
+            story.Component,
+            story.Source,
+            story.ShortDescription,
+            story.LongDescription,
+            story.CapabilityNote,
+            string.Join('\n', Catalog.AliasesFor(story.Path)),
+        };
+        if (story.ProductionComponent is { } descriptor
+            && ControlApiRegistry.Find(descriptor.ControlName) is { } api)
+        {
+            parts.Add(api.FullName);
+            parts.Add(api.Summary);
+            foreach (ApiMember member in api.Members)
+            {
+                parts.Add(member.Name);
+                parts.Add(member.Type);
+                parts.Add(member.Description);
+            }
+        }
+        return string.Join('\n', parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+    }
 
     private static string StoryHref(string path) => "?story=" + Uri.EscapeDataString(path);
 
@@ -529,6 +608,25 @@ else
         _shellTheme = theme;
         _galleryHostModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
         await _galleryHostModule.InvokeAsync<string>("setShellTheme", theme);
+        if (_synchronizePreviewTheme)
+            _previewTheme = await _galleryHostModule.InvokeAsync<string>("getResolvedShellTheme");
+    }
+
+    private async Task SetPreviewThemeAsync(string theme)
+    {
+        if (theme is not ("light" or "dark")) return;
+        _previewTheme = theme;
+        _synchronizePreviewTheme = false;
+        _galleryHostModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
+        await _galleryHostModule.InvokeVoidAsync("setPreviewTheme", theme);
+    }
+
+    private async Task TogglePreviewThemeSynchronizationAsync()
+    {
+        _synchronizePreviewTheme = !_synchronizePreviewTheme;
+        _galleryHostModule ??= await JS.InvokeAsync<IJSObjectReference>("import", "./gallery-host.js");
+        _previewTheme = await _galleryHostModule.InvokeAsync<string>(
+            "setPreviewThemeSynchronization", _synchronizePreviewTheme);
     }
 
     private async Task ToggleNavigationAsync()
@@ -553,12 +651,18 @@ else
         await _galleryHostModule.InvokeVoidAsync("focusElement", id);
     }
 
-    private Task SelectStory(StoryInfo story)
+    private Task SelectStory(string path)
     {
         _navigationOpen = false;
-        if (story.Path != _story.Path) Navigation.NavigateTo(StoryHref(story.Path), forceLoad: false);
+        if (path != _story.Path && Catalog.Find(path) is not null)
+            Navigation.NavigateTo(StoryHref(path), forceLoad: false);
         return Task.CompletedTask;
     }
+
+    private string StoryDisplayLabel()
+        => _navigation.FindNode(_story.Path)?.DisplayLabel ?? _story.Name;
+
+    private string StoryCountLabel() => GalleryLabels.StoryCount(_navigation.Stories.Count);
 
     private void SelectTab(string tab) => _activeTab = tab;
     private void OnTabKeyDown(KeyboardEventArgs eventArgs, string tab)
@@ -575,9 +679,9 @@ else
     }
     private static string TabLabel(string tab) => tab switch
     {
-        "Args" => "引数",
-        "Output" => "出力",
-        "Source" => "ソース",
+        "Args" => GalleryLabels.Arguments,
+        "Output" => GalleryLabels.Output,
+        "Source" => GalleryLabels.Source,
         _ => tab,
     };
     private static string TabId(string tab) => "story-tab-" + tab.ToLowerInvariant();
@@ -619,12 +723,12 @@ else
         && value.ValueKind is JsonValueKind.True or JsonValueKind.False && value.GetBoolean();
     private static string OutputKindLabel(string kind) => kind switch
     {
-        "args" => "引数",
+        "args" => GalleryLabels.Arguments,
         "event" => "イベント",
-        "error" => "エラー",
+        "error" => GalleryLabels.Error,
         _ => kind,
     };
-    private string RuntimeStateLabel() => _runtimeState switch { "pass" => "準備完了", "fail" => "失敗", _ => "読み込み中" };
+    private string RuntimeStateLabel() => _runtimeState switch { "pass" => "準備完了", "fail" => "失敗", _ => GalleryLabels.Loading };
     private string SourceText() => !string.IsNullOrWhiteSpace(_story.Source) ? _story.Source : "ソースを表示できません。";
     private static string MessageErrors(JsonElement message) => message.TryGetProperty("errors", out JsonElement errors)
         ? string.Join("\n", errors.EnumerateArray().Select(error => error.GetString() ?? error.GetRawText()))

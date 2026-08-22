@@ -1,3 +1,4 @@
+using Luxel.Gallery.Presentation;
 using Luxel.Settings;
 using Luxel.UI;
 
@@ -16,15 +17,15 @@ internal sealed class GalleryAppearanceState
     public GalleryAppearanceState(IFileStore files)
     {
         _settings = SettingsStore.LoadFrom(files, SettingsFileName);
-        ShellTheme = _settings.Get(ShellThemeKey, GalleryThemeMode.Dark);
-        PreviewTheme = _settings.Get(PreviewThemeKey, GalleryThemeMode.Light);
+        ShellTheme = _settings.Get(ShellThemeKey, GalleryAppearance.Dark);
+        PreviewTheme = _settings.Get(PreviewThemeKey, GalleryAppearance.Light);
         SynchronizePreview = _settings.Get(SynchronizePreviewKey, false);
         if (SynchronizePreview.Peek()) PreviewTheme.Value = ShellTheme.Peek();
         _settings.AutoSave = true;
     }
 
-    public Signal<GalleryThemeMode> ShellTheme { get; }
-    public Signal<GalleryThemeMode> PreviewTheme { get; }
+    public Signal<GalleryAppearance> ShellTheme { get; }
+    public Signal<GalleryAppearance> PreviewTheme { get; }
     public Signal<bool> SynchronizePreview { get; }
 
     public void ToggleShellTheme()
@@ -46,6 +47,6 @@ internal sealed class GalleryAppearanceState
         if (synchronize) PreviewTheme.Value = ShellTheme.Peek();
     }
 
-    private static GalleryThemeMode Opposite(GalleryThemeMode mode)
-        => mode == GalleryThemeMode.Dark ? GalleryThemeMode.Light : GalleryThemeMode.Dark;
+    private static GalleryAppearance Opposite(GalleryAppearance mode)
+        => mode == GalleryAppearance.Dark ? GalleryAppearance.Light : GalleryAppearance.Dark;
 }

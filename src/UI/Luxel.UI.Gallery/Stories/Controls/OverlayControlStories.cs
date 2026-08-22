@@ -16,7 +16,7 @@ public static class OverlayControlStories
             new Signal<int>(0), width: 380, height: 160));
 
     [Story(Path = "Controls/Collections/Tabs/Examples/SelectionChanged",
-        CapabilityNote = "selected の変更と、選択したタブ内容の操作を確認する例です。")]
+        ShortDescription = "selected の変更と、選択したタブ内容の操作を確認する例です。")]
     public static StoryResult TabsEvnet(StoryContext ctx)
     => Frame(Tabs(["1つ目", "2つ目", "3つ目"],
         [
@@ -44,7 +44,7 @@ public static class OverlayControlStories
         MenuRow("Open...", _ => { }, width: 220);
 
     [Story(Path = "Controls/Overlay/Dialog/Basic",
-        CapabilityNote = "open Signal、Escape、起点ボタンによる開閉経路を確認する基本例です。")]
+        ShortDescription = "open Signal、Escape、起点ボタンによる開閉経路を確認する基本例です。")]
     public static StoryResult DialogBasic(StoryContext ctx)
     {
         Signal<bool> open = new(true);

@@ -13,7 +13,7 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Examples/2D")]
 public static class TwoDBrowserStories
 {
-    private const string BrowserNote = "Runs through the Gallery browser-WASM WebGPU runtime.";
+    private const string BrowserNote = "ブラウザー版 Gallery の WebAssembly / WebGPU 実行環境で描画します。";
 
     public static StoryResult SceneRender(StoryContext ctx)
     {

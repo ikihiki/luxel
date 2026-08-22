@@ -10,13 +10,23 @@ public static class GalleryLabels
     public const string Output = "出力";
     public const string Source = "ソース";
     public const string Actions = "操作";
+    public const string Tools = "ツール";
+    public const string Console = "コンソール";
     public const string Theme = "テーマ";
+    public const string ShellTheme = "画面テーマ";
+    public const string PreviewTheme = "プレビューテーマ";
     public const string Settings = "設定";
     public const string Search = "検索";
     public const string SearchStories = "ストーリーを検索";
+    public const string ClearSearch = "検索内容をクリア";
     public const string NoStories = "ストーリーが見つかりません";
+    public const string StoryNavigation = "ストーリーナビゲーション";
+    public const string OpenNavigation = "ナビゲーションを開く";
+    public const string CloseNavigation = "ナビゲーションを閉じる";
+    public const string SelectStory = "ストーリーを選択";
     public const string Loading = "読み込み中";
     public const string Warning = "警告";
+    public const string CapabilityWarning = "実行環境の注意";
     public const string Error = "エラー";
     public const string Copy = "コピー";
     public const string Copied = "コピーしました";
@@ -28,6 +38,7 @@ public static class GalleryLabels
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["Start"] = "はじめに",
+            ["Welcome"] = "ようこそ",
             ["Tutorials"] = "チュートリアル",
             ["Learn"] = "学ぶ",
             ["Controls"] = "コントロール",
@@ -60,6 +71,8 @@ public static class GalleryLabels
             ["Scripting"] = "スクリプティング",
             ["Graphics"] = "グラフィックス",
             ["Framework"] = "フレームワーク",
+            ["Platform"] = "プラットフォーム",
+            ["Particles"] = "パーティクル",
             ["Production"] = "プロダクション",
             ["Assets"] = "アセット",
             ["Physics"] = "物理",
@@ -72,6 +85,8 @@ public static class GalleryLabels
         ArgumentException.ThrowIfNullOrWhiteSpace(canonicalSegment);
         return RouteGroups.GetValueOrDefault(canonicalSegment, canonicalSegment);
     }
+
+    public static string StoryCount(int count) => $"{count} 件のストーリー";
 
     public static string AppearanceLabel(GalleryAppearance appearance) => appearance switch
     {

@@ -1,5 +1,5 @@
 using Luxel.Gallery;
-using Luxel.Graphics.TwoD;
+using Luxel.Gallery.Presentation;
 using Luxel.UI;
 using Luxel.Settings;
 
@@ -8,21 +8,21 @@ namespace Luxel.Gallery.Native.Tests;
 public sealed class GalleryChromeThemeTests
 {
     [Fact]
-    public void LightAndDarkThemesExposeDistinctExpectedTokens()
+    public void LightAndDarkThemesMapSharedSemanticTokens()
     {
-        Theme light = GalleryChromeTheme.Create(GalleryThemeMode.Light);
-        Theme dark = GalleryChromeTheme.Create(GalleryThemeMode.Dark);
-        GalleryChromeTokens lightChrome = GalleryChromeTheme.Tokens(GalleryThemeMode.Light);
-        GalleryChromeTokens darkChrome = GalleryChromeTheme.Tokens(GalleryThemeMode.Dark);
+        Theme light = GalleryChromeTheme.Create(GalleryAppearance.Light);
+        Theme dark = GalleryChromeTheme.Create(GalleryAppearance.Dark);
+        NativeGalleryChrome lightChrome = GalleryChromeTheme.Tokens(GalleryAppearance.Light);
+        NativeGalleryChrome darkChrome = GalleryChromeTheme.Tokens(GalleryAppearance.Dark);
 
-        Assert.Equal(Color2D.Rgba(0xf4, 0xf6, 0xf9), light.Background);
-        Assert.Equal(Color2D.Rgba(0x1e, 0x25, 0x30), light.Text);
-        Assert.Equal(Color2D.Rgba(0x0b, 0x10, 0x17), dark.Background);
-        Assert.Equal(Color2D.Rgba(0xe5, 0xed, 0xf7), dark.Text);
-        Assert.Equal(Color2D.Rgba(0xdb, 0xe8, 0xfc), lightChrome.AccentSoft);
-        Assert.Equal(Color2D.Rgba(0x18, 0x34, 0x5c), darkChrome.AccentSoft);
-        Assert.NotEqual(lightChrome.Search, darkChrome.Search);
-        Assert.NotEqual(lightChrome.PanelCode, darkChrome.PanelCode);
+        Assert.Equal(GalleryChromeTokens.Light.Background.Rgba, light.Background);
+        Assert.Equal(GalleryChromeTokens.Light.Text.Rgba, light.Text);
+        Assert.Equal(GalleryChromeTokens.Dark.Background.Rgba, dark.Background);
+        Assert.Equal(GalleryChromeTokens.Dark.Text.Rgba, dark.Text);
+        Assert.Equal(GalleryChromeTokens.Light.Selected.Rgba, lightChrome.AccentSoft);
+        Assert.Equal(GalleryChromeTokens.Dark.Selected.Rgba, darkChrome.AccentSoft);
+        Assert.Equal(GalleryChromeTokens.Light.CodeSurface.Rgba, lightChrome.PanelCode);
+        Assert.Equal(GalleryChromeTokens.Dark.Warning.Rgba, darkChrome.Warning);
     }
 
     [Fact]
@@ -31,20 +31,20 @@ public sealed class GalleryChromeThemeTests
         var files = new InMemoryFileStore();
         var state = new GalleryAppearanceState(files);
 
-        Assert.Equal(GalleryThemeMode.Dark, state.ShellTheme.Peek());
-        Assert.Equal(GalleryThemeMode.Light, state.PreviewTheme.Peek());
+        Assert.Equal(GalleryAppearance.Dark, state.ShellTheme.Peek());
+        Assert.Equal(GalleryAppearance.Light, state.PreviewTheme.Peek());
         Assert.False(state.SynchronizePreview.Peek());
 
         state.ToggleSynchronization();
         Assert.True(state.SynchronizePreview.Peek());
-        Assert.Equal(GalleryThemeMode.Dark, state.PreviewTheme.Peek());
+        Assert.Equal(GalleryAppearance.Dark, state.PreviewTheme.Peek());
         state.ToggleShellTheme();
-        Assert.Equal(GalleryThemeMode.Light, state.ShellTheme.Peek());
-        Assert.Equal(GalleryThemeMode.Light, state.PreviewTheme.Peek());
+        Assert.Equal(GalleryAppearance.Light, state.ShellTheme.Peek());
+        Assert.Equal(GalleryAppearance.Light, state.PreviewTheme.Peek());
 
         var reloaded = new GalleryAppearanceState(files);
-        Assert.Equal(GalleryThemeMode.Light, reloaded.ShellTheme.Peek());
-        Assert.Equal(GalleryThemeMode.Light, reloaded.PreviewTheme.Peek());
+        Assert.Equal(GalleryAppearance.Light, reloaded.ShellTheme.Peek());
+        Assert.Equal(GalleryAppearance.Light, reloaded.PreviewTheme.Peek());
         Assert.True(reloaded.SynchronizePreview.Peek());
     }
 }
@@ -52,40 +52,59 @@ public sealed class GalleryChromeThemeTests
 public sealed class NativeGalleryLabelTests
 {
     [Fact]
-    public void ShellAndStateSummariesAreJapaneseFirst()
+    public void ShellAndStateSummariesUseSharedJapaneseLabels()
     {
-        Assert.Equal("ストーリー", NativeGalleryLabels.Stories);
-        Assert.Equal("プレビュー", NativeGalleryLabels.Preview);
-        Assert.Equal("引数", NativeGalleryLabels.Arguments);
-        Assert.Equal("出力", NativeGalleryLabels.Output);
-        Assert.Equal("ソース", NativeGalleryLabels.Source);
+        Assert.Equal("ストーリー", GalleryLabels.Stories);
+        Assert.Equal("プレビュー", GalleryLabels.Preview);
+        Assert.Equal("引数", GalleryLabels.Arguments);
+        Assert.Equal("出力", GalleryLabels.Output);
+        Assert.Equal("ソース", GalleryLabels.Source);
         Assert.Contains("読み込", NativeGalleryLabels.LoadingSummary);
-        Assert.Contains("注意", NativeGalleryLabels.WarningSummary);
         Assert.Contains("エラー", NativeGalleryLabels.ErrorSummary);
-        Assert.Equal("引数", NativeRenderingLabels.Arguments);
+        Assert.Equal(GalleryLabels.Arguments, NativeRenderingLabels.Arguments);
         Assert.Equal("ソースを表示できません。", NativeRenderingLabels.SourceUnavailable);
     }
 
     [Fact]
-    public void NavigationLabelsTranslateShellTermsButPreserveApiIdentifiers()
+    public void SharedNavigationLabelsTranslateShellTermsButPreserveApiIdentifiers()
     {
-        Assert.Equal("ドキュメント", NativeGalleryLabels.NavigationSegment("Docs"));
-        Assert.Equal("プレイグラウンド", NativeGalleryLabels.NavigationSegment("Playground"));
-        Assert.Equal("アクセシビリティ", NativeGalleryLabels.NavigationSegment("Accessibility"));
-        Assert.Equal("Button", NativeGalleryLabels.NavigationSegment("Button"));
+        Assert.Equal("ドキュメント", GalleryLabels.RouteGroupLabel("Docs"));
+        Assert.Equal("プレイグラウンド", GalleryLabels.RouteGroupLabel("Playground"));
+        Assert.Equal("アクセシビリティ", GalleryLabels.RouteGroupLabel("Accessibility"));
+        Assert.Equal("Button", GalleryLabels.RouteGroupLabel("Button"));
         Assert.Contains("Controls/Button/Basic", NativeRenderingLabels.StoryNotFound("Controls/Button/Basic"));
     }
 
     [Fact]
     public void ThemeButtonsDescribeCurrentModesWithoutEnglishShellLabels()
     {
-        string shell = NativeGalleryLabels.ShellThemeButton(GalleryThemeMode.Dark);
-        string preview = NativeGalleryLabels.PreviewThemeButton(GalleryThemeMode.Light);
+        string shell = NativeGalleryLabels.ShellThemeButton(GalleryAppearance.Dark);
+        string preview = NativeGalleryLabels.PreviewThemeButton(GalleryAppearance.Light);
 
         Assert.Equal("画面: ダーク", shell);
         Assert.Equal("プレビュー: ライト", preview);
         Assert.DoesNotContain("Dark", shell, StringComparison.Ordinal);
         Assert.DoesNotContain("Light", preview, StringComparison.Ordinal);
+    }
+}
+
+public sealed class NativeGalleryNavigationAdoptionTests
+{
+    [Fact]
+    public void Component_nodes_use_shared_docs_targets_without_changing_story_paths()
+    {
+        StoryInfo docs = new("Controls/Input/Button/Docs", _ => null!, Kind: StoryKind.Docs);
+        StoryInfo basic = new("Controls/Input/Button/Basic", _ => null!, Kind: StoryKind.Basic);
+        StoryCatalog catalog = new StoryCatalogBuilder().Add(basic).Add(docs).Build();
+        using var app = new GalleryApp(catalog, new InMemoryFileStore());
+
+        GalleryNavigationNode component = Assert.IsType<GalleryNavigationNode>(
+            app.NavigationModel.FindNode("Controls/Input/Button"));
+        Assert.Equal(docs.Path, component.TargetPath);
+        Assert.Equal("ドキュメント", app.NavigationModel.FindNode(docs.Path)?.DisplayLabel);
+        Assert.Equal([basic.Path, docs.Path],
+            app.NavigationModel.Stories.Select(story => story.CanonicalPath).Order(StringComparer.Ordinal));
+        Assert.Same(docs.Build, app.NavigationModel.FindStory(docs.Path)?.Info.Build);
     }
 }
 

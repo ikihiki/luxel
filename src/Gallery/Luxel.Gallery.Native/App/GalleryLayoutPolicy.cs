@@ -17,7 +17,7 @@ internal static class GalleryLayoutPolicy
     public const float BaselineHeight = 640f;
     public const float CompactBreakpointWidth = 1040f;
     public const float CompactBreakpointHeight = 700f;
-    public const float ToolbarHeight = 68f;
+    public const float ToolbarHeight = 148f;
     public const float MinimumPreviewWidth = 280f;
     public const float MinimumPreviewHeight = 180f;
     public const float CompactToolsHeight = 190f;

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Luxel.AssetsGpu;
 using Luxel.Controls;
+using Luxel.Gallery.Presentation;
 using Luxel.Graphics.TwoD;
 using Luxel.Settings;
 using Luxel.UI;
@@ -28,6 +29,7 @@ public sealed class GalleryApp : IDisposable
     private const float SurfW = 2560, SurfH = 1440;
 
     private readonly StoryCatalog _catalog;
+    private readonly GalleryNavigationModel _navigation;
     private readonly IServiceProvider _storyServices;
     private readonly SurfaceView _preview = SurfaceView(SurfW, SurfH);
     private readonly Signal<Theme> _shellTheme;
@@ -73,6 +75,7 @@ public sealed class GalleryApp : IDisposable
     public GalleryApp(StoryCatalog catalog, IFileStore? playgroundFiles = null, Signal<Theme>? shellTheme = null)
     {
         _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+        _navigation = GalleryNavigationBuilder.Build(_catalog);
         playgroundFiles ??= new PhysicalFileStore(Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Luxel", "Gallery"));
         _storyServices = GalleryServices.WithFileStore(playgroundFiles);
@@ -87,6 +90,7 @@ public sealed class GalleryApp : IDisposable
     public StoryContext? Context => _ctx;
     public Theme ShellTheme => _shellTheme.Peek();
     public string? CurrentPath => _currentPath;
+    internal GalleryNavigationModel NavigationModel => _navigation;
     /// <summary>プレビューの子 UiHost (ストーリー側)。リモート検証用に UiRegistry へ登録する。</summary>
     public UiHost? StoryHost => _preview.Child;
 
@@ -227,9 +231,9 @@ public sealed class GalleryApp : IDisposable
 
     private static readonly (string Id, string Title)[] PaneDefs =
     [
-        ("stories", NativeGalleryLabels.Stories), ("preview", NativeGalleryLabels.Preview),
-        ("log", NativeGalleryLabels.Output), ("knobs", NativeGalleryLabels.Arguments),
-        ("source", NativeGalleryLabels.Source), ("tools", NativeGalleryLabels.Tools),
+        ("stories", GalleryLabels.Stories), ("preview", GalleryLabels.Preview),
+        ("log", GalleryLabels.Output), ("knobs", GalleryLabels.Arguments),
+        ("source", GalleryLabels.Source), ("tools", GalleryLabels.Tools),
     ];
 
     private void EnsureDock()
@@ -397,41 +401,16 @@ public sealed class GalleryApp : IDisposable
         float paneH = compact
             ? MathF.Max(40, GalleryLayoutPolicy.ToolsHeight(_layoutMode, _winH, _logH) - 36)
             : _winH;
-        GalleryChromeTokens chrome = Chrome;
-        // ---- サイドバー: StoryMeta のパス階層 + ストーリー検索 ----
-        // 展開状態 (_treeExpanded) は GalleryApp が所有 — chrome 再構築をまたいで保持。
-        // 初回は全 Component を展開 (従来の全件表示と同じ見え方から始める)。
+        NativeGalleryChrome chrome = Chrome;
+        // ---- サイドバー: shared navigation model + ストーリー検索 ----
+        // canonical path と delegate は StoryCatalog のまま、表示ラベルと Docs 既定遷移だけを共有 contract から得る。
         _docsIndex ??= DocsIndex.Build(_catalog.All, Resources, _catalog);
-        // 本家 Storybook と同じく、**パスのスラッシュ区切りがそのまま階層** (title 相当)。
-        // 末尾セグメント = ストーリー、手前 = フォルダ (章/コンポーネント/…、深さ任意)。
-        // 表示層のマップは持たない — 章替え/整理はパス改名 (+ golden の git mv) で行う。
-        var roots = new List<TreeNode>();
-        var folders = new Dictionary<string, List<TreeNode>>();   // "Examples/2D" → 子リスト
-        foreach (StoryInfo s in StoryPresentationOrder.Apply(_catalog.All))
-        {
-            string[] seg = s.Path.Split('/');
-            List<TreeNode> level = roots;
-            string prefix = "";
-            for (int i = 0; i < seg.Length - 1; i++)
-            {
-                prefix = i == 0 ? seg[0] : $"{prefix}/{seg[i]}";
-                if (!folders.TryGetValue(prefix, out List<TreeNode>? children))
-                {
-                    children = new List<TreeNode>();
-                    folders[prefix] = children;
-                    level.Add(new TreeNode($"g:{prefix}", NativeGalleryLabels.NavigationSegment(seg[i]), children));
-                    if (_treeInit && i == 0) _treeExpanded.Add($"g:{prefix}");   // 章 (トップ) だけ開く
-                }
-                level = children;
-            }
-            DocsPage? page = _docsIndex.GetValueOrDefault(s.Path);
-            level.Add(new TreeNode(s.Path, NativeGalleryLabels.NavigationSegment(s.Name), Tag: s, SearchText: page?.Text));
-        }
+        List<TreeNode> roots = BuildNavigationTree(_navigation.Categories, topLevel: true);
         _treeInit = false;
         TreeView tree = TreeView(roots, _treeExpanded,
             onSelect: (_, n) =>
             {
-                if (n.Tag is StoryInfo s) Select(s);
+                if (n.Tag is string path) SelectByPath(path);
             },
             selected: _currentPath ?? "", filter: _search,
             appearance: new TreeViewAppearance(
@@ -445,14 +424,14 @@ public sealed class GalleryApp : IDisposable
                 SelectedBackground: chrome.AccentSoft,
                 ChevronColor: chrome.TreeChevron));
         // Blazor 版と同じ検索 chrome。
-        _searchField ??= TextField(_search, NativeGalleryLabels.SearchPlaceholder, width: paneW - 28,
+        _searchField ??= TextField(_search, GalleryLabels.SearchStories, width: paneW - 28,
             background: chrome.Search, fontSize: 14)[
                 TextFieldSlot.Leading(() => Icon(IconKind.Search, iconSize: 16, stroke: 1.5f,
                     color: Bind.From(() => UiTheme.T.TextMuted))),
                 TextFieldSlot.Trailing(() => Tooltip(
                     Icon(IconKind.Close, iconSize: 14, stroke: 1.5f,
                         color: Bind.From(() => UiTheme.T.TextMuted), onClick: _ => _search.Value = ""),
-                    "検索内容を消去します。"))];
+                    GalleryLabels.ClearSearch))];
         _searchField.Width.SetOverride(MathF.Max(120, paneW - 28));
         _searchField.Background.SetOverride(chrome.Search);
         Widget searchInput = _searchField;
@@ -476,7 +455,7 @@ public sealed class GalleryApp : IDisposable
         Widget treeViewport = Border(padding: new Thickness(9, 0))[_sidebarScroll[tree]];
         Widget footer = VStack(0)[
             Border(background: Bind.From(() => UiTheme.T.BorderColor), height: 1),
-            Text(NativeGalleryLabels.StoryCount(_catalog.All.Count), 12,
+            Text(GalleryLabels.StoryCount(_navigation.Stories.Count), 12,
                 color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(16, 10))];
         Widget[] content = compact
             ? [searchBar, treeViewport]
@@ -484,48 +463,112 @@ public sealed class GalleryApp : IDisposable
         return Border(background: Bind.From(() => UiTheme.T.SurfaceAlt))[VStack(0)[content]];
     }
 
+    private List<TreeNode> BuildNavigationTree(
+        IReadOnlyList<GalleryNavigationNode> nodes,
+        bool topLevel = false)
+    {
+        var result = new List<TreeNode>(nodes.Count);
+        foreach (GalleryNavigationNode node in nodes)
+        {
+            List<TreeNode> children = BuildNavigationTree(node.Children);
+            string key = node.Kind == GalleryNavigationNodeKind.Story
+                ? node.CanonicalPath
+                : $"g:{node.CanonicalPath}";
+            if (_treeInit && topLevel) _treeExpanded.Add(key);
+            GalleryNavigationStory? story = node.Story
+                ?? (node.TargetPath is { } target ? _navigation.FindStory(target) : null);
+            result.Add(new TreeNode(
+                key,
+                node.DisplayLabel,
+                children,
+                Tag: node.TargetPath,
+                SearchText: NavigationSearchText(node, story)));
+        }
+        return result;
+    }
+
+    private string NavigationSearchText(GalleryNavigationNode node, GalleryNavigationStory? story)
+    {
+        var parts = new List<string?> { node.CanonicalPath, node.DisplayLabel };
+        if (story is not null)
+        {
+            parts.Add(story.ShortDescription);
+            parts.Add(story.LongDescription);
+            parts.Add(story.CapabilityNote);
+            parts.Add(string.Join('\n', story.Aliases));
+            parts.Add(_docsIndex?.GetValueOrDefault(story.CanonicalPath)?.Text);
+            if (story.ProductionComponent is { } descriptor
+                && ControlApiRegistry.Find(descriptor.ControlName) is { } api)
+            {
+                parts.Add(api.FullName);
+                parts.Add(api.Summary);
+                foreach (ApiMember member in api.Members)
+                {
+                    parts.Add(member.Name);
+                    parts.Add(member.Type);
+                    parts.Add(member.Description);
+                }
+            }
+        }
+        return string.Join('\n', parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+    }
+
     private Widget BuildPreviewPane()
     {
         // ---- ツールバー + プレビュー ----
-        GalleryChromeTokens chrome = Chrome;
-        GalleryThemeMode shellMode = _appearance.ShellTheme.Peek();
-        GalleryThemeMode previewMode = _appearance.PreviewTheme.Peek();
+        NativeGalleryChrome chrome = Chrome;
+        GalleryAppearance shellMode = _appearance.ShellTheme.Peek();
+        GalleryAppearance previewMode = _appearance.PreviewTheme.Peek();
         bool synchronize = _appearance.SynchronizePreview.Peek();
-        string component = _currentStory?.Component ?? NativeGalleryLabels.Stories;
+        string component = _currentStory?.Component ?? GalleryLabels.Stories;
         string name = _currentStory is null
-            ? NativeGalleryLabels.SelectStory
-            : NativeGalleryLabels.NavigationSegment(_currentStory.Name);
-        Widget title = Border(padding: new Thickness(22, 10, 0, 8))[VStack(2)[
-            Text(component.ToUpperInvariant(), 12, color: Bind.From(() => UiTheme.T.TextMuted)),
-            Text(name, 19, color: Bind.From(() => UiTheme.T.Text))]];
-        var actionItems = new List<Widget>();
+            ? GalleryLabels.SelectStory
+            : _navigation.FindNode(_currentStory.Path)?.DisplayLabel ?? _currentStory.Name;
+        float descriptionWidth = MathF.Max(220, MainW() - 560);
+        var titleItems = new List<Widget>
+        {
+            Text(component, 12, color: Bind.From(() => UiTheme.T.TextMuted)),
+            Text(name, 19, color: Bind.From(() => UiTheme.T.Text)),
+        };
+        if (!string.IsNullOrWhiteSpace(_currentStory?.ShortDescription))
+            titleItems.Add(Text(_currentStory.ShortDescription, 14, color: Bind.From(() => UiTheme.T.Text),
+                width: descriptionWidth, wrap: Luxel.Typography.TextWrap.Word));
+        if (!string.IsNullOrWhiteSpace(_currentStory?.LongDescription))
+            titleItems.Add(Text(_currentStory.LongDescription, 12, color: Bind.From(() => UiTheme.T.TextMuted),
+                width: descriptionWidth, wrap: Luxel.Typography.TextWrap.Word));
         if (!string.IsNullOrWhiteSpace(_currentStory?.CapabilityNote))
         {
-            actionItems.Add(Tooltip(
-                Border(background: Bind.From(() => UiTheme.T.Warning), rounded: 6,
-                    padding: new Thickness(8, 4))[Text("注意", 12, color: Theme.Light.Text)],
-                $"{NativeGalleryLabels.WarningSummary}\n{_currentStory!.CapabilityNote}"));
+            Widget warning = HStack(8)[
+                Text(GalleryLabels.CapabilityWarning, 12, color: chrome.Warning, width: 104),
+                Text(_currentStory.CapabilityNote, 12, color: Bind.From(() => UiTheme.T.Text),
+                    width: MathF.Max(100, descriptionWidth - 116), wrap: Luxel.Typography.TextWrap.Word)];
+            titleItems.Add(Border(background: chrome.Warning, padding: new Thickness(1), rounded: 6)[
+                Border(background: chrome.Panel, padding: new Thickness(8, 5), rounded: 5)[warning]]);
         }
-        actionItems.Add(Tooltip(
-            Button(_ => ToggleShellTheme(), NativeGalleryLabels.ShellThemeButton(shellMode),
-                variant: Luxel.UI.Variant.Ghost),
-            NativeGalleryLabels.ShellThemeTooltip(shellMode)));
-        actionItems.Add(Tooltip(
-            Button(_ => ToggleTheme(), NativeGalleryLabels.PreviewThemeButton(previewMode),
-                variant: Luxel.UI.Variant.Ghost),
-            NativeGalleryLabels.PreviewThemeTooltip(previewMode, synchronize)));
-        actionItems.Add(Tooltip(
-            Button(_ => ToggleThemeSynchronization(), NativeGalleryLabels.ThemeSynchronizationButton(synchronize),
-                variant: Luxel.UI.Variant.Ghost),
-            NativeGalleryLabels.ThemeSynchronizationTooltip(synchronize)));
-        actionItems.Add(Tooltip(
-            Button(_ => ToggleZen(), _zen ? NativeGalleryLabels.CloseCanvas : NativeGalleryLabels.OpenCanvas),
-            _zen ? "通常のドック表示へ戻ります。" : "ストーリーを広く表示し、下部ツールを一時的に隠します。"));
+        Widget title = Border(padding: new Thickness(22, 10, 0, 8))[VStack(3)[titleItems.ToArray()]];
+        var actionItems = new List<Widget>
+        {
+            Tooltip(
+                Button(_ => ToggleShellTheme(), NativeGalleryLabels.ShellThemeButton(shellMode),
+                    variant: Luxel.UI.Variant.Ghost),
+                NativeGalleryLabels.ShellThemeTooltip(shellMode)),
+            Tooltip(
+                Button(_ => ToggleTheme(), NativeGalleryLabels.PreviewThemeButton(previewMode),
+                    variant: Luxel.UI.Variant.Ghost),
+                NativeGalleryLabels.PreviewThemeTooltip(previewMode, synchronize)),
+            Tooltip(
+                Button(_ => ToggleThemeSynchronization(), NativeGalleryLabels.ThemeSynchronizationButton(synchronize),
+                    variant: Luxel.UI.Variant.Ghost),
+                NativeGalleryLabels.ThemeSynchronizationTooltip(synchronize)),
+            Tooltip(
+                Button(_ => ToggleZen(), _zen ? NativeGalleryLabels.CloseCanvas : NativeGalleryLabels.OpenCanvas),
+                _zen ? "通常のドック表示へ戻ります。" : "ストーリーを広く表示し、下部ツールを一時的に隠します。"),
+        };
         Widget actions = Border(padding: new Thickness(0, 12, 14, 10))[HStack(6)[actionItems.ToArray()]];
         actions.GridColumn(1);
         Widget toolbarContent = Border(background: chrome.Main)[
             Grid(columns: [GridLength.Star(1), GridLength.Auto])[title, actions]];
-        Widget toolbar = Grid(rows: [GridLength.Px(67), GridLength.Px(1)])[
+        Widget toolbar = Grid(rows: [GridLength.Px(GalleryLayoutPolicy.ToolbarHeight - 1), GridLength.Px(1)])[
             toolbarContent,
             Border(background: Bind.From(() => UiTheme.T.BorderColor), height: 1).GridRow(1)];
         toolbar.GridRow(0);
@@ -545,7 +588,7 @@ public sealed class GalleryApp : IDisposable
     private float BottomInnerH()
         => MathF.Max(24, GalleryLayoutPolicy.ToolsHeight(_layoutMode, _winH, _logH) - 66);
 
-    private GalleryChromeTokens Chrome => GalleryChromeTheme.Tokens(_appearance.ShellTheme.Peek());
+    private NativeGalleryChrome Chrome => GalleryChromeTheme.Tokens(_appearance.ShellTheme.Peek());
 
     private static Widget BottomPanel(Widget content) => Border(
         background: Bind.From(() => UiTheme.T.Surface), padding: new Thickness(16, 12, 16, 18))[content];
@@ -563,7 +606,7 @@ public sealed class GalleryApp : IDisposable
     {
         // Knobs (autodoc 風テーブル)。編集は StoryContext のキューへ (Update の PumpKnobEdits が適用)
         float paneW = MathF.Max(140, MainW());
-        GalleryChromeTokens chrome = Chrome;
+        NativeGalleryChrome chrome = Chrome;
         return BottomPanel(Scroll(BottomInnerH(), width: paneW - 32)[
             global::Luxel.Gallery.UI.Kit.KnobsTable(_ctx?.Knobs ?? [], width: paneW - 48,
                 appearance: new global::Luxel.Gallery.UI.KnobsTableAppearance(
@@ -627,7 +670,7 @@ public sealed class GalleryApp : IDisposable
     {
         float width = MathF.Max(140, MainW()) - 32;
         return BottomPanel(Tabs(
-            [NativeGalleryLabels.Interactions, NativeGalleryLabels.Console],
+            [GalleryLabels.Actions, GalleryLabels.Console],
             [BuildInteractionsPane(), BuildConsolePane()],
             _toolsTab,
             width: width,
@@ -638,7 +681,7 @@ public sealed class GalleryApp : IDisposable
     {
         float width = MathF.Max(140, MainW()) - 32;
         float height = BottomInnerH();
-        GalleryChromeTokens chrome = Chrome;
+        NativeGalleryChrome chrome = Chrome;
         return BottomPanel(Border(background: chrome.Border, padding: new Thickness(1),
             rounded: 7, clip: true, width: width, height: height)[
                 Border(background: chrome.PanelCode, width: width - 2, height: height - 2)[
@@ -891,14 +934,19 @@ public sealed class GalleryApp : IDisposable
     {
         _currentStory = story;
         _currentPath = story.Path;
-        // 選択したstoryが折りたたまれたfolder内でも必ず見えるよう、全ancestorを展開する。
-        string[] segments = story.Path.Split('/');
-        string prefix = "";
-        for (int i = 0; i < segments.Length - 1; i++)
-        {
-            prefix = i == 0 ? segments[i] : $"{prefix}/{segments[i]}";
-            _treeExpanded.Add($"g:{prefix}");
-        }
+        // shared navigation の ancestor を展開し、canonical path の split をホスト側で再実装しない。
+        foreach (GalleryNavigationNode category in _navigation.Categories)
+            ExpandNavigationAncestors(category, story.Path);
+    }
+
+    private bool ExpandNavigationAncestors(GalleryNavigationNode node, string storyPath)
+    {
+        bool contains = node.TargetPath == storyPath
+            || node.Story?.CanonicalPath == storyPath
+            || node.Children.Any(child => ExpandNavigationAncestors(child, storyPath));
+        if (contains && node.Kind != GalleryNavigationNodeKind.Story)
+            _treeExpanded.Add($"g:{node.CanonicalPath}");
+        return contains;
     }
 
     private void StorySelectionChanged()

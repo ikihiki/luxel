@@ -1,33 +1,33 @@
-/* Japanese-first, theme-aware Gallery shell. Loaded after the legacy layout rules. */
+/* Japanese-first Gallery shell. Shared semantic token values are injected by GalleryChromeCss. */
 :root {
   color-scheme: light;
   font-family: "Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-ui: "Yu Gothic UI", "Hiragino Sans", "Noto Sans JP", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  --shell-bg: #f3f5f8;
-  --sidebar: #ffffff;
-  --panel: #ffffff;
-  --panel-subtle: #f7f8fa;
-  --panel-hover: #eef2f7;
-  --panel-active: #e8f1ff;
-  --input: #ffffff;
-  --preview: #11151b;
-  --border: #d9dee7;
-  --border-strong: #bcc5d2;
-  --text: #20242a;
-  --text-strong: #111419;
-  --muted: #687385;
-  --muted-strong: #4f5b6c;
-  --accent: #1769c2;
-  --accent-hover: #0f58a7;
-  --accent-soft: #dcecff;
-  --focus: #0f6cbd;
-  --code: #f6f8fa;
-  --code-text: #273142;
-  --success: #147d4f;
-  --warning: #996515;
-  --danger: #b4232d;
-  --danger-soft: #fff0f1;
+  --shell-bg: var(--gallery-background, Canvas);
+  --sidebar: var(--gallery-surface, Canvas);
+  --panel: var(--gallery-surface, Canvas);
+  --panel-subtle: var(--gallery-elevated-surface, Canvas);
+  --panel-hover: var(--gallery-hover, Highlight);
+  --panel-active: var(--gallery-selected, Highlight);
+  --input: var(--gallery-args-editor-surface, Field);
+  --preview: var(--gallery-code-surface, Canvas);
+  --border: var(--gallery-border, GrayText);
+  --border-strong: var(--gallery-divider, GrayText);
+  --text: var(--gallery-text, CanvasText);
+  --text-strong: var(--gallery-text, CanvasText);
+  --muted: var(--gallery-muted-text, GrayText);
+  --muted-strong: var(--gallery-muted-text, GrayText);
+  --accent: var(--gallery-primary, LinkText);
+  --accent-hover: var(--gallery-focus, LinkText);
+  --accent-soft: var(--gallery-selected, Highlight);
+  --focus: var(--gallery-focus, Highlight);
+  --code: var(--gallery-code-surface, Canvas);
+  --code-text: var(--gallery-text, CanvasText);
+  --success: var(--gallery-success, CanvasText);
+  --warning: var(--gallery-warning, CanvasText);
+  --danger: var(--gallery-error, CanvasText);
+  --danger-soft: color-mix(in srgb, var(--danger) 10%, var(--panel));
   --shadow: 0 12px 36px rgb(29 42 62 / 14%);
   background: var(--shell-bg);
   color: var(--text);
@@ -35,30 +35,6 @@
 
 html[data-gallery-color-scheme="dark"] {
   color-scheme: dark;
-  --shell-bg: #0d1218;
-  --sidebar: #111820;
-  --panel: #121a23;
-  --panel-subtle: #0e151d;
-  --panel-hover: #192430;
-  --panel-active: #173455;
-  --input: #0b1219;
-  --preview: #0b1016;
-  --border: #293746;
-  --border-strong: #405166;
-  --text: #d8e1ec;
-  --text-strong: #f3f7fb;
-  --muted: #98a8ba;
-  --muted-strong: #b7c4d3;
-  --accent: #7bb4ff;
-  --accent-hover: #a0c9ff;
-  --accent-soft: #173454;
-  --focus: #86baff;
-  --code: #091018;
-  --code-text: #d5dfeb;
-  --success: #62c990;
-  --warning: #e2b76a;
-  --danger: #ff8d88;
-  --danger-soft: #281719;
   --shadow: 0 18px 48px rgb(0 0 0 / 38%);
 }
 
@@ -136,17 +112,24 @@ button, a, input, select, textarea, [tabindex]:not([tabindex="-1"]) { -webkit-ta
 .gallery-compact, .gallery-compact .gallery-main { background: var(--shell-bg); }
 .story-toolbar {
   z-index: 12;
-  min-height: 76px;
+  min-height: var(--gallery-toolbar-height, 76px);
+  align-items: flex-start;
   gap: 18px;
   padding: 11px 20px;
   border-color: var(--border);
   background: color-mix(in srgb, var(--panel) 93%, transparent);
   box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 35%, transparent);
 }
-.story-toolbar-heading { min-width: 0; margin-right: auto; }
-.story-toolbar p { margin-bottom: 4px; color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.story-toolbar h1 { overflow: hidden; color: var(--text-strong); font-size: 20px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
-.story-toolbar-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.story-toolbar-heading { min-width: 0; max-width: min(72ch, 100%); margin-right: auto; }
+.story-component { margin: 0 0 4px; color: var(--muted); font-size: 11px; letter-spacing: .06em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.story-toolbar h1 { overflow: hidden; margin: 0; color: var(--text-strong); font-size: 20px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.story-short-description, .story-long-description { max-width: 72ch; margin: 5px 0 0; overflow: visible; color: var(--text); letter-spacing: 0; text-overflow: clip; white-space: normal; }
+.story-short-description { font-size: 13px; font-weight: 600; line-height: 1.5; }
+.story-long-description { color: var(--muted-strong); font-size: 12px; line-height: 1.55; }
+.story-capability-warning { display: flex; max-width: 72ch; align-items: baseline; gap: 8px; margin-top: 7px; padding: 6px 8px; border: 1px solid color-mix(in srgb, var(--warning) 55%, var(--border)); border-radius: var(--gallery-radius, 6px); background: color-mix(in srgb, var(--warning) 9%, var(--panel)); color: var(--text); font-size: 12px; line-height: 1.5; }
+.story-capability-warning strong { flex: 0 0 auto; color: var(--warning); }
+.story-toolbar-actions { display: flex; align-items: flex-start; justify-content: flex-end; gap: 12px; }
+.story-theme-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .open-alone {
   display: inline-flex;
   min-height: 34px;
@@ -169,9 +152,13 @@ button, a, input, select, textarea, [tabindex]:not([tabindex="-1"]) { -webkit-ta
 .gallery-theme-picker button.active { background: var(--panel); color: var(--accent); box-shadow: 0 1px 3px rgb(20 30 45 / 12%); font-weight: 650; }
 .gallery-theme-picker button:focus-visible { outline-offset: 1px; }
 
+.theme-synchronization { display: inline-flex; min-height: 35px; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-subtle); color: var(--muted-strong); cursor: pointer; font-size: 10px; }
+.theme-synchronization:hover { border-color: var(--accent); background: var(--panel-hover); color: var(--text-strong); }
+.theme-synchronization[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 650; }
+
 .story-workspace { --story-panel-height: 290px; grid-template-rows: minmax(180px, 1fr) 8px minmax(170px, var(--story-panel-height)); }
 .story-preview, .story-runtime-frame { background: var(--preview); }
-.story-preview::before { content: "プレビュー"; position: absolute; z-index: 1; top: 10px; left: 12px; padding: 3px 7px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 999px; background: rgb(0 0 0 / 30%); color: rgb(255 255 255 / 72%); font-size: 9px; letter-spacing: .08em; pointer-events: none; }
+.story-preview::before { content: attr(data-label); position: absolute; z-index: 1; top: 10px; left: 12px; padding: 3px 7px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 999px; background: rgb(0 0 0 / 30%); color: rgb(255 255 255 / 72%); font-size: 9px; letter-spacing: .08em; pointer-events: none; }
 .story-preview:has(#luxel-canvas)::before { display: none; }
 .story-splitter { border-color: var(--border); background: var(--panel-subtle); }
 .story-splitter::after { top: 2px; height: 3px; background: var(--border-strong); }
@@ -298,9 +285,10 @@ button, a, input, select, textarea, [tabindex]:not([tabindex="-1"]) { -webkit-ta
   .theme-picker-label { display: none; }
   .gallery-theme-picker button { padding-inline: 6px; }
   .gallery-theme-picker button span:last-child { display: none; }
+  .theme-synchronization span:last-child { display: none; }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 1199px) {
   .gallery-shell { display: block; height: 100dvh; min-height: 0; overflow: hidden; }
   .gallery-sidebar {
     position: fixed;

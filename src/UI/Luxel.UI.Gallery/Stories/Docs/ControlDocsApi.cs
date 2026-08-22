@@ -116,7 +116,7 @@ internal static class ControlDocsApi
     public static IReadOnlyList<StoryArgDefinition> CounterSampleArgs() => InputControlStories.CounterArgs();
 
     [Story(Path = "Controls/Input/Button/Examples/Counter", Args = nameof(CounterSampleArgs),
-        CapabilityNote = "クリックによる count の更新と Args 連携を確認する操作可能な例です。")]
+        ShortDescription = "クリックによる count の更新と Args 連携を確認する操作可能な例です。")]
     public static StoryResult CounterSample(StoryContext ctx) => InputControlStories.ButtonCounter(ctx);
 
     private static StoryResult LayoutPage(StoryContext ctx)

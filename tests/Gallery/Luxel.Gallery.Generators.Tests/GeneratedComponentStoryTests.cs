@@ -153,8 +153,9 @@ public sealed class GeneratedComponentStoryTests
         Assert.Contains("StoryKind.Playground", generated, StringComparison.Ordinal);
         Assert.Contains("\"Controls/Input/Button/Playground\"", generated, StringComparison.Ordinal);
         Assert.Contains("ShortDescription: \"Button の概要、使い方、APIを確認します。\"", generated, StringComparison.Ordinal);
-        Assert.Contains("ShortDescription: \"Button の基本的な表示例です。\"", generated, StringComparison.Ordinal);
-        Assert.Contains("ShortDescription: \"Button の引数を変更して動作を確認できます。\"", generated, StringComparison.Ordinal);
+        Assert.Contains("ShortDescription: \"Button の基本的な表示例です。\", LongDescription:", generated, StringComparison.Ordinal);
+        Assert.Contains("ShortDescription: \"Button の引数を変更して動作を確認できます。\", LongDescription:", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Kind: global::Luxel.Gallery.StoryKind.Basic, ShortDescription: \"Button の基本的な表示例です。\", CapabilityNote:", generated, StringComparison.Ordinal);
         Assert.Contains("ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>()", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Controls/Button/Overview", generated, StringComparison.Ordinal);
         Assert.Contains("StoryArgDefinition.Create<string>(\"text\", \"string\", \"例\"", generated, StringComparison.Ordinal);

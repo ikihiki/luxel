@@ -1,9 +1,11 @@
-<div class="gallery-theme-picker" role="group" aria-label="表示テーマ">
-    <span class="theme-picker-label">表示</span>
-    @foreach (ThemeOption option in Options)
+@using Luxel.Gallery.Presentation
+
+<div class="gallery-theme-picker" role="group" aria-label="@AriaLabel">
+    <span class="theme-picker-label">@Label</span>
+    @foreach (ThemeOption option in VisibleOptions())
     {
         <button type="button" class="@(Value == option.Value ? "active" : null)"
-                aria-pressed="@(Value == option.Value ? "true" : "false")"
+                aria-label="@option.Label" aria-pressed="@(Value == option.Value ? "true" : "false")"
                 title="@option.Description" @onclick="() => ValueChanged.InvokeAsync(option.Value)">
             <span aria-hidden="true">@option.Icon</span><span>@option.Label</span>
         </button>
@@ -13,13 +15,19 @@
 @code {
     private static readonly ThemeOption[] Options =
     [
-        new("system", "システム", "◐", "OS の表示設定に合わせます。プレビューのテーマは変更しません。"),
-        new("light", "ライト", "☀", "ギャラリーの外観をライトにします。プレビューのテーマは変更しません。"),
-        new("dark", "ダーク", "☾", "ギャラリーの外観をダークにします。プレビューのテーマは変更しません。"),
+        new("system", GalleryLabels.AppearanceLabel(GalleryAppearance.System), "◐", "OS の表示設定に合わせます。"),
+        new("light", GalleryLabels.AppearanceLabel(GalleryAppearance.Light), "☀", "ライトテーマを使用します。"),
+        new("dark", GalleryLabels.AppearanceLabel(GalleryAppearance.Dark), "☾", "ダークテーマを使用します。"),
     ];
 
     [Parameter, EditorRequired] public string Value { get; set; } = "system";
+    [Parameter, EditorRequired] public string Label { get; set; } = GalleryLabels.Theme;
+    [Parameter, EditorRequired] public string AriaLabel { get; set; } = GalleryLabels.Theme;
+    [Parameter] public bool IncludeSystem { get; set; } = true;
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private IEnumerable<ThemeOption> VisibleOptions()
+        => IncludeSystem ? Options : Options.Where(option => option.Value != "system");
 
     private sealed record ThemeOption(string Value, string Label, string Icon, string Description);
 }
