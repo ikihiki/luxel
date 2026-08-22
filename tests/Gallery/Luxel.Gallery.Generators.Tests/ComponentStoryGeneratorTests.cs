@@ -11,7 +11,8 @@ public sealed class ComponentStoryGeneratorTests
     public void GeneratesStronglyTypedFactoryArgsApplyAndTemplate()
     {
         GeneratorDriverRunResult result = Run("""
-            [ComponentStory(typeof(Button), "Controls/Button/Playground", Factory = typeof(Kit), Template = nameof(Wrap))]
+            [ComponentStory(typeof(Button), "Controls/Button/Playground", Factory = typeof(Kit), Template = nameof(Wrap),
+                ShortDescription = "操作を確認します。", LongDescription = "引数を変更して比較します。")]
             [ComponentArg(nameof(Button.Text), "Click me")]
             [ComponentArg(nameof(Button.Variant), Variant.Filled)]
             [ComponentArg("Disabled", false, Apply = nameof(ApplyDisabled))]
@@ -31,6 +32,8 @@ public sealed class ComponentStoryGeneratorTests
         Assert.Contains("global::Demo.Playground.Wrap(component)", generated);
         Assert.DoesNotContain("GalleryXmlDocText.Resolve", generated, StringComparison.Ordinal);
         Assert.Contains("new global::Luxel.Gallery.ComponentStoryPreview", generated);
+        Assert.Contains("ShortDescription: \"操作を確認します。\"", generated);
+        Assert.Contains("LongDescription: \"引数を変更して比較します。\"", generated);
         Assert.DoesNotContain("Activator", generated);
         Assert.DoesNotContain("DynamicInvoke", generated);
         Assert.DoesNotContain("Reflection", generated);
@@ -72,7 +75,7 @@ public sealed class ComponentStoryGeneratorTests
                 public sealed class StoryContext { public Signal<T> Arg<T>(string name, T value, StoryArgOptions<T>? options = null) => new(); }
                 public sealed class StoryArgOptions<T> { public string? Description { get; init; } public int Order { get; init; } public double? Min { get; init; } public double? Max { get; init; } public double? Step { get; init; } }
                 public sealed class StoryResult { public static implicit operator StoryResult(Widget widget) => new(); }
-                public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Build, string? Source = null, bool RealWindowOnly = false, System.Collections.Generic.IReadOnlyList<object>? ArgDefinitions = null);
+                public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Build, string? Source = null, bool RealWindowOnly = false, System.Collections.Generic.IReadOnlyList<object>? ArgDefinitions = null, string? ShortDescription = null, string? LongDescription = null);
                 public sealed class StoryCatalog { public System.Collections.Generic.IReadOnlyList<StoryInfo> All => Array.Empty<StoryInfo>(); }
                 public sealed class StoryCatalogBuilder { public StoryCatalogBuilder Add(StoryInfo story) => this; public StoryCatalog Build() => new(); }
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
@@ -85,6 +88,7 @@ public sealed class ComponentStoryGeneratorTests
                 {
                     public Type? Factory { get; set; } public string? FactoryMethod { get; set; } public string? Template { get; set; }
                     public bool RealWindowOnly { get; set; }
+                    public string? ShortDescription { get; set; } public string? LongDescription { get; set; }
                 }
                 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
                 public sealed class ComponentArgAttribute(string member, object? defaultValue) : Attribute

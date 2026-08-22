@@ -9,7 +9,8 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls/Navigation")]
 public static class NavigationStories
 {
-    [Story(Path = "Controls/Collections/Navigation/Examples/History")]
+    [Story(Path = "Controls/Collections/Navigation/Examples/History",
+        ShortDescription = "Navigate、Replace、Back の履歴差を、現在パスと戻れる状態を見ながら比較します。")]
     public static StoryResult NavigationHistory(StoryContext ctx)
     {
         string[] paths = ["/", "/details", "/saved"];
@@ -29,7 +30,8 @@ public static class NavigationStories
             host]);
     }
 
-    [Story(Path = "Controls/Collections/NavigationView/Basic")]
+    [Story(Path = "Controls/Collections/NavigationView/Basic",
+        ShortDescription = "行き先一覧と NavigationHost を組み合わせ、選択と履歴で画面を切り替えます。")]
     public static StoryResult NavigationViewBasic(StoryContext ctx)
     {
         string[] paths = ["/", "/projects", "/settings", "/admin"];

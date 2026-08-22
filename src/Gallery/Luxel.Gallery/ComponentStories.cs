@@ -15,6 +15,8 @@ public sealed class ComponentStoryAttribute(Type componentType, string path) : A
     public string? FactoryMethod { get; set; }
     public string? Template { get; set; }
     public bool RealWindowOnly { get; set; }
+    public string? ShortDescription { get; set; }
+    public string? LongDescription { get; set; }
 }
 
 /// <summary>

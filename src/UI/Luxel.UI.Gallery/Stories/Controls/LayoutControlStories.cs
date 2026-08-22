@@ -10,12 +10,14 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls")]
 public static class LayoutControlStories
 {
-    [Story(Path = "Controls/Layout/Border/Basic")]
+    [Story(Path = "Controls/Layout/Border/Basic",
+        ShortDescription = "背景、角丸、内側余白を一つの境界面で所有し、子内容を包む基本例です。")]
     public static StoryResult BorderCard() =>
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 12, padding: new Thickness(20))
             [Label("Border content")];
 
-    [Story(Path = "Controls/Layout/Grid/Examples/Tracks")]
+    [Story(Path = "Controls/Layout/Grid/Examples/Tracks",
+        ShortDescription = "1:2:1 の列比率で、利用可能幅を重み付きトラックへ配分する挙動を示します。")]
     public static StoryResult GridColumns() =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
         [Grid(columns: [1, 2, 1])[
@@ -23,7 +25,8 @@ public static class LayoutControlStories
             Box(background: Tw.Amber500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(1),
             Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch, margin: new Thickness(4)).GridColumn(2)]];
 
-    [Story(Path = "Controls/Layout/Grid/Examples/AttachedUtilities")]
+    [Story(Path = "Controls/Layout/Grid/Examples/AttachedUtilities",
+        ShortDescription = "子側の attached utility から列位置と余白を宣言し、親 Grid と分担する例です。")]
     public static StoryResult GridAttachedUtilities() =>
         Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(16))
         [Grid(columns: [1, 2, 1])[
@@ -34,7 +37,8 @@ public static class LayoutControlStories
             Box(background: Tw.Green500, rounded: 6, hAlign: Align.Stretch, vAlign: Align.Stretch,
                 utilities: [U.Margin(new Thickness(4)), U.Grid.Column(2)])]];
 
-    [Story(Path = "Controls/Layout/Splitter/Basic")]
+    [Story(Path = "Controls/Layout/Splitter/Basic",
+        ShortDescription = "二つのペインの境界をドラッグし、呼び出し側へサイズ差分を返す基本例です。")]
     public static StoryResult SplitterBasic(StoryContext ctx) =>
         // 実アプリではドラッグ量 d でレイアウト変数を更新して chrome を再構築する
         // (GalleryApp のサイドバー/Log/右パネルがこの形)。ここでは delta を Log に流すのみ
@@ -43,7 +47,8 @@ public static class LayoutControlStories
             Splitter(vertical: true, onResized: (_, d) => ctx.Log($"drag {d:+0.0;-0.0}px")),
             Box(background: Tw.Amber500, rounded: 6, width: 170, height: 160)];
 
-    [Story(Path = "Controls/Collections/TreeView/Basic")]
+    [Story(Path = "Controls/Collections/TreeView/Basic",
+        ShortDescription = "階層データの展開と選択を外部状態で所有し、永続キーで更新する基本例です。")]
     public static StoryResult TreeViewBasic(StoryContext ctx)
     {
         // Key は展開/選択の永続キー (再構築をまたいで一意なパス文字列)。
@@ -77,16 +82,19 @@ public static class LayoutControlStories
                 selected: selected, filter: filter, onSelect: (_, node) => selected.Value = node.Key, width: 300)];
     }
 
-    [Story(Path = "Controls/Collections/TreeView/States/Selection")]
+    [Story(Path = "Controls/Collections/TreeView/States/Selection",
+        ShortDescription = "永続キーで選択を外部所有し、再構築後も同じノードを強調する状態を示します。")]
     public static StoryResult TreeViewSelection() => Frame(
         TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu" },
             selected: "docs/gpu/device", width: 300));
 
-    [Story(Path = "Controls/Collections/TreeView/States/Expanded")]
+    [Story(Path = "Controls/Collections/TreeView/States/Expanded",
+        ShortDescription = "展開キー集合を外部から与え、複数の枝を同時に開いた階層表示を示します。")]
     public static StoryResult TreeViewExpanded() => Frame(
         TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu", "docs/ui", "samples" }, width: 300));
 
-    [Story(Path = "Controls/Collections/TreeView/Examples/Utilities")]
+    [Story(Path = "Controls/Collections/TreeView/Examples/Utilities",
+        ShortDescription = "行高、間隔、インデント、選択色を調整し、密度と階層の読みやすさを比較します。")]
     public static StoryResult TreeViewUtilities() => Frame(
         TreeView(TreeRoots(), expanded: new HashSet<string> { "docs", "docs/gpu" }, width: 320, utilities:
         [
@@ -111,7 +119,50 @@ public static class LayoutControlStories
         new("samples", "Samples", [new("samples/gltf", "GltfBox", Tag: "page")]),
     ];
 
-    [Story(Path = "Controls/Collections/ScrollViewer/Basic")]
+
+    [Story(Path = "Controls/Collections/GridView/Basic", ArgsEnabled = false,
+        ShortDescription = "カード状の項目を複数列へ並べ、クリックとキーボードで選択する基本構成を示します。",
+        LongDescription = "固定サイズの項目と決定的なメモリ内データを使い、GridView の複数列配置、選択、無効項目を確認します。")]
+    public static StoryResult GridViewBasic(StoryContext ctx)
+    {
+        var items = new Signal<IReadOnlyList<GridViewItem>>(
+        [
+            new("design", "デザイン"),
+            new("code", "コード"),
+            new("audio", "オーディオ"),
+            new("scene", "シーン"),
+            new("build", "ビルド"),
+            new("locked", "ロック中", Disabled: true),
+        ]);
+        return GridView(items: items, height: 168, itemWidth: 112, itemHeight: 52,
+            onSelect: (_, item) => ctx.Log($"select: {item.Key}"), width: 336);
+    }
+
+    [Story(Path = "Controls/Collections/DataGrid/Basic", ArgsEnabled = false,
+        ShortDescription = "列見出しを持つ行データを表示し、行単位で選択する基本構成を示します。",
+        LongDescription = "型の異なる情報を文字列セルへ整形した決定的なデータで、列幅、行選択、無効行を確認します。")]
+    public static StoryResult DataGridBasic(StoryContext ctx)
+    {
+        var rows = new Signal<IReadOnlyList<DataGridRow>>(
+        [
+            new("renderer", ["Renderer", "実行中", "12 ms"]),
+            new("assets", ["Asset import", "待機", "3 件"]),
+            new("tests", ["UI tests", "成功", "148 件"]),
+            new("deploy", ["Deploy", "無効", "—"], Disabled: true),
+        ]);
+        return DataGrid(items: rows,
+            columns:
+            [
+                new("task", "タスク", 150),
+                new("state", "状態", 90),
+                new("detail", "詳細", 90),
+            ],
+            height: 150, rowHeight: 28,
+            onSelect: (_, row) => ctx.Log($"select: {row.Key}"), width: 330);
+    }
+
+    [Story(Path = "Controls/Collections/ScrollViewer/Basic",
+        ShortDescription = "表示領域より長い内容を縦へスクロールし、可視範囲だけを操作する基本例です。")]
     public static StoryResult ScrollBasic(StoryContext ctx)
     {
         var rows = Enumerable.Range(1, 20).Select(i => (Widget)Label($"Row {i}")).ToArray();
@@ -120,7 +171,8 @@ public static class LayoutControlStories
     }
 
     /// <summary>ヒットの transform 追従 + スクロールバードラッグの実証。クリックは Log にも記録。</summary>
-    [Story(Path = "Controls/Collections/ScrollViewer/Examples/Clickable")]
+    [Story(Path = "Controls/Collections/ScrollViewer/Examples/Clickable",
+        ShortDescription = "スクロール後も子ボタンの座標変換とヒット判定が一致することを確認します。")]
     public static StoryResult ScrollClickable(StoryContext ctx)
     {
         Signal<string> last = ctx.Signal("lastClicked", "(none)");
@@ -132,7 +184,8 @@ public static class LayoutControlStories
             Scroll(160f, width: 240)[VStack(4)[rows]]]);
     }
 
-    [Story(Path = "Controls/Collections/ListView/Basic")]
+    [Story(Path = "Controls/Collections/ListView/Basic",
+        ShortDescription = "多数の文字列項目を仮想化し、行選択を Output へ通知する基本例です。")]
     public static StoryResult ListViewBasic(StoryContext ctx)
     {
         // EV: コールバックはファクトリの省略可能引数 (第一引数 = 発火元)。items も UI パラメータ
@@ -141,7 +194,8 @@ public static class LayoutControlStories
         return lv;
     }
 
-    [Story(Path = "Controls/Collections/ListView/Examples/Reorder")]
+    [Story(Path = "Controls/Collections/ListView/Examples/Reorder",
+        ShortDescription = "並べ替え要求を受けて外部の items Signal を更新し、データ所有を分離する例です。")]
     public static StoryResult ListViewReorder(StoryContext ctx)
     {
         // D&D 並べ替え (QP-M4): 行をドラッグ → 挿入位置インジケータ → ドロップで OnReorder。
@@ -164,7 +218,8 @@ public static class LayoutControlStories
         return Frame(lv);
     }
 
-    [Story(Path = "Controls/Collections/ListView/Test/Huge")]
+    [Story(Path = "Controls/Collections/ListView/Test/Huge",
+        ShortDescription = "10 万件の入力でも可視行だけを実体化し、選択とスクロールを維持する検証用です。")]
     public static StoryResult ListViewHuge(StoryContext ctx)
     {
         // 仮想化ゲート (AP-M3): 10 万行でも実体化は可視行プールのみ、スクロール/選択が破綻しない
@@ -173,7 +228,8 @@ public static class LayoutControlStories
         return Frame(lv);
     }
 
-    [Story(Path = "Controls/Layout/Layout/Examples/Units")]
+    [Story(Path = "Controls/Layout/Layout/Examples/Units",
+        ShortDescription = "px、%、em、vw を同じ親幅で比較し、Length 単位の基準を確認します。")]
     public static StoryResult LayoutUnits() => Frame(
         Border(background: Bind.From(() => UiTheme.T.Surface), rounded: 8, padding: new Thickness(8), width: 400)[
             VStack(6)[
@@ -182,7 +238,8 @@ public static class LayoutControlStories
                 Box(background: Tw.Green500, rounded: 4, width: "10em", height: 18),
                 Box(background: Tw.Red500, rounded: 4, width: "25vw", height: 18)]]);
 
-    [Story(Path = "Controls/Layout/WrapPanel/Basic")]
+    [Story(Path = "Controls/Layout/WrapPanel/Basic",
+        ShortDescription = "幅の異なる子を利用可能幅で折り返し、行間と列間を一定に保ちます。")]
     public static StoryResult WrapBasic() =>
         Wrap(8, 8, width: 300f)[
             Enumerable.Range(1, 12).Select(i => (Widget)Box(
@@ -197,18 +254,21 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("height", "float", 96f, "高さ (px)。", min: 24, max: 280, step: 8),
     ];
 
-    [Story(Path = "Controls/Layout/Box/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Box/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs),
+        ShortDescription = "背景色、角丸、幅、高さを変更し、単一面の視覚と寸法を調整します。")]
     public static StoryResult BoxPlayground(StoryContext ctx) => Box(
         background: ctx.Arg("background", Tw.Blue500), rounded: ctx.Arg("rounded", 10f),
         width: ctx.Arg("width", 180f).Value, height: ctx.Arg("height", 96f).Value);
 
-    [Story(Path = "Controls/Layout/Border/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Border/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs),
+        ShortDescription = "余白を持つ子コンテンツを包み、背景、角丸、外寸の関係を確認します。")]
     public static StoryResult BorderPlayground(StoryContext ctx) => Border(
         background: ctx.Arg("background", Tw.Blue500), rounded: ctx.Arg("rounded", 10f),
         padding: new Thickness(20), width: ctx.Arg("width", 180f).Value, height: ctx.Arg("height", 96f).Value)
         [Label("Border child fixture")];
 
-    [Story(Path = "Controls/Layout/Center/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Center/Examples/Interactive", Args = nameof(LayoutBoxPlaygroundArgs),
+        ShortDescription = "指定した領域の中央へ子を配置し、親寸法を変えたときの余白配分を確認します。")]
     public static StoryResult CenterPlayground(StoryContext ctx)
     {
         Signal<uint> background = ctx.Arg("background", Tw.Blue500);
@@ -225,7 +285,8 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("spacing", "float", 10f, "子要素間の間隔。", min: 0, max: 48, step: 1),
     ];
 
-    [Story(Path = "Controls/Layout/Stack/Examples/Interactive", Args = nameof(StackPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Stack/Examples/Interactive", Args = nameof(StackPlaygroundArgs),
+        ShortDescription = "並び方向と間隔を切り替え、一次元レイアウトの構造変化を確認します。")]
     public static StoryResult StackPlayground(StoryContext ctx) => Stack(
         vertical: ctx.Arg("vertical", true), spacing: ctx.Arg("spacing", 10f))
         [
@@ -240,7 +301,8 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("height", "float", 64f, "空ける高さ (px)。", min: 0, max: 160, step: 8),
     ];
 
-    [Story(Path = "Controls/Layout/Spacer/Examples/Interactive", Args = nameof(SpacerPlaygroundArgs))]
+    [Story(Path = "Controls/Layout/Spacer/Examples/Interactive", Args = nameof(SpacerPlaygroundArgs),
+        ShortDescription = "固定の空白を兄弟間へ置き、幅と高さが周囲の配置へ与える影響を確認します。")]
     public static StoryResult SpacerPlayground(StoryContext ctx) => HStack(0)
     [
         Box(background: Tw.Blue500, rounded: 6, width: 64, height: 64),
@@ -257,7 +319,8 @@ public static class LayoutControlStories
         StoryArgDefinition.Create("selectedColor", "color", Tw.Blue500, "選択色。"),
     ];
 
-    [Story(Path = "Controls/Collections/ListView/Examples/Interactive", Args = nameof(ListViewPlaygroundArgs))]
+    [Story(Path = "Controls/Collections/ListView/Examples/Interactive", Args = nameof(ListViewPlaygroundArgs),
+        ShortDescription = "項目、表示高、行高、配色を変更し、仮想化リストの密度と選択を確認します。")]
     public static StoryResult ListViewPlayground(StoryContext ctx)
     {
         Signal<string> source = ctx.Arg("items", "Alpha\nBravo\nCharlie\nDelta\nEcho\nFoxtrot");

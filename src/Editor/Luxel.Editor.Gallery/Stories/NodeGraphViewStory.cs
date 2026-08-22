@@ -30,7 +30,7 @@ public static class NodeGraphViewStory
              new GraphEdge(11, new PortId(2, 1), new PortId(3, 0))]);
     }
 
-    [Story]
+    [Story(ShortDescription = "ノードの選択、移動、配線、undo を一つのグラフ文書で確認する基本例です。")]
     public static StoryResult Basic(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: SampleGraph(), viewWidth: 620f, viewHeight: 360f);
@@ -106,7 +106,7 @@ public static class NodeGraphViewStory
         return NodeGraphDoc.Of([a, b, c], [new GraphEdge(10, new PortId(1, 0), new PortId(2, 0))]);
     }
 
-    [Story]
+    [Story(ShortDescription = "ポートの型を検査しながら接続を作成・拒否し、配線編集の判断を確認します。")]
     public static StoryResult Wiring(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: WireGraph(), viewWidth: 620f, viewHeight: 380f);
@@ -162,7 +162,7 @@ public static class NodeGraphViewStory
         return new GraphNode(id, kind, title, pos, ports);
     }
 
-    [Story]
+    [Story(ShortDescription = "ノード内の parameter widget とグラフ操作を共存させ、入力の優先順位を確認します。")]
     public static StoryResult Widgets(StoryContext ctx)
     {
         const string sliderKey = "gain-slider";
@@ -229,7 +229,7 @@ public static class NodeGraphViewStory
              new GraphEdge(12, new PortId(3, 2), new PortId(4, 0))]);
     }
 
-    [Story]
+    [Story(ShortDescription = "同じグラフを自動配置し、手作業の初期整列を減らすレイアウト結果を確認します。")]
     public static StoryResult AutoLayoutStory(StoryContext ctx)
     {
         NodeGraphView ed = NodeGraphView(source: ExprGraph(), viewWidth: 620f, viewHeight: 380f);
@@ -383,7 +383,8 @@ public static class NodeGraphViewStory
             order: 0, editor: StoryArgEditorKind.Json),
     ];
 
-    [Story(Args = nameof(PlaygroundArgs))]
+    [Story(Args = nameof(PlaygroundArgs),
+        ShortDescription = "Args の JSON とキャンバス編集を双方向同期し、構造変更を同じ文書へ反映します。")]
     public static StoryResult Playground(StoryContext ctx)
     {
         Signal<JsonElement> graph = ctx.Arg("graph", GraphJson(PlaygroundGraph()), new StoryArgOptions<JsonElement>
@@ -436,7 +437,7 @@ public static class NodeGraphViewStory
             [Res(1, "vbuf"), Res(2, "shadow"), Res(3, "color")], 3, 4);
     }
 
-    [Story]
+    [Story(ShortDescription = "描画パスとリソース依存を DAG として可視化し、診断対象の流れを追います。")]
     public static StoryResult RenderGraph(StoryContext ctx)
     {
         // RenderGraphNodes で診断 → ノードグラフ (整列済み) に変換し、読み取り専用ビューで可視化

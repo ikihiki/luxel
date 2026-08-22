@@ -45,7 +45,8 @@ public static class WorkbenchStory
         }
     }
 
-    [Story(Path = "Controls/Collections/DocumentTabs/Basic")]
+    [Story(Path = "Controls/Collections/DocumentTabs/Basic",
+        ShortDescription = "アクティブ切替、未保存印、閉じる要求、ドラッグ並べ替えを外部モデルで所有します。")]
     public static StoryResult DocumentTabsBasic(StoryContext ctx)
     {
         var dirty = new Signal<bool>(true);
@@ -76,7 +77,8 @@ public static class WorkbenchStory
         Border(background: color, rounded: 4f, padding: new Thickness(10), hAlign: Align.Stretch, vAlign: Align.Stretch)[
             Muted(label)];
 
-    [Story(Path = "Controls/Editor/DockHost/Basic")]
+    [Story(Path = "Controls/Editor/DockHost/Basic",
+        ShortDescription = "DockTree を単一の真実として、タブ移動、分割、サイズ変更を一つの作業面で扱います。")]
     public static StoryResult DockHostBasic(StoryContext ctx)
     {
         var dirty = new Signal<bool>(true);
@@ -117,7 +119,8 @@ public static class WorkbenchStory
         return host;
     }
 
-    [Story(Path = "Controls/Editor/DockHost/Examples/Floating")]
+    [Story(Path = "Controls/Editor/DockHost/Examples/Floating",
+        ShortDescription = "フロートしたグループを移動し、ドックとの間でタブを再配置する例です。")]
     public static StoryResult DockHostFloating(StoryContext ctx)
     {
         // "graph" を最初から窓内フロートにしたレイアウト
@@ -183,7 +186,8 @@ public static class WorkbenchStory
         [PropertyGroup("配置")] public string Layer { get; set; } = "front";
     }
 
-    [Story(Path = "Controls/Editor/PropertyGrid/Basic")]
+    [Story(Path = "Controls/Editor/PropertyGrid/Basic",
+        ShortDescription = "対象オブジェクトの型と属性からエディタを選び、変更を元の値へ書き戻します。")]
     public static StoryResult PropertyGridBasic(StoryContext ctx)
     {
         var cfg = new ParticleConfig();
@@ -207,7 +211,8 @@ public static class WorkbenchStory
 
     // ---- AssetBrowser (IFileStorage × TreeView) ----
 
-    [Story(Path = "Controls/Collections/AssetBrowser/Basic")]
+    [Story(Path = "Controls/Collections/AssetBrowser/Basic",
+        ShortDescription = "IFileStorage の階層をフォルダー優先で表示し、ファイルを開く要求を通知します。")]
     public static StoryResult AssetBrowserBasic(StoryContext ctx)
     {
         var fs = new MemoryFileStorage();
@@ -237,7 +242,8 @@ public static class WorkbenchStory
 
     // ---- StatusBar ----
 
-    [Story(Path = "Controls/Editor/StatusBar/Basic")]
+    [Story(Path = "Controls/Editor/StatusBar/Basic",
+        ShortDescription = "作業中のファイル情報と現在位置を左右へ分け、低優先項目を段階的に畳みます。")]
     public static StoryResult StatusBarBasic(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());

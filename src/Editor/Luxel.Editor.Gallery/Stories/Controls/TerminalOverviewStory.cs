@@ -10,7 +10,8 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls/Editor/Terminal")]
 public static class TerminalOverviewStory
 {
-    [Story]
+    [Story(ShortDescription = "端末コア、PTY backend、TerminalView の責務と組み合わせ方を俯瞰する実装ガイドです。",
+        LongDescription = "実 shell は起動せず、OS 非依存コアから表示、入力、リサイズ、終了処理までの設計判断を説明します。")]
     public static StoryResult Overview(StoryContext ctx)
     {
         ctx.Play(static d => d.Snap());

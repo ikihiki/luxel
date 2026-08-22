@@ -49,6 +49,24 @@ public static class WorkbenchShellStory
         [new GraphEdge(10, new PortId(1, 0), new PortId(2, 0)),
          new GraphEdge(11, new PortId(2, 1), new PortId(3, 0))]);
 
+    [Story(Path = "Controls/Editor/EditorShell/Basic", ArgsEnabled = false,
+        ShortDescription = "メニュー、ツールバー、文書タブ、ドック領域、状態表示を一つの編集シェルへ統合します。",
+        LongDescription = "メモリ内の文書と EditorSession を EditorTestFixture が所有し、外部ファイルやネイティブ設備なしで portable EditorShell の主要 chrome を表示します。")]
+    public static StoryResult EditorShellBasic()
+    {
+        var welcome = new EditorToolDocument("welcome", "はじめに", () =>
+            Border(background: Bind.From(() => UiTheme.T.Background), padding: new Thickness(24),
+                hAlign: Align.Stretch, vAlign: Align.Stretch)[
+                VStack(10)[
+                    Heading("Luxel Editor"),
+                    Muted("文書、コマンド、ドックレイアウトを EditorSession が統合します。"),
+                    HStack(8)[Button(_ => { }, "新しいシーン"), Button(_ => { }, "プロジェクトを開く", variant: Variant.Tonal)]]]);
+        var session = new EditorSession(
+            new Dictionary<string, IEditorDocument> { ["welcome"] = welcome },
+            DockTree.Single("welcome"));
+        return new EditorTestFixture { Session = session, ProductName = "Luxel Editor" };
+    }
+
     [Story]
     public static StoryResult Shell(StoryContext ctx)
     {

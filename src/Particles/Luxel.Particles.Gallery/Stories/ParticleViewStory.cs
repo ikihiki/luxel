@@ -13,10 +13,14 @@ namespace Luxel.Gallery.Stories;
 /// <c>AddAnimation</c> Tick で駆動する (ゲームの ECS system 呼び出しに対する UI 埋め込み版)。
 /// play は固定シード + 固定 dt で <c>Step</c> → <c>Snap</c> なので golden 決定的。
 /// </summary>
+[StoryMeta("Controls/Rendering/ParticleView")]
 public static class ParticleViewStories
 {
     private const float VW = 360, VH = 168;
 
+    [Story(Path = "Controls/Rendering/ParticleView/Basic", ArgsEnabled = false,
+        ShortDescription = "固定シードのバーストを UI ツリーへ埋め込み、Tick 駆動の描画を確認します。",
+        LongDescription = "メモリ内の ParticleSystem に固定シードで粒子を放出し、同じ初期状態から決定的にアニメーションする基本例です。")]
     public static StoryResult View(StoryContext ctx)
     {
         var cfg = new ParticleConfig(
@@ -33,6 +37,6 @@ public static class ParticleViewStories
             await d.Snap();
         });
 
-        return Frame(ParticleView(ps, VW, VH, animated: true));
+        return ParticleView(ps, VW, VH, animated: true);
     }
 }

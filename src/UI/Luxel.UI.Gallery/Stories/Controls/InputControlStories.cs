@@ -7,7 +7,8 @@ using static Luxel.UI.Gallery.StoryKit;
 namespace Luxel.Gallery.Stories;
 
 [ComponentStory(typeof(Luxel.Controls.Button), "Controls/Input/Button/Examples/Interactive", Factory = typeof(Kit),
-    Template = nameof(Template))]
+    Template = nameof(Template),
+    ShortDescription = "ラベル、表示バリエーション、無効状態を Args から変更し、主要操作の見え方を確認します。")]
 [ComponentArg(nameof(Luxel.Controls.Button.Text), "クリック", Description = "ボタンのラベル。", Order = 10)]
 [ComponentArg(nameof(Luxel.Controls.Button.Variant), Variant.Filled, Description = "表示バリエーション。", Order = 20)]
 [ComponentArg("Disabled", false, Apply = nameof(ApplyDisabled), Description = "操作を無効にします。", Order = 30)]
@@ -24,12 +25,14 @@ public static class InputControlStories
 {
     // ---- Button ----
 
-    [Story(Path = "Controls/Input/Button/Basic", ArgsEnabled = false)]
+    [Story(Path = "Controls/Input/Button/Basic", ArgsEnabled = false,
+        ShortDescription = "主要操作を明確なラベルで提示し、クリックを呼び出し側の処理へ渡す基本例です。")]
     public static StoryResult ButtonPrimary() => Button(_ => { }, "クリック");
 
     // ---- ColorPicker ----
 
-    [Story(Path = "Controls/Input/ColorPicker/Basic")]
+    [Story(Path = "Controls/Input/ColorPicker/Basic",
+        ShortDescription = "選択色を Signal で外部所有し、色面から値を更新する基本例です。")]
     public static StoryResult ColorPickerBasic()
         => ColorPicker(new Signal<uint>(Tw.Blue500));
 
@@ -38,25 +41,29 @@ public static class InputControlStories
         StoryArgDefinition.Create("color", "color", Tw.Blue500, "選択中の色。"),
     ];
 
-    [Story(Path = "Controls/Input/ColorPicker/Examples/Interactive", Args = nameof(ColorPickerPlaygroundArgs))]
+    [Story(Path = "Controls/Input/ColorPicker/Examples/Interactive", Args = nameof(ColorPickerPlaygroundArgs),
+        ShortDescription = "色値を Args と選択 UI で共有し、変更が双方向に反映されることを確認します。")]
     public static StoryResult ColorPickerPlayground(StoryContext ctx)
         => ColorPicker(ctx.Arg("color", Tw.Blue500));
 
-    [Story(Path = "Controls/Input/Button/Examples/Variants")]
+    [Story(Path = "Controls/Input/Button/Examples/Variants",
+        ShortDescription = "操作の重要度に応じて Filled、Tonal、Outline、Ghost の視覚的な強さを比較します。")]
     public static StoryResult ButtonVariants() => Frame(HStack(8)[
         Button(_ => { }, "Filled"),
         Button(_ => { }, "Tonal", variant: Variant.Tonal),
         Button(_ => { }, "Outline", variant: Variant.Outline),
         Button(_ => { }, "Ghost", variant: Variant.Ghost)]);
 
-    [Story(Path = "Controls/Input/Button/Examples/Intents")]
+    [Story(Path = "Controls/Input/Button/Examples/Intents",
+        ShortDescription = "同じ操作でも結果の意味に合わせて Primary、Success、Danger、Neutral を選ぶ例です。")]
     public static StoryResult ButtonIntents(StoryContext ctx) => ctx.Snap(Frame(HStack(8)[
         Button(_ => { }, "Primary"),
         Button(_ => { }, "Success", intent: Intent.Success),
         Button(_ => { }, "Danger", intent: Intent.Danger),
         Button(_ => { }, "Neutral", intent: Intent.Neutral)]));
 
-    [Story(Path = "Controls/Input/Button/Examples/Utilities")]
+    [Story(Path = "Controls/Input/Button/Examples/Utilities",
+        ShortDescription = "Utilities で通常、hover、pressed の外観と変形を局所的に上書きする例です。")]
     public static StoryResult ButtonTailwind() => Frame(
         Button(_ => { }, "Hover me", utilities:
         [
@@ -78,7 +85,8 @@ public static class InputControlStories
             ]),
         ]));
 
-    [Story(Path = "Controls/Input/Button/States/Interaction")]
+    [Story(Path = "Controls/Input/Button/States/Interaction",
+        ShortDescription = "通常、hover、pressed、disabled を同時に並べ、状態ごとの判別性を確認します。")]
     public static StoryResult ButtonInteractionStates()
     {
         Button hovered = Button(_ => { }, "Hovered");
@@ -112,20 +120,24 @@ public static class InputControlStories
 
     // ---- 入力/選択 ----
 
-    [Story(Path = "Controls/Input/CheckBox/Basic")]
+    [Story(Path = "Controls/Input/CheckBox/Basic",
+        ShortDescription = "独立した真偽の選択をラベルとともに示し、状態を Signal へ保持します。")]
     public static StoryResult CheckBasic(StoryContext ctx)
         => Check(new Signal<bool>(false), "Subscribe to newsletter");
 
-    [Story(Path = "Controls/Input/CheckBox/Examples/Styled")]
+    [Story(Path = "Controls/Input/CheckBox/Examples/Styled",
+        ShortDescription = "checked 状態だけに色を割り当て、選択結果を意味のある強調へ変える例です。")]
     public static StoryResult CheckStyled(StoryContext ctx)
         => Frame(Check(ctx.Signal("checked", true), "Custom checked color")
             .When(WidgetState.Checked, background: Tw.Green500));
 
-    [Story(Path = "Controls/Input/Switch/Basic")]
+    [Story(Path = "Controls/Input/Switch/Basic",
+        ShortDescription = "設定のオンとオフを即時反映する二値入力として使う基本例です。")]
     public static StoryResult SwitchBasic(StoryContext ctx)
         => Switch(new Signal<bool>(true));
 
-    [Story(Path = "Controls/Input/Slider/Basic")]
+    [Story(Path = "Controls/Input/Slider/Basic",
+        ShortDescription = "連続値をトラック上の位置として調整し、現在値を Signal へ保持します。")]
     public static StoryResult SliderBasic(StoryContext ctx)
         => ctx.Snap(Slider(new Signal<float>(0.35f)));
 
@@ -140,7 +152,8 @@ public static class InputControlStories
         StoryArgDefinition.Create("knobColor", "color", Tw.Blue500, "ノブ色。"),
     ];
 
-    [Story(Path = "Controls/Input/Slider/Examples/Interactive", Args = nameof(SliderPlaygroundArgs))]
+    [Story(Path = "Controls/Input/Slider/Examples/Interactive", Args = nameof(SliderPlaygroundArgs),
+        ShortDescription = "値域、現在値、幅、配色を変更し、無効な範囲を補正しながら挙動を確認します。")]
     public static StoryResult SliderPlayground(StoryContext ctx)
     {
         Signal<float> value = ctx.Arg("value", 35f);
@@ -158,7 +171,8 @@ public static class InputControlStories
         return slider;
     }
 
-    [Story(Path = "Controls/Input/Slider/Examples/Slots")]
+    [Story(Path = "Controls/Input/Slider/Examples/Slots",
+        ShortDescription = "Track と Knob の slot を差し替え、値の意味を保ったまま外観を構成する例です。")]
     public static StoryResult SliderSlots(StoryContext ctx) => Frame(
         Slider(ctx.Signal("value", 0.65f))
         [
@@ -166,7 +180,8 @@ public static class InputControlStories
             SliderSlot.Knob(() => Box(background: Tw.Amber500, rounded: 9, width: 18, height: 18))
         ]);
 
-    [Story(Path = "Controls/Input/Slider/States/Focused")]
+    [Story(Path = "Controls/Input/Slider/States/Focused",
+        ShortDescription = "キーボード操作の起点になるフォーカス状態が周囲から識別できるかを確認します。")]
     public static StoryResult SliderFocused(StoryContext ctx)
     {
         Slider slider = Slider(ctx.Signal("value", 0.4f));
@@ -174,7 +189,8 @@ public static class InputControlStories
         return Frame(slider);
     }
 
-    [Story(Path = "Controls/Input/Slider/States/Disabled")]
+    [Story(Path = "Controls/Input/Slider/States/Disabled",
+        ShortDescription = "操作不能であることを不透明度と入力無効化の両方で伝える状態を示します。")]
     public static StoryResult SliderDisabled(StoryContext ctx)
     {
         Slider slider = Slider(ctx.Signal("value", 0.4f), utilities: [U.Opacity(0.45f)]);
@@ -182,24 +198,29 @@ public static class InputControlStories
         return Frame(slider);
     }
 
-    [Story(Path = "Controls/Input/Slider/Examples/Colors")]
+    [Story(Path = "Controls/Input/Slider/Examples/Colors",
+        ShortDescription = "track、fill、knob の配色を揃え、ブランド色を適用する最小例です。")]
     public static StoryResult SliderColors(StoryContext ctx)
         => Frame(Slider(ctx.Signal("value", 0.6f),
             trackColor: Tw.Slate200, fillColor: Tw.Amber500, knobColor: Tw.Amber500));
 
-    [Story(Path = "Controls/Input/SegmentedControl/Basic")]
+    [Story(Path = "Controls/Input/SegmentedControl/Basic",
+        ShortDescription = "少数の相互排他的な表示単位から一つを選ぶ基本例です。")]
     public static StoryResult SegmentedBasic(StoryContext ctx)
         => Segmented(["Day", "Week", "Month"], new Signal<int>(0));
 
-    [Story(Path = "Controls/Input/RadioGroup/Basic")]
+    [Story(Path = "Controls/Input/RadioGroup/Basic",
+        ShortDescription = "意味のある候補を一覧で見せ、相互排他的に一つを選ぶ基本例です。")]
     public static StoryResult RadiosBasic(StoryContext ctx)
         => Radios(["Small", "Medium", "Large"], new Signal<int>(1));
 
-    [Story(Path = "Controls/Input/Select/Basic")]
+    [Story(Path = "Controls/Input/Select/Basic",
+        ShortDescription = "限られた候補を省スペースで提示し、選択 index を外部所有します。")]
     public static StoryResult SelectBasic(StoryContext ctx)
         => ctx.Snap(Select(["Apple", "Banana", "Cherry"], new Signal<int>(0)));
 
-    [Story(Path = "Controls/Input/LengthField/Basic")]
+    [Story(Path = "Controls/Input/LengthField/Basic",
+        ShortDescription = "数値と単位を一つの Length 値として編集し、レイアウト指定へ渡します。")]
     public static StoryResult LengthFieldBasic()
         => LengthField(new Signal<Length>((Length)"50%"));
 }
