@@ -100,6 +100,7 @@ button, input { font: inherit; }
 .story-navigation { min-height: 0; overflow: auto; padding: 0 9px 18px; }
 .story-tree { margin: 0; padding: 0; list-style: none; }
 .story-tree .story-tree { margin-left: 10px; padding-left: 6px; border-left: 1px solid #233143; }
+.story-tree details:not([open]) > .story-tree { display: none; }
 .story-tree li { margin: 1px 0; }
 .story-tree details > summary {
   display: flex;
