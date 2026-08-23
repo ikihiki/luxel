@@ -86,6 +86,50 @@ public sealed class GalleryShellUxTests : GalleryPageTest
     }
 
     [Fact]
+    public async Task Nested_navigation_reopens_without_hidden_descendant_space()
+    {
+        await GalleryTestHost.EnsureStartedAsync();
+        await Page.GotoAsync($"{GalleryTestHost.BaseUrl}/?story=Controls%2FInput%2FButton%2FDocs");
+        await Expect(Page.GetByRole(AriaRole.Searchbox, new() { Name = GalleryLabels.SearchStories }))
+            .ToBeVisibleAsync(new() { Timeout = 90_000 });
+
+        ILocator inputBranch = Page.Locator("li[data-canonical-path='Controls/Input'] > details");
+        ILocator inputSummary = inputBranch.Locator(":scope > summary");
+        ILocator inputChildren = inputBranch.Locator(":scope > ul.story-tree");
+        ILocator examplesBranch = Page.Locator(
+            "li[data-canonical-path='Controls/Input/Button/Examples'] > details");
+
+        await examplesBranch.Locator(":scope > summary").ClickAsync();
+        Assert.True(await examplesBranch.EvaluateAsync<bool>("element => element.open"));
+
+        await inputSummary.ClickAsync();
+        Assert.False(await inputBranch.EvaluateAsync<bool>("element => element.open"));
+        await Expect(inputChildren).ToHaveCSSAsync("display", "none");
+
+        Assert.Equal(0d, await inputChildren.EvaluateAsync<double>(
+            "element => element.getBoundingClientRect().height"));
+
+        await inputSummary.ClickAsync();
+        Assert.True(await inputBranch.EvaluateAsync<bool>("element => element.open"));
+        Assert.True(await examplesBranch.EvaluateAsync<bool>("element => element.open"));
+        await Expect(examplesBranch.Locator(":scope > ul.story-tree a.story-link").First).ToBeVisibleAsync();
+
+        double largestGap = await inputChildren.EvaluateAsync<double>("""
+            tree => {
+                const rows = Array.from(tree.querySelectorAll('summary, a.story-link'))
+                    .filter(row => row.getClientRects().length > 0)
+                    .map(row => row.getBoundingClientRect())
+                    .sort((left, right) => left.top - right.top);
+                let gap = 0;
+                for (let index = 1; index < rows.length; index++)
+                    gap = Math.max(gap, rows[index].top - rows[index - 1].bottom);
+                return gap;
+            }
+            """);
+        Assert.InRange(largestGap, 0d, 8d);
+    }
+
+    [Fact]
     public async Task Generated_control_docs_render_an_api_table_instead_of_widget_fallback()
     {
         await GalleryTestHost.EnsureStartedAsync();
