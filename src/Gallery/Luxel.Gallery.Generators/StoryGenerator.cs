@@ -32,6 +32,8 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly string Path;
         public readonly string Title;
         public readonly string? CapabilityNote;
+        public readonly string? ShortDescription;
+        public readonly string? LongDescription;
         public readonly string MethodFq;    // global::Ns.Type.Method
         public readonly string Source;      // メソッドの C# ソース (storysource)
         public readonly string SourceFile;
@@ -44,12 +46,19 @@ public sealed class StoryGenerator : IIncrementalGenerator
         public readonly bool ArgsEnabled;
         public readonly string? SchemaMethod;
         public StoryModel(string path, string title, string methodFq, string source, string sourceFile, int sourcePosition,
-            string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, bool argsEnabled, string? capabilityNote, string? schemaMethod)
-        { Path = path; Title = title; MethodFq = methodFq; Source = source; SourceFile = sourceFile; SourcePosition = sourcePosition; Params = paramz; Valid = valid; HasMeta = hasMeta; RealWindowOnly = realWindowOnly; ArgsEnabled = argsEnabled; CapabilityNote = capabilityNote; SchemaMethod = schemaMethod; }
+            string[] paramz, bool valid, bool hasMeta, bool realWindowOnly, bool argsEnabled, string? capabilityNote,
+            string? shortDescription, string? longDescription, string? schemaMethod)
+        {
+            Path = path; Title = title; MethodFq = methodFq; Source = source; SourceFile = sourceFile;
+            SourcePosition = sourcePosition; Params = paramz; Valid = valid; HasMeta = hasMeta;
+            RealWindowOnly = realWindowOnly; ArgsEnabled = argsEnabled; CapabilityNote = capabilityNote;
+            ShortDescription = shortDescription; LongDescription = longDescription; SchemaMethod = schemaMethod;
+        }
         public bool Equals(StoryModel? o) => o is not null && Path == o.Path && Title == o.Title && MethodFq == o.MethodFq && Source == o.Source
             && SourceFile == o.SourceFile && SourcePosition == o.SourcePosition
             && Params.Length == o.Params.Length && ParamsEqual(o) && Valid == o.Valid && RealWindowOnly == o.RealWindowOnly
             && ArgsEnabled == o.ArgsEnabled && HasMeta == o.HasMeta && CapabilityNote == o.CapabilityNote
+            && ShortDescription == o.ShortDescription && LongDescription == o.LongDescription
             && SchemaMethod == o.SchemaMethod;
         private bool ParamsEqual(StoryModel o) { for (int i = 0; i < Params.Length; i++) if (Params[i] != o.Params[i]) return false; return true; }
         public override bool Equals(object? obj) => Equals(obj as StoryModel);
@@ -64,6 +73,9 @@ public sealed class StoryGenerator : IIncrementalGenerator
                 hash = hash * 397 ^ SourceFile.GetHashCode();
                 hash = hash * 397 ^ SourcePosition;
                 hash = hash * 397 ^ (CapabilityNote?.GetHashCode() ?? 0);
+                hash = hash * 397 ^ (ShortDescription?.GetHashCode() ?? 0);
+                hash = hash * 397 ^ (LongDescription?.GetHashCode() ?? 0);
+                hash = hash * 397 ^ (SchemaMethod?.GetHashCode() ?? 0);
                 return hash * 16 + (Params.Length << 3) + (HasMeta ? 4 : 0) + (RealWindowOnly ? 2 : 0) + (ArgsEnabled ? 1 : 0);
             }
         }
@@ -97,13 +109,16 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     string path = hasMeta ? title + "/" + m.Name : m.Name;
                     bool realWindowOnly = false;
                     bool argsEnabled = true;
-                    string? capabilityNote = null, schemaMethod = null, routeOverride = null;
+                    string? capabilityNote = null, shortDescription = null, longDescription = null;
+                    string? schemaMethod = null, routeOverride = null;
                     foreach (KeyValuePair<string, TypedConstant> na in attr.NamedArguments)
                     {
                         if (na.Key == "RealWindowOnly" && na.Value.Value is bool rw) realWindowOnly = rw;
                         if (na.Key == "ArgsEnabled" && na.Value.Value is bool enabled) argsEnabled = enabled;
                         if (na.Key == "Path" && na.Value.Value is string route) routeOverride = route.Trim().Trim('/');
                         if (na.Key == "CapabilityNote" && na.Value.Value is string cn) capabilityNote = cn;
+                        if (na.Key == "ShortDescription" && na.Value.Value is string shortText) shortDescription = shortText;
+                        if (na.Key == "LongDescription" && na.Value.Value is string longText) longDescription = longText;
                         if (na.Key == "Args" && na.Value.Value is string am) schemaMethod = am;
                     }
                     if (!string.IsNullOrWhiteSpace(routeOverride)) path = routeOverride!;
@@ -125,7 +140,8 @@ public sealed class StoryGenerator : IIncrementalGenerator
                     string source = methodDeclaration.ToString();
                     string? schemaFq = schemaMethod is null ? null : m.ContainingType!.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) + "." + schemaMethod;
                     return new StoryModel(path, title ?? "", fq, source, methodDeclaration.SyntaxTree.FilePath,
-                        methodDeclaration.SpanStart, paramz, valid, hasMeta, realWindowOnly, argsEnabled, capabilityNote, schemaFq);
+                        methodDeclaration.SpanStart, paramz, valid, hasMeta, realWindowOnly, argsEnabled, capabilityNote,
+                        shortDescription, longDescription, schemaFq);
                 })
             .Where(static s => s is not null)
             .Collect();
@@ -226,6 +242,8 @@ public sealed class StoryGenerator : IIncrementalGenerator
             else if (s.SchemaMethod is not null)
                 sb.Append(", ArgDefinitions: ").Append(s.SchemaMethod).Append("()");
             if (s.CapabilityNote is not null) sb.Append(", CapabilityNote: ").Append(Literal(s.CapabilityNote));
+            if (s.ShortDescription is not null) sb.Append(", ShortDescription: ").Append(Literal(s.ShortDescription));
+            if (s.LongDescription is not null) sb.Append(", LongDescription: ").Append(Literal(s.LongDescription));
             if (!IsPageNavigationCandidate(s.SourceFile)) sb.Append(", IncludeInPageNavigation: false");
             sb.AppendLine("));");
         }

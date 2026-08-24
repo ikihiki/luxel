@@ -14,7 +14,7 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls/Editor/TextEditorView")]
 public static class TextEditorViewStory
 {
-    [Story]
+    [Story(ShortDescription = "複数行の入力、選択、undo を Transaction ベースの文書で確認する基本例です。")]
     public static StoryResult Basic(StoryContext ctx)
     {
         Signal<string> value = ctx.Signal("text",
@@ -53,7 +53,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "シンタックス色、診断波線、行番号、現在行を provider の組み合わせとして追加する例です。")]
     public static StoryResult Code(StoryContext ctx, ICodeLanguage lang)
     {
         Signal<string> code = ctx.Signal("code",
@@ -91,7 +91,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "行移動、複製、コメント、検索、全置換を文書 Transaction 上で実行する例です。")]
     public static StoryResult Edit(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "int foo = 1;\nint bar = foo + foo;\nreturn foo * bar;");
@@ -160,7 +160,7 @@ public static class TextEditorViewStory
         }
     }
 
-    [Story]
+    [Story(ShortDescription = "再生中のトークンを装飾し、ソース内の数値を行内スライダーへ置き換えます。")]
     public static StoryResult Strudel(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "0.8 bd sd hh");     // "0.8"[0,3) bd[4,6) sd[7,9) hh[10,12)
@@ -192,7 +192,7 @@ public static class TextEditorViewStory
                 root]];
     }
 
-    [Story]
+    [Story(ShortDescription = "同じ行モデルへ太字、サイズ、色の装飾を重ね、Markdown 表示の基礎を示します。")]
     public static StoryResult RichText(StoryContext ctx)
     {
         // Markdown/リッチ文書の素地 (WS-A / ADR-0012、S(A1)): font-variant Mark で見出し/太字/小サイズを
@@ -222,7 +222,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "Markdown 記法を provider で装飾へ変換し、読み取り用文書として表示します。")]
     public static StoryResult Markdown(StoryContext ctx)
     {
         // read-only 文書レンダラの核 (WS-A / ADR-0012): MarkdownProvider が Markdown ソースを
@@ -261,7 +261,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "編集中の行だけ記法を見せ、他の行を整形表示するライブプレビューを示します。")]
     public static StoryResult LivePreviewStory(StoryContext ctx)
     {
         // Live Preview 編集モード (WS-A / S(A4)): editable:true でキャレット行だけ記法マーカを raw で見せ、
@@ -290,7 +290,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "ブロック外観と編集 affordance を調整し、構造化 Markdown 編集の見た目を比較します。")]
     public static StoryResult MilkdownStyleEditor(StoryContext ctx)
     {
         Signal<string> md = ctx.Signal("milkdown-md",
@@ -350,7 +350,7 @@ public static class TextEditorViewStory
         return ed;
     }
 
-    [Story]
+    [Story(ShortDescription = "MarkdownDoc.Create で折返しを含む文書表示を一つのファクトリへまとめます。")]
     public static StoryResult MarkdownDocStory(StoryContext ctx)
     {
         // 文書レンダラを 1 ファクトリで (WS-A / ADR-0012、Kit.Docs() 差し替えの部品):
@@ -379,7 +379,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "文書を親の制約いっぱいへ広げ、固定幅ではなく実領域で折り返します。")]
     public static StoryResult MarkdownFillStory(StoryContext ctx)
     {
         // Fill モード (WS-A / ADR-0012、実 Docs ページ移行の前提):
@@ -405,7 +405,7 @@ public static class TextEditorViewStory
                        width: 440f, height: 240f)[ed]]];
     }
 
-    [Story]
+    [Story(ShortDescription = "既存 DocString の widget 埋め込みを新しい Markdown 文書スタックへ橋渡しします。")]
     public static StoryResult DocBridge(StoryContext ctx)
     {
         // 移行の本命 (WS-A / ADR-0012 S(A3)): 既存の Docs($"...{Widget}...") 記法 (DocString) を
@@ -439,7 +439,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "Mermaid と数式の fenced embed を既存プロセッサで解決し、文書へ配置します。")]
     public static StoryResult DocEmbeds(StoryContext ctx)
     {
         // mermaid/数式アダプタ (WS-A / ADR-0012): ```embed mermaid|math フェンス本文を、既存の
@@ -476,7 +476,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "embed fence を自動高さのライブ Widget へ置き換え、文書内で操作できるようにします。")]
     public static StoryResult Embed(StoryContext ctx)
     {
         // 埋め込みライブ UI (WS-A / ADR-0012、Kit.Docs() の目玉を新スタックで): ```embed <key> フェンス →
@@ -517,7 +517,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "自然高さを測るブロック Widget で、埋め込み側の固定寸法指定を不要にします。")]
     public static StoryResult BlockWidgetAuto(StoryContext ctx)
     {
         // ブロック widget 自動高さ (WS-A / ADR-0012): Height=0 は「宣言しない」= view が widget の自然高さを
@@ -547,7 +547,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "複数のソース行を全幅 Widget へ置き換え、表や図を置くための構造を示します。")]
     public static StoryResult BlockWidget(StoryContext ctx)
     {
         // 複数ソース行を占有するブロック widget (WS-A S(A2b) / ADR-0012): 表/図/数式/埋め込みの土台。
@@ -576,7 +576,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "複数レンジを一つの編集として更新し、同時入力と一回の undo を確認します。")]
     public static StoryResult MultiCursor(StoryContext ctx)
     {
         Signal<string> code = ctx.Signal("code", "foo = 1;\nfoo = 2;\nfoo = 3;");
@@ -632,7 +632,7 @@ public static class TextEditorViewStory
                 ed]];
     }
 
-    [Story]
+    [Story(ShortDescription = "キャレット位置へ補完とホバーを出し、画面端での Popup 配置も確認します。")]
     public static StoryResult Completion(StoryContext ctx, ICodeLanguage lang)
     {
         Signal<string> code = ctx.Signal("code", "var s = \"hi\";\ns.");
@@ -697,7 +697,7 @@ public static class TextEditorViewStory
         }
     }
 
-    [Story]
+    [Story(ShortDescription = "行頭装飾と行内 Widget を provider から供給し、編集可能な状態を保持します。")]
     public static StoryResult Widgets(StoryContext ctx)
     {
         Signal<string> value = ctx.Signal("text", "牛乳を買う ◯\n卵を買う ◯\nパンを買う ◯");

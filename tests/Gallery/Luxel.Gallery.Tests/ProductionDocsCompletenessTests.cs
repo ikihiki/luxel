@@ -1,5 +1,7 @@
 using System.Text.Json;
+using Luxel.Controls;
 using Luxel.Gallery;
+using Luxel.Gallery.UI;
 using Luxel.UI;
 
 namespace Luxel.Tests;
@@ -62,6 +64,256 @@ public sealed class ProductionDocsCompletenessTests
             .Order(StringComparer.Ordinal)
             .ToArray();
         Assert.True(invalid.Length == 0, $"Noncanonical control stories: {string.Join(", ", invalid)}");
+    }
+
+    [Theory]
+    [InlineData("DataGrid", "Collections")]
+    [InlineData("GridView", "Collections")]
+    [InlineData("Popover", "Overlay")]
+    [InlineData("TabStrip", "Collections")]
+    public void Newly_authored_ui_docs_use_expected_categories_japanese_sections_and_canonical_api_links(
+        string controlName, string expectedCategory)
+    {
+        GeneratedComponentStoryDescriptor descriptor = Assert.Single(
+            global::Luxel.UI.Gallery.UiGalleryProject.ProductionComponents,
+            item => item.ControlName == controlName);
+        Assert.Equal(expectedCategory, descriptor.Category);
+        Assert.Equal($"Controls/{expectedCategory}/{controlName}/Docs", descriptor.DocsPath);
+
+        StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
+        StoryInfo docs = Assert.IsType<StoryInfo>(catalog.Find(descriptor.DocsPath));
+        Assert.Equal(StoryRegistrationKind.Authored, docs.RegistrationKind);
+        Assert.Contains("日本語", Assert.IsType<string>(docs.Source), StringComparison.Ordinal);
+
+        using var context = new StoryContext();
+        StoryResult result = docs.Build(context);
+        Assert.Equal(StoryResultKind.Markdown, result.Kind);
+        Assert.Equal(descriptor.BasicPath, Assert.Single(result.References).Path);
+
+        string[] headings =
+        [
+            "## 概要",
+            "## 使う場面・避ける場面",
+            "## 主な使用例",
+            "## バリエーション・状態とその所有",
+            "## 操作・キーボード・アクセシビリティ",
+            "## テーマ・レイアウト・サイズ",
+            "## 制約・ライフサイクル・対応プラットフォーム",
+            "## パラメーター・イベント・API",
+            "## 関連する例・コンポーネント",
+        ];
+        Assert.All(headings, heading => Assert.Contains(heading, result.Markdown, StringComparison.Ordinal));
+        Assert.DoesNotContain($"story:{descriptor.BasicPath}", result.Markdown, StringComparison.Ordinal);
+        Assert.Contains($"story:{descriptor.PlaygroundPath}", result.Markdown, StringComparison.Ordinal);
+
+        StoryMarkdownEmbed api = Assert.Single(result.Embeds);
+        Assert.Equal("ControlApiTable", api.Kind);
+        Assert.Equal(controlName, api.Reference);
+        Assert.True(api.IncludeInherited);
+
+        string prose = string.Join('\n', docs.Source, result.Markdown);
+        string[] englishFallbacks =
+        [
+            "Generated component docs",
+            "production component",
+            "scalar args",
+            "capability input",
+            "API table",
+            "Unsupported capability/constructor inputs use a deterministic fallback",
+        ];
+        Assert.All(englishFallbacks, fallback => Assert.DoesNotContain(fallback, prose, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Every_user_facing_control_has_authored_structured_docs_with_canonical_links()
+    {
+        StoryCatalog combined = CreateCombinedControlCatalog();
+        int authoredCount = 0;
+        string[] requiredSubheadings =
+        [
+            "### 使う場面",
+            "### 避ける場面",
+            "### 構造",
+            "### バリエーション",
+            "### 状態の所有",
+            "### ポインター操作",
+            "### キーボード",
+            "### フォーカス・起動・閉じ方",
+            "### アクセシビリティ",
+        ];
+        string[] staleCopy =
+        [
+            "概要に示した用途で使い、責務が異なる場合や専用コントロールがある場合は使用を避けます。",
+            "Dialog.Open(",
+            "Drawer.Open(",
+            "Dropdown(anchor",
+            "Toast.Show(",
+            "Spinner(size:",
+            "Accordion(items)",
+            "Controls/NodeGraphView/",
+            "Controls/DocumentTabs/Basic",
+            "Controls/Collections/Tabs/Examples/SelectionChanged",
+            "## 概要と用途",
+            "## 最小使用例",
+            "## API リファレンス",
+            "## 関連する Basic と Examples",
+        ];
+
+        foreach ((StoryCatalog catalog, IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors) in OwnerCatalogs())
+        {
+            foreach (GeneratedComponentStoryDescriptor descriptor in descriptors.Where(static item => item.IsUserFacing))
+            {
+                authoredCount++;
+                StoryInfo docs = Assert.IsType<StoryInfo>(catalog.Find(descriptor.DocsPath));
+                Assert.Equal(StoryRegistrationKind.Authored, docs.RegistrationKind);
+                Assert.Null(docs.CapabilityNote);
+                Assert.Contains("構造化", Assert.IsType<string>(docs.Source), StringComparison.Ordinal);
+
+                using var context = new StoryContext();
+                StoryResult result = docs.Build(context);
+                Assert.Equal(StoryResultKind.Markdown, result.Kind);
+
+                MarkdownHeading[] h2 = MarkdownDecorations.Headings(result.Markdown)
+                    .Where(static heading => heading.Level == 2)
+                    .ToArray();
+                Assert.Equal(ControlDocsRenderer.HeadingOrder, h2.Select(static heading => $"## {heading.Text}").ToArray());
+                Assert.All(requiredSubheadings, heading => Assert.Contains(heading, result.Markdown, StringComparison.Ordinal));
+                Assert.Contains("### 使う場面\n\n- ", result.Markdown, StringComparison.Ordinal);
+                Assert.Contains("### 避ける場面\n\n- ", result.Markdown, StringComparison.Ordinal);
+                Assert.Contains("| キー | 操作 |", result.Markdown, StringComparison.Ordinal);
+                for (int index = 0; index < h2.Length; index++)
+                {
+                    int lineEnd = result.Markdown.IndexOf('\n', h2[index].Offset);
+                    int sectionEnd = index + 1 < h2.Length ? h2[index + 1].Offset : result.Markdown.Length;
+                    Assert.False(string.IsNullOrWhiteSpace(result.Markdown[(lineEnd + 1)..sectionEnd]));
+                }
+                Assert.All(staleCopy, stale => Assert.DoesNotContain(stale, result.Markdown, StringComparison.Ordinal));
+
+                StoryReference primary = Assert.Single(result.References);
+                Assert.Equal(descriptor.BasicPath, primary.Path);
+                StoryMarkdownEmbed api = Assert.Single(result.Embeds);
+                Assert.Equal("ControlApiTable", api.Kind);
+                Assert.Equal(descriptor.ControlName, api.Reference);
+                Assert.True(api.IncludeInherited);
+                Assert.NotNull(ControlApiRegistry.Find(api.Reference!));
+
+                string[] storyLinks = MarkdownDecorations.Links(result.Markdown)
+                    .Where(static link => link.Url.StartsWith("story:", StringComparison.Ordinal))
+                    .Select(static link => link.Url[6..])
+                    .ToArray();
+                Assert.DoesNotContain(descriptor.BasicPath, storyLinks, StringComparer.Ordinal);
+                Assert.Single(storyLinks, path => path == descriptor.PlaygroundPath);
+                foreach (string path in storyLinks)
+                {
+                    StoryInfo resolved = Assert.IsType<StoryInfo>(combined.Find(path));
+                    Assert.Equal(path, resolved.Path);
+                    Assert.NotEqual(StoryKind.Docs, resolved.Kind);
+                    if (path == descriptor.PlaygroundPath) Assert.Equal(StoryKind.Playground, resolved.Kind);
+                    else if (path.Contains("/Examples/", StringComparison.Ordinal)) Assert.Equal(StoryKind.Example, resolved.Kind);
+                }
+            }
+        }
+
+        Assert.Equal(62, authoredCount);
+    }
+
+    [Theory]
+    [InlineData("Controls/Collections/Accordion/Docs", "expanded:", "Accordion(items)")]
+    [InlineData("Controls/Overlay/Dialog/Docs", "Dialog(open, Card(", "Dialog.Open(")]
+    [InlineData("Controls/Overlay/Drawer/Docs", "Drawer(open, Card(", "Drawer.Open(")]
+    [InlineData("Controls/Overlay/Dropdown/Docs", "Dropdown(\"操作\"", "Dropdown(anchor")]
+    [InlineData("Controls/Overlay/Toast/Docs", "Toast(open, Card(Text(", "Toast.Show(")]
+    [InlineData("Controls/Rendering/Spinner/Docs", "spinnerSize:", "Spinner(size:")]
+    [InlineData("Controls/Editor/EditorShell/Docs", "EditorKit.EditorShell(session", "Generated component docs")]
+    public void Corrected_usage_snippets_use_public_identifiers(string path, string required, string forbidden)
+    {
+        StoryCatalog catalog = CreateCombinedControlCatalog();
+        StoryInfo docs = Assert.IsType<StoryInfo>(catalog.Find(path));
+        using var context = new StoryContext();
+        string snippet = CSharpSnippet(docs.Build(context).Markdown);
+        Assert.Contains(required, snippet, StringComparison.Ordinal);
+        Assert.DoesNotContain(forbidden, snippet, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EditorShell_docs_are_authored()
+    {
+        StoryCatalog catalog = global::Luxel.Editor.Gallery.EditorGalleryProject.CreateCatalog();
+        StoryInfo docs = Assert.IsType<StoryInfo>(catalog.Find("Controls/Editor/EditorShell/Docs"));
+        Assert.Equal(StoryRegistrationKind.Authored, docs.RegistrationKind);
+        Assert.Contains("構造化", Assert.IsType<string>(docs.Source), StringComparison.Ordinal);
+        using var context = new StoryContext();
+        StoryResult result = docs.Build(context);
+        Assert.Equal("Controls/Editor/EditorShell/Basic", Assert.Single(result.References).Path);
+        Assert.Equal("EditorShell", Assert.Single(result.Embeds).Reference);
+    }
+
+    [Fact]
+    public void Authored_control_doc_sources_do_not_contain_known_stale_routes()
+    {
+        string root = FindRepositoryRoot();
+        string[] roots =
+        [
+            Path.Combine(root, "src", "UI", "Luxel.UI.Gallery", "Stories", "Docs"),
+            Path.Combine(root, "src", "Editor", "Luxel.Editor.Gallery", "Stories", "Docs"),
+            Path.Combine(root, "src", "Particles", "Luxel.Particles.Gallery", "Stories", "Docs"),
+        ];
+        string source = string.Join('\n', roots.SelectMany(path => Directory.EnumerateFiles(path, "*.cs"))
+            .Select(File.ReadAllText)) + File.ReadAllText(Path.Combine(root, "src", "Gallery", "Luxel.Gallery.Docs", "Stories", "Docs", "DocsMeta.cs"));
+        string[] stale =
+        [
+            "Controls/NodeGraphView/Basic",
+            "Controls/NodeGraphView/AutoLayoutStory",
+            "Controls/DocumentTabs/Basic",
+            "Controls/AssetBrowser/Basic",
+            "Controls/DockHost/Basic",
+            "Controls/MenuBar/Basic",
+            "Controls/SceneEditorView/Basic",
+            "Controls/SceneInspector/Basic",
+            "Controls/Toolbar/Basic",
+            "Controls/TextEditorView/Basic",
+        ];
+        Assert.All(stale, value => Assert.DoesNotContain(value, source, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Canonical_basic_and_playground_stories_have_concise_japanese_descriptions()
+    {
+        foreach ((StoryCatalog catalog, IReadOnlyList<GeneratedComponentStoryDescriptor> descriptors) in OwnerCatalogs())
+        {
+            foreach (GeneratedComponentStoryDescriptor descriptor in descriptors.Where(static item => item.IsUserFacing))
+            {
+                StoryInfo basic = Assert.IsType<StoryInfo>(catalog.Find(descriptor.BasicPath));
+                StoryInfo playground = Assert.IsType<StoryInfo>(catalog.Find(descriptor.PlaygroundPath));
+                Assert.True(ContainsJapanese(basic.ShortDescription), $"{descriptor.BasicPath} needs a Japanese short description.");
+                Assert.True(ContainsJapanese(basic.LongDescription), $"{descriptor.BasicPath} needs a Japanese long description.");
+                Assert.True(ContainsJapanese(playground.ShortDescription), $"{descriptor.PlaygroundPath} needs a Japanese short description.");
+                Assert.True(ContainsJapanese(playground.LongDescription), $"{descriptor.PlaygroundPath} needs a Japanese long description.");
+                Assert.Null(basic.CapabilityNote);
+                Assert.Null(playground.CapabilityNote);
+            }
+        }
+    }
+
+    [Fact]
+    public void Representative_authored_control_stories_expose_japanese_descriptions()
+    {
+        StoryCatalog catalog = global::Luxel.UI.Gallery.UiGalleryProject.CreateCatalog();
+        string[] paths =
+        [
+            "Controls/Input/Button/Examples/Counter",
+            "Controls/Collections/TreeView/Examples/Interactive",
+            "Controls/Collections/Tabs/Examples/Interactive",
+            "Controls/Collections/Tabs/Examples/SelectionChanged",
+            "Controls/Overlay/Dialog/Basic",
+        ];
+
+        foreach (string path in paths)
+        {
+            StoryInfo story = Assert.IsType<StoryInfo>(catalog.Find(path));
+            Assert.True(ContainsJapanese(story.ShortDescription), $"{path} needs a Japanese description.");
+            Assert.Null(story.CapabilityNote);
+        }
     }
 
     [Fact]
@@ -322,6 +574,30 @@ public sealed class ProductionDocsCompletenessTests
 
         Assert.Same(localized, ControlApiRegistry.Find("Probe.Priority.Localized"));
     }
+
+    private static StoryCatalog CreateCombinedControlCatalog()
+    {
+        var builder = new StoryCatalogBuilder();
+        foreach ((StoryCatalog catalog, _) in OwnerCatalogs())
+            foreach (StoryInfo story in catalog.All)
+                builder.Add(story, replaceGenerated: true);
+        return builder.Build();
+    }
+
+    private static string CSharpSnippet(string markdown)
+    {
+        const string opening = "```csharp\n";
+        int start = markdown.IndexOf(opening, StringComparison.Ordinal);
+        if (start < 0) throw new InvalidOperationException("Control docs are missing the C# usage snippet.");
+        start += opening.Length;
+        int end = markdown.IndexOf("\n```", start, StringComparison.Ordinal);
+        if (end < 0) throw new InvalidOperationException("Control docs have an unterminated C# usage snippet.");
+        return markdown[start..end];
+    }
+
+    private static bool ContainsJapanese(string? value)
+        => !string.IsNullOrWhiteSpace(value) && value.Any(static character =>
+            character is >= '\u3040' and <= '\u30ff' or >= '\u3400' and <= '\u9fff');
 
     private static string LowerFirst(string value) => char.ToLowerInvariant(value[0]) + value[1..];
 

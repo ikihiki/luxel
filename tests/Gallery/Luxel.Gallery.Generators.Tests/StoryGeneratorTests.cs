@@ -126,6 +126,20 @@ public sealed class StoryGeneratorTests
     }
 
     [Fact]
+    public void Story_description_metadata_is_emitted_without_changing_the_route_or_builder()
+    {
+        GeneratorDriverRunResult result = Run("""
+            [Story(ShortDescription = "短い説明", LongDescription = "詳しい説明")]
+            public static StoryResult Demo() => new Widget();
+            """);
+
+        string generated = Assert.Single(result.GeneratedTrees).ToString();
+        Assert.Contains("\"Demo/Demo\", static ctx => global::Demo.Stories.Demo()", generated, StringComparison.Ordinal);
+        Assert.Contains("ShortDescription: \"短い説明\"", generated, StringComparison.Ordinal);
+        Assert.Contains("LongDescription: \"詳しい説明\"", generated, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Args_can_be_explicitly_disabled_for_an_authored_story()
     {
         GeneratorDriverRunResult result = Run("""
@@ -221,6 +235,8 @@ public sealed class StoryGeneratorTests
                     public bool ArgsEnabled { get; set; } = true;
                     public string? Args { get; set; }
                     public string? CapabilityNote { get; set; }
+                    public string? ShortDescription { get; set; }
+                    public string? LongDescription { get; set; }
                 }
                 [AttributeUsage(AttributeTargets.Class)]
                 public sealed class StoryMeta(string title) : Attribute { public string Title { get; } = title; }
@@ -236,7 +252,8 @@ public sealed class StoryGeneratorTests
                 public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Build,
                     string? Source = null, bool RealWindowOnly = false,
                     System.Collections.Generic.IReadOnlyList<StoryArgDefinition>? ArgDefinitions = null,
-                    string? CapabilityNote = null, bool IncludeInPageNavigation = true);
+                    string? CapabilityNote = null, bool IncludeInPageNavigation = true,
+                    string? ShortDescription = null, string? LongDescription = null);
                 public static class StoryRegistry { public static void Register(StoryInfo story) { } }
             }
 

@@ -15,6 +15,7 @@
       "tests/Framework/Luxel.Framework.Tests/Luxel.Framework.Tests.csproj",
       "tests/Framework/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj",
       "tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj",
+      "tests/Gallery/Luxel.Gallery.Native.Tests/Luxel.Gallery.Native.Tests.csproj",
       "tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj",
       "tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj",
       "tests/Gallery/Luxel.Gallery.Tests/Luxel.Gallery.Tests.csproj",

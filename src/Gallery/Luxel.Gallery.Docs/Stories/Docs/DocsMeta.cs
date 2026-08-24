@@ -221,7 +221,7 @@ public static partial class DocsMeta
 
         ```powershell
         dotnet run --project gallery/GalleryNative -- vk bench "Internals/OrbitSample" 300
-        dotnet run --project gallery/GalleryNative -- vk bench "Controls/TextEditorView/Basic" 300 --type
+        dotnet run --project gallery/GalleryNative -- vk bench "Controls/Editor/TextEditorView/Basic" 300 --type
         dotnet run --project gallery/GalleryNative -- vk bench "Controls/ListViewHuge" 300 --wheel 1
         ```
 

@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Luxel.Gallery.Native" />
+    <InternalsVisibleTo Include="Luxel.Gallery.Native.Tests" />
   </ItemGroup>
   <Import Project="..\..\..\assets\Luxel.FontAssets.targets" />
   <Import Project="..\..\..\shaders\Luxel.Shaders.targets" />

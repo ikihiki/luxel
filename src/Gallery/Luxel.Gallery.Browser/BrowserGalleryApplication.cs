@@ -273,6 +273,18 @@ public static partial class BrowserGalleryApplication
             BrowserJsonContext.Default.SetArgsResponse);
     }
 
+    [JSExport]
+    public static bool SetPreviewTheme(string theme)
+    {
+        UiTheme.Current.Value = theme switch
+        {
+            "light" => Theme.Light,
+            "dark" => Theme.Dark,
+            _ => throw new ArgumentOutOfRangeException(nameof(theme), theme, "Preview theme must be light or dark."),
+        };
+        return true;
+    }
+
     private static Widget BuildStoryWidget(StoryInfo story, StoryContext context, StoryResult authored,
         VectorFont font, int width, int height)
     {

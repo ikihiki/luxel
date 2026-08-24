@@ -1,11 +1,10 @@
 using System.Text.Json.Nodes;
 using Microsoft.Playwright;
-using Microsoft.Playwright.Xunit;
 using static Microsoft.Playwright.Assertions;
 
 namespace Luxel.Gallery.Browser.E2E.Tests;
 
-public sealed class NodeGraphPlaygroundTests : PageTest
+public sealed class NodeGraphPlaygroundTests : GalleryPageTest
 {
     [Fact]
     public async Task Json_arg_edited_before_runtime_ready_is_replayed_to_the_canvas()
@@ -131,10 +130,10 @@ public sealed class NodeGraphPlaygroundTests : PageTest
         string original = await textarea.InputValueAsync();
         int revision = await runtime.Locator("html").EvaluateAsync<int>("() => globalThis.luxelBrowserState?.revision ?? 0");
 
-        await editor.GetByRole(AriaRole.Tab, new() { Name = "Tree", Exact = true }).ClickAsync();
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "ツリー (Tree)", Exact = true }).ClickAsync();
         await Expect(editor).ToHaveAttributeAsync("data-mode", "tree");
         await Expect(editor.GetByRole(AriaRole.Tree)).ToBeVisibleAsync();
-        await editor.GetByRole(AriaRole.Tab, new() { Name = "Raw", Exact = true }).ClickAsync();
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "テキスト (Raw)", Exact = true }).ClickAsync();
 
         await Expect(textarea).ToHaveValueAsync(original);
         Assert.Equal(revision, await runtime.Locator("html").EvaluateAsync<int>(
@@ -161,11 +160,11 @@ public sealed class NodeGraphPlaygroundTests : PageTest
         ILocator editor = Page.Locator(".raw-json-editor");
         ILocator textarea = Page.Locator("#story-arg-graph");
         await textarea.FillAsync(invalid);
-        await editor.GetByRole(AriaRole.Tab, new() { Name = "Tree", Exact = true }).ClickAsync();
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "ツリー (Tree)", Exact = true }).ClickAsync();
 
-        await Expect(editor.GetByText("Treeは読み取り専用です", new() { Exact = false })).ToBeVisibleAsync();
+        await Expect(editor.GetByText("ツリーは読み取り専用です", new() { Exact = false })).ToBeVisibleAsync();
         await Expect(editor.GetByRole(AriaRole.Tree)).ToHaveAttributeAsync("aria-readonly", "true");
-        await editor.GetByRole(AriaRole.Tab, new() { Name = "Raw", Exact = true }).ClickAsync();
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "テキスト (Raw)", Exact = true }).ClickAsync();
 
         await Expect(textarea).ToHaveValueAsync(invalid);
         Assert.Equal(revision, await runtime.Locator("html").EvaluateAsync<int>(
@@ -189,7 +188,7 @@ public sealed class NodeGraphPlaygroundTests : PageTest
         int revision = await runtime.Locator("html").EvaluateAsync<int>("() => globalThis.luxelBrowserState?.revision ?? 0");
 
         ILocator editor = Page.Locator(".raw-json-editor");
-        await editor.GetByRole(AriaRole.Tab, new() { Name = "Tree", Exact = true }).ClickAsync();
+        await editor.GetByRole(AriaRole.Tab, new() { Name = "ツリー (Tree)", Exact = true }).ClickAsync();
         await editor.Locator("[data-pointer='/nodes'] .json-tree-toggle").ClickAsync();
         await editor.Locator("[data-pointer='/nodes/0'] .json-tree-toggle").ClickAsync();
         ILocator titleRow = editor.Locator("[data-pointer='/nodes/0/title']");

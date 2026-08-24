@@ -27,6 +27,17 @@ Before running an environment-sensitive alias, read `environment-setup.md` and c
 
 When a prerequisite is missing, show its detection, preparation, privilege/effect, and cleanup commands. Ask before running `sudo`, installing a .NET workload, or installing Playwright system dependencies.
 
+## Gallery CI workflow map
+
+| Coverage | Workflow |
+| --- | --- |
+| Ordinary managed contracts, including `Luxel.Gallery.Native.Tests` | `.github/workflows/unit-tests.yml` |
+| Gallery Browser publish + Playwright with deterministic SwiftShader | `.github/workflows/test-gallery-browser-e2e.yml` |
+| Gallery Native managed/architecture checks and bounded Linux Wayland/Vulkan startup smoke | `.github/workflows/test-gallery-native.yml` |
+| Staged Pages static HTTP/startup-asset smoke | `.github/workflows/deploy-pages.yml` and `.github/workflows/preview-pages.yml` |
+
+The Browser E2E workflow is software-GPU validation and must not be reported as hardware coverage. Existing repository workflows declare no GPU-capable Windows runner for DX12 golden verification, and the Direct3D 12 backend rejects software adapters; run DX goldens only on suitable Windows hardware until that infrastructure exists. The Linux Native workflow captures a bounded `GalleryApp` runtime screenshot, but the repository still has no complete shell-golden harness, so do not call it shell regression coverage.
+
 ## Suite aliases
 
 ### `all`
@@ -101,13 +112,15 @@ Use a shell trap so `audio-stop.sh` also runs after a failure. Run `OutputCaptur
 Run:
 
 ```text
+tests/Gallery/Luxel.Gallery.Tests
 tests/Gallery/Luxel.Gallery.Generators.Tests
+tests/Gallery/Luxel.Gallery.Native.Tests
 tests/Gallery/Luxel.Gallery.Playground.Tests
 tests/Gallery/Luxel.Gallery.Site.Tests
 tests/Graphics/Luxel.WebGPU.Browser.Tests
 ```
 
-These are managed contract tests and normally require no browser workload.
+These are managed contract tests and normally require no browser workload or display. `Luxel.Gallery.Native.Tests` is intentionally part of ordinary managed CI through `Luxel.UnitTests.slnf`; validate membership with `python3 eng/check-unit-test-solution-filter.py`.
 
 ### `webgpu`
 
@@ -119,7 +132,7 @@ tests/Graphics/Luxel.WebGPU.Present.Tests
 tests/Framework/Luxel.Framework.UI.Tests
 ```
 
-Detect available GPU adapters first. Prefer a usable hardware Vulkan adapter on Linux or hardware DX12 adapter on Windows. Linux presentation tests run natively in the repository Wayland desktop when `WAYLAND_DISPLAY` is loaded; use a separately provisioned X11 display only for explicit X11 regression coverage. Use the lavapipe/fallback environment from `.github/workflows/test-webgpu.yml` only when no compatible hardware GPU is accessible, the user explicitly requests software rendering, or fallback behavior is the subject of the test. If prerequisites are absent, run only explicitly requested managed/source-contract tests and report the reduced scope.
+Detect available GPU adapters first. Prefer a usable hardware Vulkan adapter on Linux or hardware DX12 adapter on Windows. Linux presentation tests run natively in the repository Wayland desktop when `WAYLAND_DISPLAY` is loaded; use a separately provisioned X11 display only for explicit X11 regression coverage. `.github/workflows/test-gallery-native.yml` shows the deterministic lavapipe/Wayland CI setup; use that software fallback only when no compatible hardware GPU is accessible, the user explicitly requests software rendering, or fallback behavior is the subject of the test. If prerequisites are absent, run only explicitly requested managed/source-contract tests and report the reduced scope.
 
 ### `webgpu-browser`
 
@@ -133,7 +146,7 @@ tests/Gallery/Luxel.Gallery.Playground.Tests
 tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests
 ```
 
-The full CI suite additionally requires `wasm-tools`, Chromium/Playwright, static Blazor Gallery publication, Playground publication, and both browser E2E aliases. Prefer Chromium's accessible hardware GPU/WebGPU adapter. Use SwiftShader or lavapipe only when hardware WebGPU is unavailable, explicitly requested, or the test targets fallback behavior. `.github/workflows/test-webgpu-browser.yml` documents the deterministic software-GPU CI fallback, not the preferred local adapter.
+The full CI suite additionally requires `wasm-tools`, Chromium/Playwright, static Blazor Gallery publication, Playground publication, and both browser E2E aliases. Prefer Chromium's accessible hardware GPU/WebGPU adapter. Use SwiftShader or lavapipe only when hardware WebGPU is unavailable, explicitly requested, or the test targets fallback behavior. `.github/workflows/test-gallery-browser-e2e.yml` is the actual deterministic SwiftShader Gallery gate; it is software-GPU coverage, not the preferred local adapter or a hardware validation job.
 
 ### `terminal`
 
@@ -187,7 +200,7 @@ dotnet run --project gallery/GalleryE2E.Native/GalleryE2E.Native.csproj \
   -c Release -- <vk|dx> [story-filter] [--update] [--rasterizer skia]
 ```
 
-Never use `--update` unless the user explicitly asks to update goldens.
+Never use `--update` unless the user explicitly asks to update goldens. `.github/workflows/test-gallery-native.yml` runs a bounded Wayland/Vulkan `GalleryApp` startup smoke with diagnostic artifacts; it does not run story goldens or provide full-shell goldens. Run Vulkan story goldens explicitly with the command above when requested and prerequisites are available. DX verification remains a hardware-Windows command: existing repository workflows declare no suitable GPU-capable Windows runner, so do not substitute a hosted software adapter or describe an unexecuted job as DX12 coverage. When such a runner is added, keep the job scheduled or filtered to the Gallery/UI/graphics/assets/shaders paths already covered by the Native workflow.
 
 ### `gallery-browser-e2e`
 
@@ -200,7 +213,7 @@ pwsh tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/bin/Release/net10.0/playwrigh
 dotnet test tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj -c Release --no-build
 ```
 
-The xUnit suite drives the published static `wwwroot` with Microsoft Playwright and deterministic Chromium SwiftShader arguments. It requires `wasm-tools`, PowerShell, and Chromium. If artifacts and the project are already built, run only the final `dotnet test` command.
+The xUnit suite drives the published static `wwwroot` with Microsoft Playwright and deterministic Chromium SwiftShader arguments. It requires `wasm-tools`, PowerShell, and Chromium. `.github/workflows/test-gallery-browser-e2e.yml` is the CI entry point and preserves `playwright-report`, `test-results`, and test logs on failure. If artifacts and the project are already built, run only the final `dotnet test` command. The workflow does not prove hardware WebGPU; add a separate hardware-preferred job only after a runner with exposed GPU/browser support is available.
 
 ### `playground-browser-e2e`
 
@@ -224,11 +237,14 @@ Use `npm run test:slang` when only the Slang runtime smoke contracts are request
 
 - `tests/Audio/Luxel.Audio.Browser.Tests/Luxel.Audio.Browser.Tests.csproj`
 - `tests/Audio/Luxel.Audio.Silk.Tests/Luxel.Audio.Silk.Tests.csproj`
-- `tests/Gallery/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj`
 - `tests/Framework/Luxel.Framework.UI.Tests/Luxel.Framework.UI.Tests.csproj`
+- `tests/Gallery/Luxel.E2e.Tests/Luxel.E2e.Tests.csproj`
+- `tests/Gallery/Luxel.Gallery.Browser.E2E.Tests/Luxel.Gallery.Browser.E2E.Tests.csproj`
 - `tests/Gallery/Luxel.Gallery.Generators.Tests/Luxel.Gallery.Generators.Tests.csproj`
+- `tests/Gallery/Luxel.Gallery.Native.Tests/Luxel.Gallery.Native.Tests.csproj`
 - `tests/Gallery/Luxel.Gallery.Playground.Tests/Luxel.Gallery.Playground.Tests.csproj`
 - `tests/Gallery/Luxel.Gallery.Site.Tests/Luxel.Gallery.Site.Tests.csproj`
+- `tests/Gallery/Luxel.Gallery.Tests/Luxel.Gallery.Tests.csproj`
 - `tests/Platform/Luxel.Platform.Silk.Tests/Luxel.Platform.Silk.Tests.csproj`
 - `tests/Platform/Luxel.Platform.Web.Tests/Luxel.Platform.Web.Tests.csproj`
 - `tests/Scripting/Luxel.Scripting.Roslyn.Web.Tests/Luxel.Scripting.Roslyn.Web.Tests.csproj`

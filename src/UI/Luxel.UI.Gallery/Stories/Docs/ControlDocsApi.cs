@@ -34,7 +34,7 @@ internal static class ControlDocsApi
         string path, Func<StoryContext, StoryResult> build)
     {
         if (!paths.Add(path)) return;
-        builder.Add(new StoryInfo(path, build, Source: "Generated component docs."), replaceGenerated: true);
+        builder.Add(new StoryInfo(path, build, Source: "生成されたコンポーネントドキュメント。"), replaceGenerated: true);
     }
 
     private static void RegisterControlStories()
@@ -50,7 +50,7 @@ internal static class ControlDocsApi
                 string? category = ExistingControlCategory(api.Name);
                 if (category is null || !RegisteredControlCategories.Add(category)) continue;
                 StoryRegistry.Register(new StoryInfo($"Controls/{category}/Docs",
-                    ctx => ControlPage(ctx, api), Source: "Generated component docs."));
+                    ctx => ControlPage(ctx, api), Source: "生成されたコンポーネントドキュメント。"));
             }
 
             RegisterSpecialControlPage("Layout", LayoutPage);
@@ -63,7 +63,7 @@ internal static class ControlDocsApi
     {
         if (!RegisteredControlCategories.Add(category)) return;
         StoryRegistry.Register(new StoryInfo($"Controls/{category}/Docs", build,
-            Source: "Generated component docs."));
+            Source: "生成されたコンポーネントドキュメント。"));
     }
 
     private static string? ExistingControlCategory(string apiName) => apiName switch
@@ -95,14 +95,13 @@ internal static class ControlDocsApi
     private static StoryResult ButtonDocs() => $$"""
         # Button
 
-        `Button` executes an action in response to pointer activation. The browser bundle currently hosts
-        the canonical interactive counter story; component-playground hosting remains native until the
-        generated component catalog can be linked into the browser-safe dependency closure.
+        `Button` はポインター操作を受けて一つの処理を実行します。ブラウザーバンドルでは canonical な
+        Counter の操作例を表示します。生成コンポーネントカタログがブラウザー向け依存関係へ組み込まれるまで、
+        コンポーネントのプレイグラウンドは Native ホストで利用します。
 
         {{StoryReference.To("Controls/Input/Button/Examples/Counter", new { count = 0 })}}
 
-        The interactive reference above is isolated in its own browser runtime iframe; the surrounding
-        overview remains semantic HTML.
+        上の操作例は専用のブラウザー実行環境へ分離され、周囲の概要は意味構造を持つ HTML として表示されます。
         """;
 
     private static StoryResult ControlPage(StoryContext ctx, ControlApi api)
@@ -116,7 +115,8 @@ internal static class ControlDocsApi
 
     public static IReadOnlyList<StoryArgDefinition> CounterSampleArgs() => InputControlStories.CounterArgs();
 
-    [Story(Path = "Controls/Input/Button/Examples/Counter", Args = nameof(CounterSampleArgs))]
+    [Story(Path = "Controls/Input/Button/Examples/Counter", Args = nameof(CounterSampleArgs),
+        ShortDescription = "クリックによる count の更新と Args 連携を確認する操作可能な例です。")]
     public static StoryResult CounterSample(StoryContext ctx) => InputControlStories.ButtonCounter(ctx);
 
     private static StoryResult LayoutPage(StoryContext ctx)

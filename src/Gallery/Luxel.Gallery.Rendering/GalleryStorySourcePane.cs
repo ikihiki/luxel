@@ -7,12 +7,13 @@ namespace Luxel.Gallery;
 /// <summary>Builds the shared read-only source pane used by the native Gallery and static-site tests.</summary>
 public static class GalleryStorySourcePane
 {
-    public static Widget Build(StoryInfo? story, float width = 640f, float height = 240f)
+    public static Widget Build(StoryInfo? story, float width = 800f, float height = 240f)
     {
         if (story is null)
-            return Text("No story selected.", 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
+            return Text(NativeRenderingLabels.NoStorySelected, 13,
+                color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
         if (string.IsNullOrWhiteSpace(story.Source))
-            return Text("Source unavailable.", 12,
+            return Text(NativeRenderingLabels.SourceUnavailable, 13,
                 color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8));
 
         TextEditorView editor = TextEditorView(new Signal<string>(story.Source),

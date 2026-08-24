@@ -75,11 +75,11 @@ public sealed class NativeGalleryApplication : IDisposable
         GpuGlyphMaskRenderer2D? glyphMasks = null;
         bool storyRegistered = false;
         LuxelAppBuilder builder = LuxelApp.CreateBuilder(_args);
-        builder.Options.Title = "Luxel Gallery";
+        builder.Options.Title = NativeGalleryLabels.WindowTitle;
         builder.Options.UiName = "gallery";
         builder.Options.Width = 1280;
         builder.Options.Height = 840;
-        builder.Options.Theme = GalleryChromeTheme.Create();
+        builder.Options.Theme = gallery.ShellTheme;
         builder.Options.FontFactory = () => GalleryFonts.Load(GalleryFonts.Regular);
         builder.Options.RunDuration = seconds > 0 ? TimeSpan.FromSeconds(seconds) : null;
         builder.Options.GraphicsBackend = ParseGraphicsBackend(backend);

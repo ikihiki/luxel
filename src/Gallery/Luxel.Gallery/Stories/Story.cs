@@ -19,6 +19,10 @@ public class Story : Attribute
     public string? Path { get; set; }
     /// <summary>Human-readable deterministic fixture/capability note exported with runtime descriptors.</summary>
     public string? CapabilityNote { get; set; }
+    /// <summary>Optional short Japanese summary displayed near the story title.</summary>
+    public string? ShortDescription { get; set; }
+    /// <summary>Optional longer Japanese explanation shared by Gallery hosts.</summary>
+    public string? LongDescription { get; set; }
     /// <summary>Whether this authored story exposes an Args panel. Set to <see langword="false"/> to suppress inherited generated Args.</summary>
     public bool ArgsEnabled { get; set; } = true;
     /// <summary>Optional static schema provider method on the declaring story type.</summary>
@@ -567,7 +571,9 @@ public sealed record StoryInfo(string Path, Func<StoryContext, StoryResult> Buil
                                GeneratedComponentStoryDescriptor? ProductionComponent = null,
                                StoryOwnership? Ownership = null,
                                bool IncludeInPageNavigation = true,
-                               StoryKind Kind = StoryKind.Unspecified)
+                               StoryKind Kind = StoryKind.Unspecified,
+                               string? ShortDescription = null,
+                               string? LongDescription = null)
 {
     /// <summary>パスの先頭セグメント (章 — サイドバーのトップレベル)。</summary>
     public string Component => Path.IndexOf('/') is >= 0 and var i ? Path[..i] : Path;

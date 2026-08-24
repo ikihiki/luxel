@@ -32,7 +32,8 @@ public static class CommandStory
         return null;
     }
 
-    [Story(Path = "Controls/Overlay/MenuBar/Basic")]
+    [Story(Path = "Controls/Overlay/MenuBar/Basic",
+        ShortDescription = "CommandRegistry と文書固有の寄与を階層メニューへ合成し、実行可否も共有します。")]
     public static StoryResult MenuBarBasic(StoryContext ctx)
     {
         string ran = "";
@@ -63,7 +64,8 @@ public static class CommandStory
                  13, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8, 10, 0, 0))];
     }
 
-    [Story(Path = "Controls/Editor/CommandPalette/Basic")]
+    [Story(Path = "Controls/Editor/CommandPalette/Basic",
+        ShortDescription = "全コマンドを検索してキーボードで選び、同じ CommandRegistry から実行します。")]
     public static StoryResult CommandPaletteBasic(StoryContext ctx)
     {
         string ran = "";
@@ -104,7 +106,8 @@ public static class CommandStory
             => OpenButton = Button(_ => { if (_ctx is not null) OnOpen(_ctx); }, "パレットを開く (Ctrl+Shift+P)");
     }
 
-    [Story(Path = "Controls/Overlay/Toolbar/Basic")]
+    [Story(Path = "Controls/Overlay/Toolbar/Basic",
+        ShortDescription = "頻繁に使うコマンドと文書固有の寄与をボタン列へ抜き出し、実行可否を共有します。")]
     public static StoryResult ToolbarBasic(StoryContext ctx)
     {
         string ran = "";

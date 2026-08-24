@@ -1,44 +1,91 @@
-using Luxel.Graphics.TwoD;
+using Luxel.Gallery.Presentation;
 using Luxel.UI;
+using SharedGalleryChromeTokens = Luxel.Gallery.Presentation.GalleryChromeTokens;
 
 namespace Luxel.Gallery;
 
-/// <summary>Blazor Gallery の CSS custom properties に対応する Native chrome テーマ。</summary>
+/// <summary>Native renderer conveniences derived only from shared semantic Gallery tokens.</summary>
+internal readonly record struct NativeGalleryChrome(
+    uint Main,
+    uint Preview,
+    uint Search,
+    uint AccentSoft,
+    uint Border,
+    uint TreeHover,
+    uint TreeFolder,
+    uint TreeLeaf,
+    uint TreeHoverText,
+    uint TreeSelectedText,
+    uint TreeChevron,
+    uint Panel,
+    uint PanelCode,
+    uint OutputRow,
+    uint OutputTime,
+    uint OutputKind,
+    uint OutputText,
+    uint Success,
+    uint Warning);
+
+/// <summary>Maps the shared Gallery presentation palette into Luxel Native themes.</summary>
 internal static class GalleryChromeTheme
 {
-    public static uint Main => C(0x0d, 0x14, 0x1d);
-    public static uint Preview => C(0x10, 0x15, 0x1d);
-    public static uint Search => C(0x0b, 0x12, 0x1b);
-    public static uint AccentSoft => C(0x18, 0x34, 0x5c);
-    public static uint Border => C(0x26, 0x32, 0x42);
-    public static uint TreeHover => C(0x18, 0x23, 0x31);
-    public static uint TreeFolder => C(0x87, 0x99, 0xaf);
-    public static uint TreeLeaf => C(0xbd, 0xca, 0xda);
-    public static uint TreeHoverText => C(0xf5, 0xf8, 0xfc);
-    public static uint TreeSelectedText => C(0xcf, 0xe2, 0xff);
-    public static uint TreeChevron => C(0x5f, 0x72, 0x8a);
-    public static uint Panel => C(0x10, 0x19, 0x23);
-    public static uint PanelCode => C(0x09, 0x11, 0x1a);
-    public static uint OutputRow => C(0x0b, 0x12, 0x1b);
-    public static uint OutputTime => C(0x67, 0x7b, 0x93);
-    public static uint OutputKind => C(0x8f, 0xac, 0xce);
-    public static uint OutputText => C(0xcb, 0xd7, 0xe5);
-    public static uint Success => C(0x54, 0xbd, 0x83);
+    public static SharedGalleryChromeTokens SharedTokens(GalleryAppearance appearance)
+        => SharedGalleryChromeTokens.Resolve(appearance);
 
-    public static Theme Create() => Theme.Dark.Compact() with
+    public static NativeGalleryChrome Tokens(GalleryAppearance appearance)
     {
-        Background = C(0x0b, 0x10, 0x17),
-        Surface = C(0x11, 0x1a, 0x25),
-        SurfaceAlt = C(0x10, 0x17, 0x21),
-        BorderColor = C(0x26, 0x32, 0x42),
-        Text = C(0xe5, 0xed, 0xf7),
-        TextMuted = C(0x8f, 0xa0, 0xb5),
-        Primary = C(0x76, 0xa9, 0xff),
-        PrimaryHover = C(0x8b, 0xb8, 0xff),
-        PrimaryActive = C(0x5f, 0x91, 0xe8),
-        Radius = 6,
-        RadiusLg = 9,
-    };
+        SharedGalleryChromeTokens tokens = SharedTokens(appearance);
+        return new NativeGalleryChrome(
+            Main: tokens.Background.Rgba,
+            Preview: tokens.CodeSurface.Rgba,
+            Search: tokens.ArgsEditorSurface.Rgba,
+            AccentSoft: tokens.Selected.Rgba,
+            Border: tokens.Border.Rgba,
+            TreeHover: tokens.Hover.Rgba,
+            TreeFolder: tokens.MutedText.Rgba,
+            TreeLeaf: tokens.Text.Rgba,
+            TreeHoverText: tokens.Text.Rgba,
+            TreeSelectedText: tokens.Primary.Rgba,
+            TreeChevron: tokens.SubtleText.Rgba,
+            Panel: tokens.Surface.Rgba,
+            PanelCode: tokens.CodeSurface.Rgba,
+            OutputRow: tokens.ElevatedSurface.Rgba,
+            OutputTime: tokens.SubtleText.Rgba,
+            OutputKind: tokens.Primary.Rgba,
+            OutputText: tokens.Text.Rgba,
+            Success: tokens.Success.Rgba,
+            Warning: tokens.Warning.Rgba);
+    }
 
-    private static uint C(byte r, byte g, byte b) => Color2D.Rgba(r, g, b);
+    public static Theme Create(GalleryAppearance appearance)
+    {
+        SharedGalleryChromeTokens tokens = SharedTokens(appearance);
+        Theme basis = (appearance == GalleryAppearance.Dark ? Theme.Dark : Theme.Light).Compact();
+        return basis with
+        {
+            Background = tokens.Background.Rgba,
+            Surface = tokens.Surface.Rgba,
+            SurfaceAlt = tokens.ElevatedSurface.Rgba,
+            BorderColor = tokens.Border.Rgba,
+            Text = tokens.Text.Rgba,
+            TextMuted = tokens.MutedText.Rgba,
+            OnAccent = tokens.InverseText.Rgba,
+            Primary = tokens.Primary.Rgba,
+            PrimaryHover = GalleryColor.Mix(tokens.Primary, tokens.Focus, 0.35f).Rgba,
+            PrimaryActive = GalleryColor.Mix(tokens.Primary, tokens.Text, 0.14f).Rgba,
+            Success = tokens.Success.Rgba,
+            Warning = tokens.Warning.Rgba,
+            Danger = tokens.Error.Rgba,
+            Info = tokens.Primary.Rgba,
+            Font = tokens.BodyFontSize,
+            FontSm = tokens.SupportingFontSize,
+            FontLg = tokens.HeadingFontSize,
+            Space = tokens.SpacingUnit,
+            Radius = tokens.Radius,
+            RadiusLg = tokens.LargeRadius,
+        };
+    }
+
+    public static Theme CreatePreview(GalleryAppearance appearance)
+        => Create(appearance);
 }

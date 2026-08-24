@@ -11,7 +11,8 @@ namespace Luxel.Gallery.Stories;
 [StoryMeta("Controls")]
 public static class TextControlStories
 {
-    [Story(Path = "Controls/Text/TextField/Basic")]
+    [Story(Path = "Controls/Text/TextField/Basic",
+        ShortDescription = "一行文字列を入力し、編集結果とキャレット操作を Signal へ反映します。")]
     public static StoryResult TextFieldBasic(StoryContext ctx)
     {
         Signal<string> text = new("Hello");
@@ -33,7 +34,8 @@ public static class TextControlStories
         StoryArgDefinition.Create("value", "string", "Editable text", "Current text value."),
     ];
 
-    [Story(Path = "Controls/Text/TextField/Examples/Interactive", Args = nameof(TextFieldPlaygroundArgs))]
+    [Story(Path = "Controls/Text/TextField/Examples/Interactive", Args = nameof(TextFieldPlaygroundArgs),
+        ShortDescription = "Args と入力欄が同じ文字列 Signal を共有し、編集結果が即時反映される例です。")]
     public static StoryResult TextFieldPlayground(StoryContext ctx)
     {
         Signal<string> value = ctx.Arg("value", "Editable text",
@@ -41,7 +43,8 @@ public static class TextControlStories
         return TextField(value, placeholder: "Type here...");
     }
 
-    [Story(Path = "Controls/Text/TextField/Examples/Slots")]
+    [Story(Path = "Controls/Text/TextField/Examples/Slots",
+        ShortDescription = "leading と trailing slot に検索記号とショートカットを置き、入力の文脈を補います。")]
     public static StoryResult TextFieldSlots(StoryContext ctx) => Frame(
         TextField(ctx.Signal("value", "Search"), placeholder: "Search...")
         [
@@ -49,7 +52,8 @@ public static class TextControlStories
             TextFieldSlot.Trailing(() => Text("⌘K", 11, color: Tw.Slate500))
         ]);
 
-    [Story(Path = "Controls/Text/TextField/States/Focused")]
+    [Story(Path = "Controls/Text/TextField/States/Focused",
+        ShortDescription = "編集対象であることを示すフォーカス表現を、値を変えずに固定して確認します。")]
     public static StoryResult TextFieldFocused(StoryContext ctx)
     {
         TextField field = TextField(ctx.Signal("value", "Focused"));
@@ -57,7 +61,8 @@ public static class TextControlStories
         return Frame(field);
     }
 
-    [Story(Path = "Controls/Text/TextField/States/Invalid")]
+    [Story(Path = "Controls/Text/TextField/States/Invalid",
+        ShortDescription = "入力規則に合わない値を背景と補助文で伝え、修正理由を明確にします。")]
     public static StoryResult TextFieldInvalid(StoryContext ctx)
     {
         TextField field = TextField(ctx.Signal("value", "invalid"), utilities: [U.Background(0x20EF4444)]);
@@ -65,7 +70,8 @@ public static class TextControlStories
         return Frame(VStack(5)[field, Text("Enter digits only", 12, color: Tw.Red500)]);
     }
 
-    [Story(Path = "Controls/Text/SearchField/Basic")]
+    [Story(Path = "Controls/Text/SearchField/Basic",
+        ShortDescription = "入力に応じて候補を絞り込み、選択結果を確定する検索入力の基本例です。")]
     public static StoryResult SearchFieldBasic(StoryContext ctx)
     {
         // CompositeControl の見本: タイプで候補が絞り込まれ (構造状態 → Rebuild)、行クリックで確定
@@ -73,7 +79,8 @@ public static class TextControlStories
         return SearchField(new Signal<string>(""), langs);
     }
 
-    [Story(Path = "Controls/Text/Text/Examples/EllipsisVerticalAlignment")]
+    [Story(Path = "Controls/Text/Text/Examples/EllipsisVerticalAlignment",
+        ShortDescription = "行数制限の省略表示と、固定高内の縦・横位置指定を並べて比較します。")]
     public static StoryResult TextEllipsisVAlign()
     {
         const string lng = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn evenings.";
@@ -89,7 +96,8 @@ public static class TextControlStories
                 verticalAlign: TextVAlign.Bottom, textAlign: Luxel.Typography.TextAlign.Right))]);
     }
 
-    [Story(Path = "Controls/Text/RichTextView/Basic")]
+    [Story(Path = "Controls/Text/RichTextView/Basic",
+        ShortDescription = "複数のサイズ、色、言語を span ごとに指定し、同じ段落内で折り返します。")]
     public static StoryResult RichTextBasic()
     {
         var spans = new[]
@@ -106,7 +114,8 @@ public static class TextControlStories
         return rtv;
     }
 
-    [Story(Path = "Controls/Text/Text/Examples/Multiline")]
+    [Story(Path = "Controls/Text/Text/Examples/Multiline",
+        ShortDescription = "英語と日本語の折返し、中央揃え、両端揃えを複数行で比較します。")]
     public static StoryResult TextMultiline()
     {
         const string en = "The quick brown fox jumps over the lazy dog near the quiet river bank in autumn.";
@@ -120,7 +129,8 @@ public static class TextControlStories
             Case("Justify (末行は左)", Text(en + " " + en, 13, wrap: Luxel.Typography.TextWrap.Word, textAlign: Luxel.Typography.TextAlign.Justify))]);
     }
 
-    [Story(Path = "Controls/Text/Text/Examples/Styles")]
+    [Story(Path = "Controls/Text/Text/Examples/Styles",
+        ShortDescription = "サイズ、テーマ色、任意色、不透明度を使い、本文内の情報階層を比較します。")]
     public static StoryResult TextStyles(StoryContext ctx) => ctx.Snap(Frame(VStack(6)[
         Text("Large 28px", 28, color: Bind.From(() => UiTheme.T.Text)),
         Text("Body 16px", 16, color: Bind.From(() => UiTheme.T.Text)),
@@ -128,7 +138,8 @@ public static class TextControlStories
         Text("Tailwind colored", 16, color: Tw.Blue500),
         Text("Half opacity", 16, color: Bind.From(() => UiTheme.T.Text), opacity: 0.5f)]));
 
-    [Story(Path = "Controls/Text/Text/Examples/Japanese")]
+    [Story(Path = "Controls/Text/Text/Examples/Japanese",
+        ShortDescription = "日本語フォールバック、等幅コメント、IME 入力を同じ画面で確認する文字環境の例です。")]
     public static StoryResult Japanese(StoryContext ctx)
     {
         // 同梱フォント (BIZ UDGothic / UDEV Gothic) で日本語が出ることを 1 画面で確認する:

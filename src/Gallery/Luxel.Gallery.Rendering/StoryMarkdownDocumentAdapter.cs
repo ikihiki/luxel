@@ -13,14 +13,15 @@ public static class StoryMarkdownDocumentAdapter
         Func<StoryReference, Widget> storyResolver, VectorFont? body = null, VectorFont? bold = null,
         VectorFont? mono = null, ISyntaxHighlighter? highlighter = null,
         IReadOnlyDictionary<string, Func<string, Widget>>? fences = null, FontCollection? fonts = null,
-        bool fill = false)
+        bool fill = false, TextEditorAppearance? appearance = null)
     {
         ArgumentNullException.ThrowIfNull(result);
         ArgumentNullException.ThrowIfNull(storyResolver);
         var kinds = new HashSet<string> { "luxel-ui", "luxel-story" };
         if (fences is not null) foreach (string key in fences.Keys) kinds.Add(key);
         TextEditorView editor = MarkdownDoc.Create(new Signal<string>(result.Markdown), theme, width, height,
-            body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds, fonts: fonts, fill: fill);
+            body: body, bold: bold, mono: mono, highlighter: highlighter, embedKinds: kinds, fonts: fonts,
+            fill: fill, appearance: appearance);
         editor.WidgetResolver = key =>
         {
             if (key is not EmbedRef embed) return null;

@@ -212,7 +212,8 @@ public sealed class GalleryHost : IDisposable
         StoryResult result = global::Luxel.Gallery.UI.StoryPresentation.Build(_story, _ctx);
         _root = result.Kind == StoryResultKind.Markdown
             ? StoryMarkdownRenderer.Build(_story, _ctx, result,
-                _catalog is null ? default : StoryPageNavigation.Resolve(_catalog, _story))
+                _catalog is null ? default : StoryPageNavigation.Resolve(_catalog, _story),
+                availableWidth: _w, availableHeight: _h)
             : result.Widget ?? throw new InvalidOperationException($"Story '{_story.Path}' returned an empty Widget result.");
         _host.SetRoot(_root);
         CreateRasterTarget();

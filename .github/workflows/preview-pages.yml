@@ -45,6 +45,83 @@ jobs:
             gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot \
             editor/EditorBrowser/bin/Release/net10.0/publish/wwwroot \
             .pages
+      - name: Smoke staged Pages over HTTP
+        if: github.event.action != 'closed'
+        shell: bash
+        run: |
+          set -euo pipefail
+          smoke_log="$RUNNER_TEMP/pages-smoke.log"
+          python3 -m http.server 4173 --bind 127.0.0.1 --directory .pages >"$smoke_log" 2>&1 &
+          server_pid=$!
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from time import sleep
+          from urllib.error import URLError
+          from urllib.parse import urljoin, urlparse
+          from urllib.request import urlopen
+
+          base = "http://127.0.0.1:4173/"
+
+          def fetch(url: str, retries: int = 1) -> bytes:
+              for attempt in range(retries):
+                  try:
+                      with urlopen(url, timeout=5) as response:
+                          if response.status != 200:
+                              raise RuntimeError(f"{url} returned HTTP {response.status}")
+                          body = response.read()
+                          if not body:
+                              raise RuntimeError(f"{url} returned an empty body")
+                          return body
+                  except URLError:
+                      if attempt + 1 == retries:
+                          raise
+                      sleep(0.25)
+              raise AssertionError("unreachable")
+
+          class Assets(HTMLParser):
+              def __init__(self) -> None:
+                  super().__init__()
+                  self.urls: list[str] = []
+
+              def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+                  values = dict(attrs)
+                  if tag == "script" and values.get("src"):
+                      self.urls.append(values["src"])
+                  if tag == "link" and "stylesheet" in (values.get("rel") or "").split() and values.get("href"):
+                      self.urls.append(values["href"])
+
+          fetch(base, retries=120)
+          for route in ("", "gallery/", "editor/"):
+              page_url = urljoin(base, route)
+              html = fetch(page_url).decode("utf-8")
+              parser = Assets()
+              parser.feed(html)
+              if route and not parser.urls:
+                  raise RuntimeError(f"{page_url} did not expose startup assets")
+              for asset in parser.urls:
+                  if urlparse(asset).scheme:
+                      continue
+                  fetch(urljoin(page_url, asset))
+          print("Staged Pages HTTP and startup-asset smoke passed.")
+          PY
+
+          echo 'Staged Pages HTTP and startup-asset smoke passed.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Pages smoke log on failure
+        if: failure() && github.event.action != 'closed'
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-pages-smoke-failure-${{ github.run_id }}
+          path: ${{ runner.temp }}/pages-smoke.log
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Deploy PR preview
         uses: rossjrw/pr-preview-action@v1.8.1
         with:

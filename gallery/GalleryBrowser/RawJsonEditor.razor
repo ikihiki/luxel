@@ -4,9 +4,9 @@
 <div class="raw-json-editor" data-status="@StatusKey" data-mode="@Mode.ToString().ToLowerInvariant()">
     <div class="json-mode-tabs" role="tablist" aria-label="@($"{Document.Definition.Name} JSON表示モード")">
         <button type="button" role="tab" aria-selected="@(Mode == JsonMode.Raw ? "true" : "false")"
-                class="@(Mode == JsonMode.Raw ? "active" : null)" @onclick="() => SwitchMode(JsonMode.Raw)">Raw</button>
+                class="@(Mode == JsonMode.Raw ? "active" : null)" @onclick="() => SwitchMode(JsonMode.Raw)">テキスト (Raw)</button>
         <button type="button" role="tab" aria-selected="@(Mode == JsonMode.Tree ? "true" : "false")"
-                class="@(Mode == JsonMode.Tree ? "active" : null)" @onclick="() => SwitchMode(JsonMode.Tree)">Tree</button>
+                class="@(Mode == JsonMode.Tree ? "active" : null)" @onclick="() => SwitchMode(JsonMode.Tree)">ツリー (Tree)</button>
     </div>
 
     @if (Mode == JsonMode.Raw)
@@ -29,8 +29,8 @@
         @if (Document.IsTreeReadOnly)
         {
             <div class="json-tree-banner" role="status">
-                <strong>未適用のRawドラフトがあるため、Treeは読み取り専用です。</strong>
-                <span>Rawへ戻って修正するか、ドラフトを適用または破棄してください。ドラフトの内容は保持されています。</span>
+                <strong>未適用の Raw ドラフトがあるため、ツリーは読み取り専用です。</strong>
+                <span>テキスト (Raw) へ戻って修正するか、ドラフトを適用または破棄してください。ドラフトの内容は保持されています。</span>
                 <div class="raw-json-actions">
                     <button type="button" @onclick="Apply">適用</button>
                     <button type="button" @onclick="Discard">破棄</button>

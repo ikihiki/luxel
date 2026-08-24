@@ -152,16 +152,20 @@ public sealed class GeneratedComponentStoryTests
         Assert.Contains("StoryKind.Basic", generated, StringComparison.Ordinal);
         Assert.Contains("StoryKind.Playground", generated, StringComparison.Ordinal);
         Assert.Contains("\"Controls/Input/Button/Playground\"", generated, StringComparison.Ordinal);
+        Assert.Contains("ShortDescription: \"Button の概要、使い方、APIを確認します。\"", generated, StringComparison.Ordinal);
+        Assert.Contains("ShortDescription: \"Button の基本的な表示例です。\", LongDescription:", generated, StringComparison.Ordinal);
+        Assert.Contains("ShortDescription: \"Button の引数を変更して動作を確認できます。\", LongDescription:", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Kind: global::Luxel.Gallery.StoryKind.Basic, ShortDescription: \"Button の基本的な表示例です。\", CapabilityNote:", generated, StringComparison.Ordinal);
         Assert.Contains("ArgDefinitions: global::System.Array.Empty<global::Luxel.Gallery.StoryArgDefinition>()", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Controls/Button/Overview", generated, StringComparison.Ordinal);
-        Assert.Contains("StoryArgDefinition.Create<string>(\"text\", \"string\", \"Example\"", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"text\", \"string\", \"例\"", generated, StringComparison.Ordinal);
         Assert.Contains("GalleryXmlDocText.Resolve(\"xml:T:Demo.Button\", \"Clickable action.\")", generated, StringComparison.Ordinal);
         Assert.Contains("GalleryXmlDocText.Resolve(\"xml:P:Demo.Button.Text\", \"Displayed label.\")", generated, StringComparison.Ordinal);
         Assert.Contains("GalleryXmlDocText.Resolve(\"xml:E:Demo.Button.Clicked\", \"Raised after activation.\")", generated, StringComparison.Ordinal);
         Assert.Contains("global::Demo.Kit.Button(text: arg", generated, StringComparison.Ordinal);
         Assert.Contains("clicked: () => ctx.Log(\"Button.Clicked\")", generated, StringComparison.Ordinal);
-        Assert.Contains("child: global::Luxel.Controls.Kit.Text(\"Generated child\", 16f)", generated, StringComparison.Ordinal);
-        Assert.DoesNotContain("StoryCapabilityFallback(\"Child fixture\"", generated, StringComparison.Ordinal);
+        Assert.Contains("child: global::Luxel.Controls.Kit.Text(\"生成サンプル: child\", 16f)", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("StoryCapabilityFallback(\"child 用サンプル\"", generated, StringComparison.Ordinal);
         Assert.Contains("StoryArgDefinition.Create<string>(\"padding\", \"string\", default(global::Luxel.UI.Thickness).ToString() ?? string.Empty", generated, StringComparison.Ordinal);
         Assert.Contains("ctx.Arg<string>(\"padding\", default(global::Luxel.UI.Thickness).ToString() ?? string.Empty", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Parser = static value => global::Luxel.UI.Thickness.Parse", generated, StringComparison.Ordinal);
@@ -184,21 +188,44 @@ public sealed class GeneratedComponentStoryTests
         Assert.Contains("global::Luxel.UI.Signal<bool> value", generated, StringComparison.Ordinal);
         Assert.Contains("value", generated, StringComparison.Ordinal);
         Assert.Contains(".Value = arg", generated, StringComparison.Ordinal);
-        Assert.Contains("StoryArgDefinition.Create<string>(\"labels\", \"string\", \"One, Two, Three\"", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"labels\", \"string\", \"項目 1, 項目 2, 項目 3\"", generated, StringComparison.Ordinal);
         Assert.Contains("labels: arg", generated, StringComparison.Ordinal);
         Assert.Contains("StringSplitOptions.TrimEntries | global::System.StringSplitOptions.RemoveEmptyEntries", generated, StringComparison.Ordinal);
         Assert.Contains("StoryArgDefinition.Create<string>(\"columns\", \"string\", \"1*, 1*\"", generated, StringComparison.Ordinal);
         Assert.Contains("columns: ParseGridLengths(arg", generated, StringComparison.Ordinal);
         Assert.Contains("private static global::Luxel.UI.GridLength[] ParseGridLengths", generated, StringComparison.Ordinal);
-        Assert.Contains("StoryArgDefinition.Create<string>(\"content\", \"preset\", \"Generated fixture\"", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"content\", \"preset\", \"生成済みサンプル\"", generated, StringComparison.Ordinal);
         Assert.Contains("content: new global::Luxel.UI.Widget[]", generated, StringComparison.Ordinal);
-        Assert.Contains("StoryArgDefinition.Create<string>(\"services\", \"preset\", \"Component default\"", generated, StringComparison.Ordinal);
-        Assert.Contains("StoryArgDefinition.Create<string>(\"changed\", \"preset\", \"Component default\"", generated, StringComparison.Ordinal);
-        Assert.Contains("per-parameter component-default presets where adapters are required: Services, Changed.", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"services\", \"preset\", \"コンポーネント既定値\"", generated, StringComparison.Ordinal);
+        Assert.Contains("StoryArgDefinition.Create<string>(\"changed\", \"preset\", \"コンポーネント既定値\"", generated, StringComparison.Ordinal);
+        Assert.Contains("アダプターが必要な `Services`, `Changed` にはコンポーネント既定値を使います。", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Unsupported capability/constructor inputs use a deterministic fallback", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("RequiresFallback", generated, StringComparison.Ordinal);
         Assert.Contains("(\"width\", \"length\"", generated, StringComparison.Ordinal);
         Assert.Contains("StoryResult.FromMarkdown", generated, StringComparison.Ordinal);
+        string[] japaneseHeadings =
+        [
+            "## 概要",
+            "## 使う場面・避ける場面",
+            "## 主な使用例",
+            "## バリエーション・状態とその所有",
+            "## 操作・キーボード・アクセシビリティ",
+            "## テーマ・レイアウト・サイズ",
+            "## 制約・ライフサイクル・対応プラットフォーム",
+            "## パラメーター・イベント・API",
+            "## 関連する例・コンポーネント",
+        ];
+        Assert.All(japaneseHeadings, heading => Assert.Contains(heading, generated, StringComparison.Ordinal));
+        Assert.Contains("の生成ドキュメント。", generated, StringComparison.Ordinal);
+        Assert.Contains("生成済み基本例です。", generated, StringComparison.Ordinal);
+        Assert.Contains("生成済みプレイグラウンドです。", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Generated component docs", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Generated static direct typed factory", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("Generated editable direct typed factory", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("production component", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("scalar args", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("capability input", generated, StringComparison.Ordinal);
+        Assert.DoesNotContain("API table", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Activator", generated, StringComparison.Ordinal);
         Assert.DoesNotContain("Reflection", generated, StringComparison.Ordinal);
     }

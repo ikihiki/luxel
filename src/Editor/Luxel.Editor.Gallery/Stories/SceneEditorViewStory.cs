@@ -24,7 +24,17 @@ public static class SceneEditorViewStory
         return SceneDoc.Of(SceneSpace.TwoD, [E(1, "Player", 120, 100), E(2, "Enemy", 300, 180), E(3, "Coin", 470, 120)]);
     }
 
-    [Story]
+    [Story(Path = "Controls/Editor/SceneInspector/Basic", ArgsEnabled = false,
+        ShortDescription = "選択中エンティティのコンポーネントをスキーマに沿った型別エディタで表示します。",
+        LongDescription = "組み込み Transform2D を持つメモリ内エンティティを事前選択し、SceneInspector が位置、回転、拡大率を Transaction 対応の編集欄へ展開します。")]
+    public static StoryResult SceneInspectorBasic()
+    {
+        SceneEditorView editor = SceneEditorView(source: SampleScene(), viewWidth: 300f, viewHeight: 240f);
+        editor.SelectEntity(1);
+        return SceneInspector(editor: editor, schemas: SceneSchemas.BuiltIns(), width: 280f);
+    }
+
+    [Story(ShortDescription = "2D エンティティの選択、移動、範囲選択、複製、undo を同じ編集文書で確認します。")]
     public static StoryResult Basic(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: SampleScene(), viewWidth: 620f, viewHeight: 360f);
@@ -97,7 +107,7 @@ public static class SceneEditorViewStory
             [TileLayer.Of(1, "ground", "res://atlas/tiles.json", 32, 18, 9, cells)]);
     }
 
-    [Story]
+    [Story(ShortDescription = "ブラシ、矩形、消しゴム、スポイトを一操作一 Transaction としてタイルへ適用します。")]
     public static StoryResult Tiles(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: TileScene(), viewWidth: 620f, viewHeight: 320f);
@@ -174,7 +184,7 @@ public static class SceneEditorViewStory
             [E(1, "Player", 0, 0, 0), E(2, "Crate", 2.2f, 0, 0.6f), E(3, "Gate", -2.1f, 0, -1.4f, new Vector3(1.4f, 1.5f, 0.4f))]);
     }
 
-    [Story]
+    [Story(ShortDescription = "同じ編集シェルへ 3D 空間アダプターを差し替え、orbit と XYZ 操作を確認します。")]
     public static StoryResult ThreeD(StoryContext ctx)
     {
         SceneEditorView ed = SceneEditorView(source: SampleScene3D(), viewWidth: 620f, viewHeight: 360f);
@@ -208,7 +218,7 @@ public static class SceneEditorViewStory
         [new SceneFieldDef("color", SceneFieldType.Color, SceneValue.Of(new Vector4(1, 1, 1, 1)))]);
 
     // snap は幅 480 なので、golden に写したいもの (インスペクタ) を左に置く
-    [Story]
+    [Story(ShortDescription = "スキーマ駆動のフィールド編集とコンポーネント追加・削除を undo 可能な形で確認します。")]
     public static StoryResult Inspector(StoryContext ctx)
     {
         SchemaRegistry reg = SceneSchemas.BuiltIns().Add(EnemySchema).Add(TintSchema);
@@ -259,7 +269,7 @@ public static class SceneEditorViewStory
                 HStack(12)[insp, ed]]];
     }
 
-    [Story]
+    [Story(ShortDescription = "メモリ内プロジェクトのアセットを探索し、定義編集と取り込み要求を同じ作業面で扱います。")]
     public static StoryResult Assets(StoryContext ctx)
     {
         // プロジェクトフォルダ相当 (golden は実 FS watch を持ち込まない = MemoryFileStorage)

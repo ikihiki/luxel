@@ -1,32 +1,38 @@
-@using Luxel.Gallery
+@using Luxel.Gallery.Presentation
 
 <ul class="story-tree">
-    @foreach (GalleryStoryTreeNode node in Nodes)
+    @foreach (GalleryNavigationNode node in Nodes)
     {
-        <li>
+        <li data-navigation-kind="@node.Kind.ToString().ToLowerInvariant()" data-canonical-path="@node.CanonicalPath">
             @if (node.Children.Count > 0)
             {
-                <details open="@(SearchActive || node.Contains(ActivePath))">
+                <details open="@(SearchActive || Contains(node, ActivePath))">
                     <summary>
-                        <span>@node.Name</span>
-                        @if (node.Story is not null)
+                        <span>@node.DisplayLabel</span>
+                        @if (node.TargetPath is { } targetPath)
                         {
-                            <a class="folder-story-link @(node.Story.Path == ActivePath ? "active" : null)"
-                               href="@StoryHref(node.Story.Path)" aria-current="@(node.Story.Path == ActivePath ? "page" : null)"
-                               @onclick="() => SelectStory(node.Story)" @onclick:preventDefault @onclick:stopPropagation>概要</a>
+                            <a class="folder-story-link @(targetPath == ActivePath ? "active" : null)"
+                               data-navigation-kind="@node.Kind.ToString().ToLowerInvariant()"
+                               data-canonical-path="@node.CanonicalPath" data-target-path="@targetPath"
+                               href="@StoryHref(targetPath)" aria-current="@(targetPath == ActivePath ? "page" : null)"
+                               @onclick="() => SelectStory(targetPath)" @onclick:preventDefault @onclick:stopPropagation>
+                                @(node.Kind == GalleryNavigationNodeKind.Component ? GalleryLabels.Documentation : node.DisplayLabel)
+                            </a>
                         }
                     </summary>
                     <StoryTree Nodes="node.Children" ActivePath="@ActivePath" SearchActive="SearchActive"
                                StorySelected="StorySelected" />
                 </details>
             }
-            else if (node.Story is not null)
+            else if (node.TargetPath is { } targetPath)
             {
-                <a class="story-link @(node.Story.Path == ActivePath ? "active" : null)"
-                   href="@StoryHref(node.Story.Path)" title="@node.Story.Path"
-                   aria-current="@(node.Story.Path == ActivePath ? "page" : null)"
-                   @onclick="() => SelectStory(node.Story)" @onclick:preventDefault>
-                    <span>@node.Name</span>
+                <a class="story-link @(targetPath == ActivePath ? "active" : null)"
+                   data-navigation-kind="@node.Kind.ToString().ToLowerInvariant()"
+                   data-canonical-path="@node.CanonicalPath" data-target-path="@targetPath"
+                   href="@StoryHref(targetPath)" title="@targetPath"
+                   aria-current="@(targetPath == ActivePath ? "page" : null)"
+                   @onclick="() => SelectStory(targetPath)" @onclick:preventDefault>
+                    <span>@node.DisplayLabel</span>
                 </a>
             }
         </li>
@@ -34,11 +40,13 @@
 </ul>
 
 @code {
-    [Parameter, EditorRequired] public IReadOnlyList<GalleryStoryTreeNode> Nodes { get; set; } = [];
+    [Parameter, EditorRequired] public IReadOnlyList<GalleryNavigationNode> Nodes { get; set; } = [];
     [Parameter, EditorRequired] public string ActivePath { get; set; } = "";
     [Parameter] public bool SearchActive { get; set; }
-    [Parameter] public EventCallback<StoryInfo> StorySelected { get; set; }
+    [Parameter] public EventCallback<string> StorySelected { get; set; }
 
-    private Task SelectStory(StoryInfo story) => StorySelected.InvokeAsync(story);
+    private Task SelectStory(string path) => StorySelected.InvokeAsync(path);
     private static string StoryHref(string path) => "?story=" + Uri.EscapeDataString(path);
+    private static bool Contains(GalleryNavigationNode node, string path)
+        => node.TargetPath == path || node.Children.Any(child => Contains(child, path));
 }

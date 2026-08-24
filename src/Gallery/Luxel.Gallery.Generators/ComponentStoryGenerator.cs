@@ -64,6 +64,8 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
         public string Path = "";
         public string? Template;
         public bool RealWindowOnly;
+        public string? ShortDescription;
+        public string? LongDescription;
         public string StoryType = "";
         public string ComponentType = "";
         public string FactoryType = "";
@@ -114,6 +116,8 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
                 case "FactoryMethod": explicitFactoryMethod = named.Value.Value as string; break;
                 case "Template": model.Template = named.Value.Value as string; break;
                 case "RealWindowOnly" when named.Value.Value is bool value: model.RealWindowOnly = value; break;
+                case "ShortDescription": model.ShortDescription = named.Value.Value as string; break;
+                case "LongDescription": model.LongDescription = named.Value.Value as string; break;
             }
         }
 
@@ -357,7 +361,12 @@ public sealed class ComponentStoryGenerator : IIncrementalGenerator
             source.Append("            builder.Add(new global::Luxel.Gallery.StoryInfo(")
                 .Append(Literal(story.Path)).Append(", static ctx => Build_").Append(i).Append("(ctx), Source: ")
                 .Append(Literal(story.Source)).Append(", RealWindowOnly: ").Append(story.RealWindowOnly ? "true" : "false")
-                .Append(", ArgDefinitions: Args_").Append(i).AppendLine("));");
+                .Append(", ArgDefinitions: Args_").Append(i);
+            if (story.ShortDescription is not null)
+                source.Append(", ShortDescription: ").Append(Literal(story.ShortDescription));
+            if (story.LongDescription is not null)
+                source.Append(", LongDescription: ").Append(Literal(story.LongDescription));
+            source.AppendLine("));");
         }
         source.AppendLine("        }");
 

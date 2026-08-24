@@ -27,6 +27,9 @@
     <ProjectReference Include="..\..\Graphics\Luxel.Typography.TwoD\Luxel.Typography.TwoD.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Luxel.Gallery.Native.Tests" />
+  </ItemGroup>
   <Import Project="..\..\..\assets\Luxel.FontAssets.targets" />
   <Import Project="..\..\..\shaders\Luxel.Shaders.targets" />
   <ItemGroup>

@@ -153,6 +153,8 @@ public sealed class StoryCatalogBuilder
                     ? Array.Empty<StoryArgDefinition>()
                     : story.ArgDefinitions ?? generated.ArgDefinitions,
                 CapabilityNote = story.CapabilityNote ?? generated.CapabilityNote,
+                ShortDescription = story.ShortDescription ?? generated.ShortDescription,
+                LongDescription = story.LongDescription ?? generated.LongDescription,
                 ProductionComponent = generated.ProductionComponent,
                 Ownership = generated.Ownership,
             };

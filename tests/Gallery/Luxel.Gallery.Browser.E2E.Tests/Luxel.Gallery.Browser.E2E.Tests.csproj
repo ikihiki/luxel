@@ -22,4 +22,15 @@
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Gallery\Luxel.Gallery\Luxel.Gallery.csproj" />
+    <ProjectReference Include="..\..\..\src\UI\Luxel.Controls\Luxel.Controls.csproj" />
+    <PackageReference Include="Markdig" Version="0.41.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\..\gallery\GalleryBrowser\GalleryApiTableHtml.cs" Link="BrowserHost\GalleryApiTableHtml.cs" />
+    <Compile Include="..\..\..\gallery\GalleryBrowser\GalleryMarkdownHtml.cs" Link="BrowserHost\GalleryMarkdownHtml.cs" />
+  </ItemGroup>
 </Project>
