@@ -9,8 +9,14 @@ try { args = JSON.parse(query.get("args") || "{}"); } catch { throw new Error("s
 if (!args || Array.isArray(args) || typeof args !== "object") throw new Error("story args must be a JSON object");
 let revision = 0;
 let setArgsExport = null;
+let setPreviewThemeExport = null;
 let pendingSetArgs = null;
+let pendingPreviewTheme = null;
 let localReceiver = null;
+const shellThemeKey = "luxel.gallery.shell-theme";
+const previewThemeKey = "luxel.gallery.preview-theme";
+const synchronizePreviewThemeKey = "luxel.gallery.synchronize-preview-theme";
+const previewThemes = new Set(["light", "dark"]);
 const runtimeState = { state: "loading", summary: "", story, instanceId, args, schema: [], revision, renderRevision: 0, lastRequestId: null, events: [], widgets: [], webGpu: null, pointerDownCount: 0, pointerUpCount: 0 };
 const updateCountState = () => {
   if (Number.isFinite(Number(args.count))) runtimeState.count = runtimeState.presentedCount = Number(args.count);
@@ -20,6 +26,36 @@ globalThis.luxelBrowserState = runtimeState;
 const canvas = document.getElementById("luxel-canvas");
 canvas?.addEventListener("pointerdown", () => runtimeState.pointerDownCount += 1);
 canvas?.addEventListener("pointerup", () => runtimeState.pointerUpCount += 1);
+const resolvedShellTheme = () => {
+  try {
+    const stored = localStorage.getItem(shellThemeKey);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {
+    // Fall through to the current system preference.
+  }
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+};
+const storedPreviewTheme = () => {
+  try {
+    if (localStorage.getItem(synchronizePreviewThemeKey) === "true") return resolvedShellTheme();
+    const stored = localStorage.getItem(previewThemeKey);
+    return previewThemes.has(stored) ? stored : "light";
+  } catch {
+    return "light";
+  }
+};
+const applyPreviewTheme = theme => {
+  const resolved = previewThemes.has(theme) ? theme : "light";
+  runtimeState.previewTheme = resolved;
+  if (!setPreviewThemeExport) {
+    pendingPreviewTheme = resolved;
+    return false;
+  }
+  pendingPreviewTheme = null;
+  return setPreviewThemeExport(resolved);
+};
+globalThis.luxelSetPreviewTheme = applyPreviewTheme;
+applyPreviewTheme(storedPreviewTheme());
 const post = (type, payload = {}) => {
   const message = { luxelGallery: true, protocolVersion, type, story, instanceId, revision, args, ...payload };
   if (parent !== window) parent.postMessage(message, location.origin);
@@ -111,8 +147,11 @@ try {
     globalThis.luxelDotnetRuntime = runtime;
     const exports = await runtime.getAssemblyExports("Luxel.Gallery.Browser.dll");
     globalThis.luxelBrowserExports = exports;
-    setArgsExport = exports?.Luxel?.Gallery?.Browser?.BrowserGalleryApplication?.SetArgsSnapshot;
+    const application = exports?.Luxel?.Gallery?.Browser?.BrowserGalleryApplication;
+    setArgsExport = application?.SetArgsSnapshot;
+    setPreviewThemeExport = application?.SetPreviewTheme;
     if (pendingSetArgs) { const pending = pendingSetArgs; pendingSetArgs = null; applySetArgs(pending); }
+    if (pendingPreviewTheme) applyPreviewTheme(pendingPreviewTheme);
   }
 } catch (error) {
   console.warn("Luxel Gallery JS export discovery failed", error);
@@ -124,6 +163,7 @@ export const setArgs = (nextRevision, requestId, argsJson) => applySetArgs({
   requestId,
   args: parseObject(argsJson, "set-args args")
 });
+export const setPreviewTheme = applyPreviewTheme;
 export const getArgsJson = host.getArgsJson;
 export const getStory = host.getStory;
 export const nextFrame = host.nextFrame;

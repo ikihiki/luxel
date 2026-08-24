@@ -4,6 +4,147 @@ let expected = null;
 let runtimeReady = false;
 let pendingArgs = null;
 const wiredSplitters = new WeakSet();
+const shellThemeKey = "luxel.gallery.shell-theme";
+const previewThemeKey = "luxel.gallery.preview-theme";
+const synchronizePreviewThemeKey = "luxel.gallery.synchronize-preview-theme";
+const shellThemes = new Set(["system", "light", "dark"]);
+const previewThemes = new Set(["light", "dark"]);
+let shellThemeMedia = null;
+let shellThemeMediaHandler = null;
+
+function storedShellTheme() {
+  try {
+    const value = localStorage.getItem(shellThemeKey);
+    return shellThemes.has(value) ? value : "system";
+  } catch {
+    return "system";
+  }
+}
+
+function storedPreviewTheme() {
+  try {
+    const value = localStorage.getItem(previewThemeKey);
+    return previewThemes.has(value) ? value : "light";
+  } catch {
+    return "light";
+  }
+}
+
+function storedPreviewThemeSynchronization() {
+  try {
+    return localStorage.getItem(synchronizePreviewThemeKey) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function resolveShellTheme(preference = storedShellTheme()) {
+  return preference === "system"
+    ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+    : preference;
+}
+
+function applyPreviewThemeToRuntime(theme) {
+  const resolved = previewThemes.has(theme) ? theme : "light";
+  expected?.frame?.contentWindow?.luxelSetPreviewTheme?.(resolved);
+  return resolved;
+}
+
+function applyShellTheme(theme) {
+  const preference = shellThemes.has(theme) ? theme : "system";
+  const resolved = resolveShellTheme(preference);
+  document.documentElement.dataset.galleryTheme = preference;
+  document.documentElement.dataset.galleryColorScheme = resolved;
+  document.documentElement.style.colorScheme = resolved;
+  if (storedPreviewThemeSynchronization()) applyPreviewThemeToRuntime(resolved);
+  return preference;
+}
+
+function ensureShellThemeListener() {
+  if (shellThemeMedia) return;
+  shellThemeMedia = matchMedia("(prefers-color-scheme: dark)");
+  shellThemeMediaHandler = () => {
+    if (storedShellTheme() === "system") applyShellTheme("system");
+  };
+  shellThemeMedia.addEventListener?.("change", shellThemeMediaHandler);
+}
+
+export function getShellTheme() {
+  ensureShellThemeListener();
+  return applyShellTheme(storedShellTheme());
+}
+
+export function setShellTheme(theme) {
+  const preference = shellThemes.has(theme) ? theme : "system";
+  try {
+    localStorage.setItem(shellThemeKey, preference);
+  } catch {
+    // Storage can be unavailable in privacy-restricted contexts; the active document still updates.
+  }
+  ensureShellThemeListener();
+  return applyShellTheme(preference);
+}
+
+export function getResolvedShellTheme() {
+  return resolveShellTheme();
+}
+
+export function getPreviewTheme() {
+  return storedPreviewThemeSynchronization() ? resolveShellTheme() : storedPreviewTheme();
+}
+
+export function getPreviewThemeSynchronization() {
+  return storedPreviewThemeSynchronization();
+}
+
+export function applyPreviewTheme(theme) {
+  return applyPreviewThemeToRuntime(theme);
+}
+
+export function setPreviewTheme(theme) {
+  const resolved = previewThemes.has(theme) ? theme : "light";
+  try {
+    localStorage.setItem(previewThemeKey, resolved);
+    localStorage.setItem(synchronizePreviewThemeKey, "false");
+  } catch {
+    // The active runtime still updates when storage is unavailable.
+  }
+  return applyPreviewThemeToRuntime(resolved);
+}
+
+export function setPreviewThemeSynchronization(synchronize) {
+  const enabled = synchronize === true;
+  const resolved = enabled ? resolveShellTheme() : storedPreviewTheme();
+  try {
+    localStorage.setItem(synchronizePreviewThemeKey, enabled ? "true" : "false");
+    if (enabled) localStorage.setItem(previewThemeKey, resolved);
+  } catch {
+    // The active runtime still updates when storage is unavailable.
+  }
+  return applyPreviewThemeToRuntime(resolved);
+}
+
+export function focusElement(id) {
+  requestAnimationFrame(() => document.getElementById(id)?.focus());
+}
+
+export async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text ?? "");
+    return true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text ?? "";
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.append(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    return copied;
+  }
+}
 
 function postArgs(message) {
   expected?.frame?.contentWindow?.postMessage(message, location.origin);
@@ -30,6 +171,7 @@ function runtimeMessage(event) {
   if (message.story !== expected.story || message.instanceId !== expected.instanceId) return;
   if (message.type === "ready") {
     runtimeReady = true;
+    applyPreviewThemeToRuntime(getPreviewTheme());
     flushPendingArgs();
   }
   receiver?.invokeMethodAsync("OnRuntimeMessage", message).catch(error => console.error("Gallery host message failed", error));
@@ -114,6 +256,10 @@ export function wireSplitter(workspace, splitter) {
 
 export function dispose() {
   window.removeEventListener("message", runtimeMessage);
+  if (shellThemeMedia && shellThemeMediaHandler)
+    shellThemeMedia.removeEventListener?.("change", shellThemeMediaHandler);
+  shellThemeMedia = null;
+  shellThemeMediaHandler = null;
   receiver = null;
   expected = null;
   runtimeReady = false;
