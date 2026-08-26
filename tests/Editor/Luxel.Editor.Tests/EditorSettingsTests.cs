@@ -54,6 +54,389 @@ public sealed class EditorSettingsTests
     }
 
     [Fact]
+    public void KeymapPersistsVsCodeArrayRemovalAndReset()
+    {
+        var store = new MemoryEditorSettingsStore();
+        var commands = new CommandRegistry();
+        commands.Register("a", "A", () => { }, key: "Ctrl+A");
+        var keymap = new EditorKeymap(commands, store);
+
+        Assert.Empty(keymap.Update(new EditorKeyBinding("a", null)));
+        Assert.Null(commands.EffectiveGesture("a"));
+        string json = Assert.IsType<string>(store.Read(EditorKeymap.SettingsKey));
+        Assert.StartsWith("[", json.TrimStart());
+        Assert.Contains("\"key\": \"Ctrl+A\"", json);
+        Assert.Contains("\"command\": \"-a\"", json);
+        Assert.Equal("-a", Assert.Single(keymap.Get()).CommandId);
+
+        var restoredCommands = new CommandRegistry();
+        restoredCommands.Register("a", "A", () => { }, key: "Ctrl+A");
+        var restored = new EditorKeymap(restoredCommands, store);
+        Assert.Null(restoredCommands.EffectiveGesture("a"));
+        restored.Reset("a");
+        Assert.Equal("Ctrl+A", restored.EffectiveBinding("a"));
+        Assert.Empty(restored.Get());
+    }
+
+    [Fact]
+    public void KeymapAppliesPersistedOverridesToLateRegisteredCommands()
+    {
+        var store = new MemoryEditorSettingsStore();
+        store.Write(EditorKeymap.SettingsKey, """
+            [
+              { "key": "Ctrl+K Ctrl+L", "command": "extension.late", "args": { "source": "persisted" } }
+            ]
+            """);
+        var commands = new CommandRegistry();
+        var keymap = new EditorKeymap(commands, store);
+        string? source = null;
+
+        commands.Register("extension.late", "Late", invocation =>
+                source = invocation.Arguments?.GetProperty("source").GetString(),
+            new CommandArgumentSchema(Required: true), key: "Ctrl+L");
+
+        Assert.Equal("Ctrl+K Ctrl+L", keymap.EffectiveBinding("extension.late"));
+        Assert.Contains(keymap.CommandDescriptors,
+            x => x.Id == "extension.late" && x.EffectiveGestureText == "Ctrl+K Ctrl+L");
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.L, Ctrl: true), now.AddMilliseconds(10)).Executed);
+        Assert.Equal("persisted", source);
+    }
+
+    [Fact]
+    public void KeymapPersistsChordsAndArgumentsAndInvokesWithArguments()
+    {
+        var store = new MemoryEditorSettingsStore();
+        var commands = new CommandRegistry();
+        string? received = null;
+        commands.Register("save.special", "Special Save", invocation => received = invocation.Arguments?.GetProperty("mode").GetString(),
+            new CommandArgumentSchema(Required: true));
+        var keymap = new EditorKeymap(commands, store);
+        using var args = System.Text.Json.JsonDocument.Parse("{\"mode\":\"all\"}");
+
+        Assert.Empty(keymap.Update(new EditorKeyBinding(
+            "save.special", "Ctrl+K Ctrl+S", args.RootElement.Clone())));
+        Assert.Equal("Ctrl+K Ctrl+S", keymap.EffectiveBinding("save.special"));
+        string json = store.Read(EditorKeymap.SettingsKey)!;
+        Assert.Contains("Ctrl+K Ctrl+S", json);
+        Assert.Contains("\"args\"", json);
+
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+        Assert.Equal(EditorKeyDispatchStatus.Pending,
+            keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Status);
+        EditorKeyDispatchResult completed = keymap.HandleKey(new KeyGesture(Key.S, Ctrl: true), now.AddMilliseconds(10));
+        Assert.True(completed.Executed);
+        Assert.Equal("all", received);
+    }
+
+    [Fact]
+    public void KeymapPrefixWinsOverExactAndTimeoutOrEscapeCancels()
+    {
+        var commands = new CommandRegistry();
+        int exact = 0, chord = 0;
+        commands.Register("exact", "Exact", () => exact++, key: "Ctrl+K");
+        commands.Register("chord", "Chord", () => chord++, key: "Ctrl+K Ctrl+S");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore(), TimeSpan.FromMilliseconds(500));
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.Equal(EditorKeyDispatchStatus.Pending,
+            keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Status);
+        Assert.Equal(0, exact);
+        Assert.True(keymap.AdvanceTime(now.AddMilliseconds(501)));
+        Assert.False(keymap.HasPendingChord);
+        Assert.Equal(0, exact);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now.AddSeconds(1)).Pending);
+        Assert.Equal(EditorKeyDispatchStatus.Cancelled,
+            keymap.HandleKey(new KeyGesture(Key.Escape), now.AddSeconds(1.1)).Status);
+        Assert.Equal(0, exact);
+        Assert.Equal(0, chord);
+    }
+
+    [Fact]
+    public void KeymapMismatchCancelsAndRetriesStrokeAsFreshBinding()
+    {
+        var commands = new CommandRegistry();
+        int chord = 0, retry = 0;
+        commands.Register("chord", "Chord", () => chord++, key: "Ctrl+K Ctrl+S");
+        commands.Register("retry", "Retry", () => retry++, key: "Ctrl+X");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore());
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        EditorKeyDispatchResult result = keymap.HandleKey(new KeyGesture(Key.X, Ctrl: true), now.AddMilliseconds(10));
+
+        Assert.True(result.Retried);
+        Assert.True(result.Executed);
+        Assert.Equal(0, chord);
+        Assert.Equal(1, retry);
+        Assert.False(keymap.HasPendingChord);
+    }
+
+    [Fact]
+    public void KeymapAllowsPrefixRelationshipsButRejectsExactSequenceConflicts()
+    {
+        var commands = new CommandRegistry();
+        commands.Register("short", "Short", () => { }, key: "Ctrl+K");
+        commands.Register("long", "Long", () => { }, key: "Ctrl+L");
+        commands.Register("duplicate", "Duplicate", () => { }, key: "Ctrl+D");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore());
+
+        Assert.Empty(keymap.Validate([new("long", "Ctrl+K Ctrl+S")]));
+        EditorKeymapIssue conflict = Assert.Single(keymap.Validate([new("duplicate", "Ctrl+K")]));
+        Assert.Contains("short", conflict.Message);
+    }
+
+    [Fact]
+    public void KeymapTimeoutClearsPrefixAndProcessesIncomingStrokeFresh()
+    {
+        var commands = new CommandRegistry();
+        int exact = 0, chord = 0, fresh = 0;
+        commands.Register("exact", "Exact", () => exact++, key: "Ctrl+K");
+        commands.Register("chord", "Chord", () => chord++, key: "Ctrl+K Ctrl+S");
+        commands.Register("fresh", "Fresh", () => fresh++, key: "Ctrl+X");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore(), TimeSpan.FromMilliseconds(500));
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        EditorKeyDispatchResult result = keymap.HandleKey(
+            new KeyGesture(Key.X, Ctrl: true), now.AddMilliseconds(501));
+
+        Assert.True(result.Executed);
+        Assert.False(result.Retried);
+        Assert.Equal(0, exact);
+        Assert.Equal(0, chord);
+        Assert.Equal(1, fresh);
+        Assert.False(keymap.HasPendingChord);
+    }
+
+    [Fact]
+    public void KeymapTimestampRegressionContributesNoElapsedTime()
+    {
+        var commands = new CommandRegistry();
+        int chord = 0;
+        commands.Register("chord", "Chord", () => chord++, key: "Ctrl+K Ctrl+S");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore(), TimeSpan.FromMilliseconds(500));
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 1, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        Assert.False(keymap.AdvanceTime(now.AddSeconds(-10)));
+        Assert.Equal(now.AddMilliseconds(500), keymap.PendingDeadline);
+        EditorKeyDispatchResult result = keymap.HandleKey(
+            new KeyGesture(Key.S, Ctrl: true), now.AddSeconds(-5));
+
+        Assert.True(result.Executed);
+        Assert.Equal(1, chord);
+        Assert.False(keymap.HasPendingChord);
+    }
+
+    [Fact]
+    public void KeymapDisabledCompletionIsConsumedWithoutExecutionAndClearsPending()
+    {
+        var commands = new CommandRegistry();
+        int chord = 0;
+        commands.Register("chord", "Chord", () => chord++, enabled: () => false,
+            key: "Ctrl+K Ctrl+S");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore());
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        EditorKeyDispatchResult result = keymap.HandleKey(
+            new KeyGesture(Key.S, Ctrl: true), now.AddMilliseconds(10));
+
+        Assert.Equal(EditorKeyDispatchStatus.Completed, result.Status);
+        Assert.Equal(CommandExecutionStatus.Disabled, result.Execution?.Status);
+        Assert.False(result.Executed);
+        Assert.Equal(0, chord);
+        Assert.False(keymap.HasPendingChord);
+    }
+
+    [Fact]
+    public void RemovingBindingClearsPendingAndPreventsCompletion()
+    {
+        var commands = new CommandRegistry();
+        int chord = 0;
+        commands.Register("chord", "Chord", () => chord++, key: "Ctrl+K Ctrl+S");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore());
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        Assert.Empty(keymap.Update(new EditorKeyBinding("-chord", "Ctrl+K Ctrl+S")));
+        Assert.False(keymap.HasPendingChord);
+        Assert.Equal(EditorKeyDispatchStatus.NoMatch,
+            keymap.HandleKey(new KeyGesture(Key.S, Ctrl: true), now.AddMilliseconds(10)).Status);
+        Assert.Equal(0, chord);
+    }
+
+    [Fact]
+    public void SessionDisposeClearsPendingChord()
+    {
+        var session = new EditorSession(new MemoryFileStorage(), [],
+            DockTree.Single(EditorPaneIds.Settings), keyChordTimeout: TimeSpan.FromSeconds(1));
+        session.Commands.Register("chord", "Chord", () => { }, key: "Ctrl+K Ctrl+S");
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+        Assert.True(session.DispatchKey(Key.K, KeyModifiers.Ctrl, now).Pending);
+
+        session.Dispose();
+
+        Assert.False(session.Keymap.HasPendingChord);
+    }
+
+    [Fact]
+    public void KeymapRemovalUnbindsChordsAndDisabledChordCompletesWithoutRunning()
+    {
+        var commands = new CommandRegistry();
+        int removedRuns = 0, disabledRuns = 0;
+        commands.Register("removed", "Removed", () => removedRuns++, key: "Ctrl+K Ctrl+R");
+        commands.Register("disabled", "Disabled", () => disabledRuns++, enabled: () => false,
+            key: "Ctrl+K Ctrl+D");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore());
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.Empty(keymap.Update(new EditorKeyBinding("removed", null)));
+        Assert.Null(keymap.EffectiveBinding("removed"));
+        Assert.Equal(EditorKeyDispatchStatus.NoMatch,
+            keymap.HandleKey(new KeyGesture(Key.R, Ctrl: true), now).Status);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now.AddSeconds(1)).Pending);
+        EditorKeyDispatchResult disabled = keymap.HandleKey(
+            new KeyGesture(Key.D, Ctrl: true), now.AddSeconds(1).AddMilliseconds(10));
+        Assert.Equal(EditorKeyDispatchStatus.Completed, disabled.Status);
+        Assert.Equal(CommandExecutionStatus.Disabled, disabled.Execution?.Status);
+        Assert.False(disabled.Executed);
+        Assert.Equal(0, removedRuns);
+        Assert.Equal(0, disabledRuns);
+    }
+
+    [Fact]
+    public void KeymapClampsRegressingInputTimestampsDuringPendingChord()
+    {
+        var commands = new CommandRegistry();
+        int runs = 0;
+        commands.Register("chord", "Chord", () => runs++, key: "Ctrl+K Ctrl+S");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore(), TimeSpan.FromMilliseconds(500));
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        Assert.False(keymap.AdvanceTime(now.AddMilliseconds(-50)));
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.S, Ctrl: true), now.AddMilliseconds(-25)).Executed);
+        Assert.Equal(1, runs);
+    }
+
+    [Fact]
+    public void KeymapTimeoutProcessesIncomingStrokeFreshWithoutRunningShadowedExact()
+    {
+        var commands = new CommandRegistry();
+        int shadowed = 0, chord = 0, fresh = 0;
+        commands.Register("shadowed", "Shadowed", () => shadowed++, key: "Ctrl+K");
+        commands.Register("chord", "Chord", () => chord++, key: "Ctrl+K Ctrl+S");
+        commands.Register("fresh", "Fresh", () => fresh++, key: "Ctrl+X");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore(), TimeSpan.FromMilliseconds(500));
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        EditorKeyDispatchResult result = keymap.HandleKey(
+            new KeyGesture(Key.X, Ctrl: true), now.AddMilliseconds(501));
+
+        Assert.True(result.Executed);
+        Assert.False(result.Retried);
+        Assert.Equal(0, shadowed);
+        Assert.Equal(0, chord);
+        Assert.Equal(1, fresh);
+        Assert.False(keymap.HasPendingChord);
+    }
+
+    [Fact]
+    public void KeymapNegativeTimestampDeltaNeverExpiresPendingChord()
+    {
+        var commands = new CommandRegistry();
+        int runs = 0;
+        commands.Register("chord", "Chord", () => runs++, key: "Ctrl+K Ctrl+S");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore(), TimeSpan.FromMilliseconds(500));
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        Assert.False(keymap.AdvanceTime(now.AddSeconds(-10)));
+        Assert.True(keymap.HasPendingChord);
+        EditorKeyDispatchResult result = keymap.HandleKey(
+            new KeyGesture(Key.S, Ctrl: true), now.AddMilliseconds(10));
+
+        Assert.True(result.Executed);
+        Assert.Equal(1, runs);
+    }
+
+    [Fact]
+    public void KeymapEscapeConsumesPendingChordAndMismatchWithoutFreshMatchCancelsOnce()
+    {
+        var commands = new CommandRegistry();
+        int runs = 0;
+        commands.Register("chord", "Chord", () => runs++, key: "Ctrl+K Ctrl+S");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore());
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        EditorKeyDispatchResult escaped = keymap.HandleKey(
+            new KeyGesture(Key.Escape), now.AddMilliseconds(10));
+        Assert.Equal(EditorKeyDispatchStatus.Cancelled, escaped.Status);
+        Assert.True(escaped.Handled);
+        Assert.False(keymap.HasPendingChord);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now.AddMilliseconds(20)).Pending);
+        EditorKeyDispatchResult mismatch = keymap.HandleKey(
+            new KeyGesture(Key.X, Ctrl: true), now.AddMilliseconds(30));
+        Assert.Equal(EditorKeyDispatchStatus.Cancelled, mismatch.Status);
+        Assert.True(mismatch.Retried);
+        Assert.Equal(0, runs);
+        Assert.False(keymap.HasPendingChord);
+    }
+
+    [Fact]
+    public void KeymapDisabledOrRemovedChordClearsWithoutExecution()
+    {
+        var commands = new CommandRegistry();
+        bool enabled = true;
+        int runs = 0;
+        commands.Register("chord", "Chord", () => runs++, () => enabled, "Ctrl+K Ctrl+S");
+        var keymap = new EditorKeymap(commands, new MemoryEditorSettingsStore());
+        DateTimeOffset now = new(2026, 8, 24, 12, 0, 0, TimeSpan.Zero);
+
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now).Pending);
+        enabled = false;
+        EditorKeyDispatchResult disabled = keymap.HandleKey(
+            new KeyGesture(Key.S, Ctrl: true), now.AddMilliseconds(10));
+        Assert.Equal(CommandExecutionStatus.Disabled, disabled.Execution?.Status);
+        Assert.Equal(0, runs);
+        Assert.False(keymap.HasPendingChord);
+
+        enabled = true;
+        Assert.True(keymap.HandleKey(new KeyGesture(Key.K, Ctrl: true), now.AddMilliseconds(20)).Pending);
+        Assert.Empty(keymap.Update(new EditorKeyBinding("chord", null)));
+        Assert.False(keymap.HasPendingChord);
+        Assert.Equal(EditorKeyDispatchStatus.NoMatch,
+            keymap.HandleKey(new KeyGesture(Key.S, Ctrl: true), now.AddMilliseconds(30)).Status);
+        Assert.Equal(0, runs);
+    }
+
+    [Fact]
+    public void KeymapRemovalShorthandRejectsAndNeverPersistsArguments()
+    {
+        var store = new MemoryEditorSettingsStore();
+        var commands = new CommandRegistry();
+        commands.Register("a", "A", _ => { }, new CommandArgumentSchema(), key: "Ctrl+A");
+        var keymap = new EditorKeymap(commands, store);
+        using var args = System.Text.Json.JsonDocument.Parse("{\"unexpected\":true}");
+
+        EditorKeymapIssue issue = Assert.Single(keymap.Update(
+            new EditorKeyBinding("a", null, args.RootElement)));
+
+        Assert.Contains("cannot contain arguments", issue.Message);
+        Assert.Empty(keymap.Get());
+        Assert.Equal("Ctrl+A", keymap.EffectiveBinding("a"));
+        Assert.Null(store.Read(EditorKeymap.SettingsKey));
+    }
+
+    [Fact]
     public void AutosaveOnlySavesDirtyBoundDocumentsAndKeepsDirtyOnFailure()
     {
         var files = new MemoryFileStorage();

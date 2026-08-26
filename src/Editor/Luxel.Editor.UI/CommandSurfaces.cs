@@ -83,9 +83,13 @@ public sealed partial class MenuBar : CompositeControl
                 rows.Add(new MenuCommandRow
                 {
                     Title = n.Label,
-                    Gesture = cmd.Gesture is { } g ? KeyGestures.Format(g) : "",
-                    IsEnabled = cmd.IsEnabled,
-                    OnRun = () => { ContextMenu.Close(_ctx!); cmd.Run(); },
+                    Gesture = Registry.Get().GestureSequenceFor(cmd) is { } sequence ? KeyGestures.Format(sequence) : "",
+                    IsEnabled = cmd.IsEnabled && (cmd.ArgumentSchema?.IsPaletteExecutable ?? true),
+                    OnRun = () =>
+                    {
+                        ContextMenu.Close(_ctx!);
+                        Registry.Get().Execute(cmd.Id, Contributions.Get().Invoke());
+                    },
                 });
             }
             else
@@ -190,12 +194,14 @@ public sealed partial class Toolbar : CompositeControl
         CommandRegistry reg = Registry.Get();
         _ = reg.Version.Value;
         _ = _refresh.Value;
+        IReadOnlyList<CommandContribution> contributions = Contributions.Get().Invoke();
         var buttons = new List<Widget>();
-        foreach (Command cmd in reg.ToolbarCommands(Contributions.Get().Invoke()))
+        foreach (Command cmd in reg.ToolbarCommands(contributions))
         {
             Command c = cmd;
-            buttons.Add(c.IsEnabled
-                ? Button(_ => c.Run(), c.Title, variant: Variant.Ghost, fontSize: UiTheme.T.FontSm)
+            bool executable = c.IsEnabled && (c.ArgumentSchema?.IsPaletteExecutable ?? true);
+            buttons.Add(executable
+                ? Button(_ => reg.Execute(c.Id, contributions), c.Title, variant: Variant.Ghost, fontSize: UiTheme.T.FontSm)
                 : Text(c.Title, 12, color: Bind.From(() => UiTheme.T.TextMuted), margin: new Thickness(8, 6, 8, 0)));
         }
         return HStack(2)[buttons.ToArray()];
@@ -209,12 +215,30 @@ public sealed partial class Toolbar : CompositeControl
 /// </summary>
 public static class CommandPalette
 {
+    /// <summary>product shell が登録する安定 command id。</summary>
+    public const string CommandId = "workbench.action.showCommands";
+
+    public static IReadOnlyList<CommandDescriptor> Discover(CommandRegistry registry,
+        IReadOnlyList<CommandContribution>? contributions = null)
+        => registry.PaletteDescriptors(contributions);
+
+    /// <summary>Palette policy: required arguments execute only when a default is available.</summary>
+    public static CommandExecutionResult? Execute(CommandRegistry registry, string commandId,
+        IReadOnlyList<CommandContribution>? contributions = null)
+    {
+        CommandDescriptor? descriptor = registry.Describe(commandId, contributions);
+        return descriptor is { Enabled: true, PaletteExecutable: true }
+            ? registry.Execute(commandId, contributions) : null;
+    }
+
     /// <summary>パレットを開く (既に開いていれば閉じてから)。戻り値は play/テスト用のビュー。</summary>
     public static PaletteView Open(UiBuildContext ctx, CommandRegistry registry,
-                                   IReadOnlyList<CommandContribution>? contributions = null)
+                                   IReadOnlyList<CommandContribution>? contributions = null,
+                                   EditorKeymap? keymap = null)
     {
+        keymap?.ResetPendingChord();
         float vw = ctx.Host?.Width ?? 640;
-        var view = new PaletteView { Ctx = ctx, Registry = registry, Contributions = contributions };
+        var view = new PaletteView { Ctx = ctx, Registry = registry, Contributions = contributions, Keymap = keymap };
         ContextMenu.OpenWidget(ctx, MathF.Max(8, (vw - PaletteView.PanelW) / 2), 48, view, maxW: PaletteView.PanelW);
         return view;
     }
@@ -226,21 +250,26 @@ public static class CommandPalette
 
         public required UiBuildContext Ctx;
         public required CommandRegistry Registry;
+        public EditorKeymap? Keymap;
         public IReadOnlyList<CommandContribution>? Contributions;
 
         private readonly Signal<string> _query = new("");
         private readonly Signal<int> _selected = new(0);
         private IReadOnlyList<Command> _filtered = [];
+        private IReadOnlyList<CommandDescriptor> _filteredDescriptors = [];
         private TextField? _field;   // フィールド保持 — Rebuild をまたいでフォーカスが生き残る
 
         /// <summary>現在の絞り込み結果 (play/テスト用)。</summary>
         public IReadOnlyList<Command> Filtered => _filtered;
+
+        public IReadOnlyList<CommandDescriptor> FilteredDescriptors => _filteredDescriptors;
 
         /// <summary>クエリ入力 (play/テスト用)。</summary>
         public Widget? Field => _field;
 
         protected override Widget Build()
         {
+            _ = Registry.Version.Value;
             string q = _query.Value.Trim();
             int sel = _selected.Value;
             _filtered = Registry.PaletteCommands(Contributions)
@@ -248,6 +277,9 @@ public static class CommandPalette
                             || c.Title.Contains(q, StringComparison.OrdinalIgnoreCase)
                             || c.Id.Contains(q, StringComparison.OrdinalIgnoreCase))
                 .Take(MaxRows).ToArray();
+            Dictionary<string, CommandDescriptor> descriptors = Registry.Descriptors(Contributions)
+                .ToDictionary(x => x.Id, StringComparer.Ordinal);
+            _filteredDescriptors = _filtered.Select(x => descriptors[x.Id]).ToArray();
             sel = Math.Clamp(sel, 0, Math.Max(0, _filtered.Count - 1));
 
             if (_field is null)
@@ -267,13 +299,21 @@ public static class CommandPalette
             for (int i = 0; i < _filtered.Count; i++)
             {
                 Command c = _filtered[i];
+                CommandDescriptor descriptor = _filteredDescriptors[i];
+                bool executable = c.IsEnabled && descriptor.PaletteExecutable;
                 rows.Add(new MenuCommandRow
                 {
-                    Title = c.Title,
-                    Gesture = c.Gesture is { } g ? KeyGestures.Format(g) : "",
-                    Enabled = c.IsEnabled,
+                    Title = string.IsNullOrWhiteSpace(descriptor.ArgumentHelp)
+                        ? c.Title : $"{c.Title} — {descriptor.ArgumentHelp}",
+                    Gesture = descriptor.EffectiveGestureText ?? "",
+                    IsEnabled = executable,
                     Highlight = i == sel,
-                    OnRun = () => { ContextMenu.Close(Ctx); if (c.IsEnabled) c.Run(); },
+                    OnRun = () =>
+                    {
+                        ContextMenu.Close(Ctx);
+                        Keymap?.ResetPendingChord();
+                        if (executable) Registry.Execute(c.Id, Contributions);
+                    },
                 });
             }
             if (_filtered.Count == 0)
@@ -290,17 +330,27 @@ public static class CommandPalette
             return true;
         }
 
+        public CommandExecutionResult? ExecuteSelected()
+        {
+            int index = _selected.Peek();
+            Command? command = index < _filtered.Count ? _filtered[index] : null;
+            CommandDescriptor? descriptor = index < _filteredDescriptors.Count ? _filteredDescriptors[index] : null;
+            if (command is null || descriptor is not { PaletteExecutable: true } || !command.IsEnabled) return null;
+            Keymap?.ResetPendingChord();
+            return CommandPalette.Execute(Registry, command.Id, Contributions);
+        }
+
         private bool RunSelected()
         {
-            Command? c = _selected.Peek() < _filtered.Count ? _filtered[_selected.Peek()] : null;
             ContextMenu.Close(Ctx);
-            if (c is { IsEnabled: true }) c.Run();
+            ExecuteSelected();
             return true;
         }
 
         private bool CloseSelf()
         {
             ContextMenu.Close(Ctx);
+            Keymap?.ResetPendingChord();
             return true;
         }
     }

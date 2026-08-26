@@ -18,6 +18,34 @@ public static class BrowserAutomationContract
     ];
 }
 
+public static class BrowserDemoCommandIds
+{
+    public const string SelectEntity = "browser.demo.selectEntity";
+    public const string OpenPath = "browser.demo.openPath";
+    public const string EditActiveText = "browser.demo.editActiveText";
+    public const string EditTransform = "browser.demo.editTransform";
+    public const string EditMaterial = "browser.demo.editMaterial";
+    public const string ChangeLayout = "browser.demo.changeLayout";
+}
+
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record BrowserSelectEntityArguments
+{
+    public required int EntityId { get; init; }
+}
+
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record BrowserOpenPathArguments
+{
+    public required string? Path { get; init; }
+}
+
+[System.Text.Json.Serialization.JsonUnmappedMemberHandling(System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow)]
+public sealed record BrowserEditActiveTextArguments
+{
+    public required string? Text { get; init; }
+}
+
 public sealed class BrowserDemoSeed
 {
     private readonly IReadOnlyDictionary<string, string> _files;
@@ -83,10 +111,140 @@ public sealed class BrowserDemoAutomation(
     BrowserProjectStorageProvider projects,
     IBrowserDemoProjectProvider demo)
 {
+    private static readonly JsonSerializerOptions ArgumentJson = new(JsonSerializerDefaults.Web)
+    {
+        PropertyNameCaseInsensitive = false,
+        UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
+        MaxDepth = 8
+    };
+
+    private static readonly JsonElement SelectEntitySchema = JsonSerializer.SerializeToElement(new
+    {
+        type = "object",
+        additionalProperties = false,
+        required = new[] { "entityId" },
+        properties = new { entityId = new { type = "integer", minimum = 0 } }
+    }, ArgumentJson);
+    private static readonly JsonElement OpenPathSchema = JsonSerializer.SerializeToElement(new
+    {
+        type = "object",
+        additionalProperties = false,
+        required = new[] { "path" },
+        properties = new { path = new { type = "string", minLength = 1 } }
+    }, ArgumentJson);
+    private static readonly JsonElement EditActiveTextSchema = JsonSerializer.SerializeToElement(new
+    {
+        type = "object",
+        additionalProperties = false,
+        required = new[] { "text" },
+        properties = new { text = new { type = "string", maxLength = 65_536 } }
+    }, ArgumentJson);
+
     private EditorApplication? _application;
+    private EditorSession? _commandsSession;
     private int _resetRevision;
 
     public void Attach(EditorApplication application) => _application = application;
+
+    public void EnsureCommandsRegistered()
+    {
+        EditorSession? session = _application?.Session;
+        if (session is null || ReferenceEquals(session, _commandsSession)) return;
+        session.Commands.Register(BrowserDemoCommandIds.SelectEntity, "Demo: Select Entity",
+            context =>
+            {
+                BrowserSelectEntityArguments value = ParseArguments<BrowserSelectEntityArguments>(context.Arguments);
+                Invoke("select-entity", value.EntityId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            },
+            new CommandArgumentSchema(
+                Help: "Args: { entityId: non-negative integer }",
+                Required: true,
+                DefaultValue: JsonSerializer.SerializeToElement(new { entityId = 2 }, ArgumentJson),
+                Validator: ValidateSelectEntityArguments,
+                Schema: SelectEntitySchema),
+            enabled: () => session.SceneDocument is not null);
+        session.Commands.Register(BrowserDemoCommandIds.OpenPath, "Demo: Open Project Path",
+            context => Invoke("open-path", NormalizeProjectPath(
+                ParseArguments<BrowserOpenPathArguments>(context.Arguments).Path!)),
+            new CommandArgumentSchema(
+                Help: "Args: { path: non-empty normalized project-relative string }",
+                Required: true,
+                DefaultValue: JsonSerializer.SerializeToElement(new { path = EditorProductSessionFactory.ScriptFile }, ArgumentJson),
+                Validator: ValidateOpenPathArguments,
+                Schema: OpenPathSchema));
+        session.Commands.Register(BrowserDemoCommandIds.EditActiveText, "Demo: Append Active Text",
+            context => Invoke("edit-active", ParseArguments<BrowserEditActiveTextArguments>(context.Arguments).Text),
+            new CommandArgumentSchema(
+                Help: "Args: { text: string, maximum 65536 characters }",
+                Required: true,
+                DefaultValue: JsonSerializer.SerializeToElement(new { text = "\n// edited from command palette\n" }, ArgumentJson),
+                Validator: ValidateEditActiveTextArguments,
+                Schema: EditActiveTextSchema),
+            enabled: () => session.ActiveDocument is TextDocument);
+        session.Commands.Register(BrowserDemoCommandIds.EditTransform, "Demo: Nudge Selected Entity",
+            () => Invoke("edit-transform", null), () => session.SceneDocument is not null);
+        session.Commands.Register(BrowserDemoCommandIds.EditMaterial, "Demo: Nudge Material Node",
+            () => Invoke("edit-material", null), () => session.ActiveDocument is NodeGraphDocument);
+        session.Commands.Register(BrowserDemoCommandIds.ChangeLayout, "Demo: Arrange Workspace",
+            () => Invoke("change-layout", null), () => session.Layout.Peek().GroupOf("scene") is not null);
+        _commandsSession = session;
+    }
+
+    private static T ParseArguments<T>(JsonElement? args) where T : class
+    {
+        if (args is not { } value)
+            throw new InvalidOperationException("Validated command arguments are unavailable.");
+        return value.Deserialize<T>(ArgumentJson)
+            ?? throw new InvalidOperationException("Validated command arguments are unavailable.");
+    }
+
+    private static string? ValidateSelectEntityArguments(JsonElement? args)
+    {
+        if (args is not { ValueKind: JsonValueKind.Object }) return "Command args must be a JSON object.";
+        if (!args.Value.TryGetProperty("entityId", out JsonElement entityId)) return "entityId is required.";
+        if (entityId.ValueKind != JsonValueKind.Number || !entityId.TryGetInt32(out _))
+            return "entityId must be an integer.";
+        return ValidateArguments<BrowserSelectEntityArguments>(args, value => value.EntityId < 0
+            ? "entityId must be a non-negative integer." : null);
+    }
+
+    private static string? ValidateOpenPathArguments(JsonElement? args)
+        => ValidateArguments<BrowserOpenPathArguments>(args, value => ValidateProjectPath(value.Path));
+
+    private static string? ValidateEditActiveTextArguments(JsonElement? args)
+        => ValidateArguments<BrowserEditActiveTextArguments>(args, value => value.Text switch
+        {
+            null => "text must be a string.",
+            { Length: > 65_536 } => "text must not exceed 65536 characters.",
+            _ => null
+        });
+
+    private static string? ValidateArguments<T>(JsonElement? args, Func<T, string?> validate) where T : class
+    {
+        if (args is not { ValueKind: JsonValueKind.Object }) return "Command args must be a JSON object.";
+        try
+        {
+            T? value = args.Value.Deserialize<T>(ArgumentJson);
+            return value is null ? "Command args must be a JSON object." : validate(value);
+        }
+        catch (JsonException error)
+        {
+            return error.Message;
+        }
+    }
+
+    private static string? ValidateProjectPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return "path must be a non-empty project-relative string.";
+        string normalized = path.Replace('\\', '/').Trim();
+        bool rooted = Path.IsPathRooted(normalized) || normalized.StartsWith("/", StringComparison.Ordinal)
+            || (normalized.Length >= 2 && char.IsAsciiLetter(normalized[0]) && normalized[1] == ':');
+        if (rooted || normalized.Split('/').Any(segment => segment is ".." or "." or ""))
+            return "path must be a normalized project-relative path without '.' or '..' segments.";
+        return normalized.Contains('\0') ? "path contains an invalid null character." : null;
+    }
+
+    private static string NormalizeProjectPath(string path) => path.Replace('\\', '/').Trim();
 
     public async Task ResetAsync()
     {
@@ -95,6 +253,7 @@ public sealed class BrowserDemoAutomation(
         await demo.ResetAsync();
         if (!application.OpenProject(demo.ProjectId))
             throw new InvalidOperationException(application.WelcomeError.Peek() ?? "The demo project could not be reopened after reset.");
+        EnsureCommandsRegistered();
         Interlocked.Increment(ref _resetRevision);
     }
 
@@ -120,7 +279,10 @@ public sealed class BrowserDemoAutomation(
         EditorSession session = _application?.Session ?? throw new InvalidOperationException("Editor session is not ready.");
         switch (action)
         {
-            case "open-demo": _application?.OpenProject(demo.ProjectId); break;
+            case "open-demo":
+                _application?.OpenProject(demo.ProjectId);
+                EnsureCommandsRegistered();
+                break;
             case "select-entity":
             {
                 int id = int.Parse(value ?? "2", System.Globalization.CultureInfo.InvariantCulture);

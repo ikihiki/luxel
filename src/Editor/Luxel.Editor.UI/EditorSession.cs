@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Luxel.UI;
 using Luxel.Workbench;
 using Luxel.Typography;
@@ -105,7 +106,7 @@ public sealed class EditorSession : IDisposable
     public EditorSession(IFileStorage files, IEnumerable<KeyValuePair<string, IEditorDocument>> documents, DockTree layout,
         IEditorSettingsStore? settings = null, IEditorSavePathPicker? savePaths = null,
         IEditorAssetHost? assetHost = null, IHostCapabilities? capabilities = null,
-        IEditorIntervalScheduler? autosaveScheduler = null)
+        IEditorIntervalScheduler? autosaveScheduler = null, TimeSpan? keyChordTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(files);
         ArgumentNullException.ThrowIfNull(documents);
@@ -166,7 +167,7 @@ public sealed class EditorSession : IDisposable
         Assets.Mutated += ApplyAssetMutation;
         RegisterStandardPanes();
         RegisterCoreCommands();
-        Keymap = new EditorKeymap(Commands, SettingsStore);
+        Keymap = new EditorKeymap(Commands, SettingsStore, keyChordTimeout);
         CloseCoordinator = new EditorCloseCoordinator(this, savePaths);
         DockTree defaultLayout = layout;
         string[] panes = _documents.Keys.Concat(layout.Groups.SelectMany(x => x.Tabs)).Concat([
@@ -219,6 +220,40 @@ public sealed class EditorSession : IDisposable
     public IEditorDocument? ActiveDocument => Workspace.Active.Peek();
     public Action? CloseProjectRequested { get; set; }
     public Action? ExitRequested { get; set; }
+
+    /// <summary>Shell-owned callback used by the stable command-palette command.</summary>
+    public Action? CommandPaletteRequested { get; set; }
+
+    public IReadOnlyList<CommandContribution> ActiveCommandContributions
+        => ActiveDocument?.Contributions ?? [];
+
+    public IReadOnlyList<CommandDescriptor> CommandDescriptors
+        => Commands.Descriptors(ActiveCommandContributions);
+
+    public CommandExecutionResult ExecuteCommand(string id)
+        => Commands.Execute(id, ActiveCommandContributions);
+
+    public CommandExecutionResult ExecuteCommand(string id, JsonElement arguments)
+        => Commands.Execute(id, arguments, ActiveCommandContributions);
+
+    public CommandExecutionResult ExecuteCommand(CommandInvocationContext invocation)
+        => Commands.Execute(invocation, ActiveCommandContributions);
+
+    public EditorKeyDispatchResult DispatchKey(Key key, KeyModifiers modifiers, DateTimeOffset timestamp)
+        => Keymap.HandleKey(key, modifiers, timestamp, ActiveCommandContributions);
+
+    public bool HandleKey(Key key, KeyModifiers modifiers)
+        => DispatchKey(key, modifiers, DateTimeOffset.UtcNow).Handled;
+
+    public bool HandleKey(KeyEvent key)
+    {
+        KeyModifiers modifiers = (key.Ctrl ? KeyModifiers.Ctrl : KeyModifiers.None)
+            | (key.Shift ? KeyModifiers.Shift : KeyModifiers.None)
+            | (key.Alt ? KeyModifiers.Alt : KeyModifiers.None);
+        return HandleKey(key.Key, modifiers);
+    }
+
+    public void ResetPendingChord() => Keymap.ResetPendingChord();
 
     public DockItem ResolveDockItem(string id)
     {
@@ -552,6 +587,8 @@ public sealed class EditorSession : IDisposable
 
     private void RegisterCoreCommands()
     {
+        Commands.Register(CommandPalette.CommandId, "Show Command Palette", () => CommandPaletteRequested?.Invoke(),
+            () => CommandPaletteRequested is not null, "Ctrl+Shift+P", "View/Command Palette");
         Commands.Register(EditorCommandIds.Save, "Save", () => Save(), () => ActiveDocument?.Dirty.Peek() == true,
             "Ctrl+S", "File/Save", toolbar: true);
         Commands.Register(EditorCommandIds.SaveAs, "Save As", () => SaveAsActive(), () => ActiveDocument is not null,
@@ -605,11 +642,17 @@ public sealed class EditorSession : IDisposable
     {
         DockGroup? group = Layout.Value.Groups.FirstOrDefault(g => g is { Active: >= 0 } && g.Active < g.Tabs.Count);
         if (group is null) return;
-        if (_documents.TryGetValue(group.Tabs[group.Active], out IEditorDocument? document)) Workspace.Activate(document);
+        if (_documents.TryGetValue(group.Tabs[group.Active], out IEditorDocument? document)
+            && !ReferenceEquals(Workspace.Active.Peek(), document))
+        {
+            Keymap.ResetPendingChord();
+            Workspace.Activate(document);
+        }
     }
 
     public void Dispose()
     {
+        Keymap.ResetPendingChord();
         Assets.Mutated -= ApplyAssetMutation;
         foreach (SceneHierarchyController controller in _hierarchyControllers.Values) controller.Dispose();
         _hierarchyControllers.Clear();

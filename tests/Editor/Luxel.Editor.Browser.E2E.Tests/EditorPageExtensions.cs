@@ -34,6 +34,24 @@ internal static class EditorPageExtensions
             "args => globalThis.luxelEditorAutomation.invoke(args.action, args.value)",
             new { action, value });
 
+    public static Task<JsonElement> RunEditorCommandAsync(this IPage page, string commandId, object? args = null)
+        => page.EvaluateAsync<JsonElement>(
+            "request => globalThis.luxelEditor.commands.run(request.commandId, request.args)",
+            new { commandId, args });
+
+    public static Task<JsonElement> RunEditorMacroAsync(this IPage page, object macro)
+        => page.EvaluateAsync<JsonElement>(
+            "macro => globalThis.luxelEditor.macros.run(macro)",
+            macro);
+
+    public static Task<JsonElement> UpdateEditorKeybindingsAsync(this IPage page, object bindings)
+        => page.EvaluateAsync<JsonElement>(
+            "bindings => globalThis.luxelEditor.keybindings.update(bindings)",
+            bindings);
+
+    public static Task<JsonElement> GetEditorKeybindingsAsync(this IPage page)
+        => page.EvaluateAsync<JsonElement>("() => globalThis.luxelEditor.keybindings.get()");
+
     public static JsonElement Document(this JsonElement snapshot, string path)
         => snapshot.GetProperty("documents").EnumerateArray().Single(document =>
             document.TryGetProperty("path", out JsonElement candidate) && candidate.GetString() == path);
