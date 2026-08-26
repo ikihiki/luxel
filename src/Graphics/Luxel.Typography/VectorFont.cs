@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using HarfBuzzSharp;
@@ -11,7 +12,8 @@ namespace Luxel.Typography;
 /// **シェーピングは HarfBuzz** (カーニング/リガチャ/合字/複雑文字対応 — 単純な1文字1グリフ変換ではない)、
 /// アウトラインはOpenTypeのglyf/locaテーブルを直接読む (TrueType輪郭。CFF/OTFは未対応)。
 /// 描画backendとの統合は専用adapter assemblyが担う。TTCはfontIndexで番号指定。
-/// スレッド所有: シェーピングバッファを再利用するため、1 インスタンスは 1 スレッド (UI 島) から使うこと。
+/// シェーピングバッファは呼び出しごとに pool から借りる。ブラウザの UI 描画と JS export が
+/// 並行または再入しても、HarfBuzz の入力/グリフ状態を相互に破壊しない。
 /// </summary>
 public sealed class VectorFont : IDisposable
 {
@@ -21,7 +23,7 @@ public sealed class VectorFont : IDisposable
     private readonly Blob _blob;
     private readonly Face _face;
     private readonly HbFont _font;
-    private readonly HbBuffer _buffer = new();
+    private readonly ConcurrentBag<HbBuffer> _shapeBuffers = new();
     private readonly GlyfOutlines _glyf;
     private readonly Dictionary<uint, GlyphOutline?> _cache = new();   // glyph id → 輪郭 (フォント単位, 合成解決済み)
     private ColorGlyphs? _color;            // COLR/CPAL (カラー絵文字)。遅延ロード、無ければ null
@@ -114,26 +116,33 @@ public sealed class VectorFont : IDisposable
     /// <summary>px 高さ (ascent−descent 基準 — 旧実装と同じ規約) → フォント単位のスケール。</summary>
     internal float Scale(float pixelHeight) => pixelHeight / _heightUnits;
 
-    /// <summary>テキストを HarfBuzz でシェーピングする (バッファ再利用 — 所有スレッドからのみ)。</summary>
-    private HbBuffer Shape(string text)
+    /// <summary>テキストを HarfBuzz でシェーピングする。buffer は呼び出し元が排他的に所有する。</summary>
+    private void Shape(HbBuffer buffer, string text)
     {
-        _buffer.ClearContents();
-        _buffer.AddUtf16(text);
-        _buffer.GuessSegmentProperties();   // 向き/スクリプト/言語を内容から推定
-        _font.Shape(_buffer);
-        return _buffer;
+        buffer.ClearContents();
+        buffer.AddUtf16(text);
+        buffer.GuessSegmentProperties();   // 向き/スクリプト/言語を内容から推定
+        _font.Shape(buffer);
     }
+
+    private HbBuffer RentShapeBuffer()
+        => _shapeBuffers.TryTake(out HbBuffer? buffer) ? buffer : new HbBuffer();
 
     /// <summary>テキストの自然サイズ (1 行) を返す。幅=シェーピング後の advance 合計、高さ=ascent−descent (=pixelHeight)。</summary>
     public (float width, float height) Measure(string text, float pixelHeight)
     {
         if (string.IsNullOrEmpty(text)) return (0, pixelHeight);
-        float scale = Scale(pixelHeight);
-        HbBuffer buf = Shape(text);
-        ReadOnlySpan<GlyphPosition> pos = buf.GetGlyphPositionSpan();
-        float w = 0;
-        foreach (ref readonly GlyphPosition p in pos) w += p.XAdvance;
-        return (w * scale, pixelHeight);
+        HbBuffer buffer = RentShapeBuffer();
+        try
+        {
+            float scale = Scale(pixelHeight);
+            Shape(buffer, text);
+            ReadOnlySpan<GlyphPosition> pos = buffer.GetGlyphPositionSpan();
+            float w = 0;
+            foreach (ref readonly GlyphPosition p in pos) w += p.XAdvance;
+            return (w * scale, pixelHeight);
+        }
+        finally { _shapeBuffers.Add(buffer); }
     }
 
     /// <summary>ベースライン位置 (上端からの距離, px)。テキストノードの配置に使う。</summary>
@@ -145,16 +154,21 @@ public sealed class VectorFont : IDisposable
     internal ShapedGlyph[] ShapeRun(string text, float pixelHeight)
     {
         if (string.IsNullOrEmpty(text)) return [];
-        float scale = Scale(pixelHeight);
-        HbBuffer buf = Shape(text);
-        ReadOnlySpan<GlyphInfo> infos = buf.GetGlyphInfoSpan();
-        ReadOnlySpan<GlyphPosition> pos = buf.GetGlyphPositionSpan();
-        var run = new ShapedGlyph[infos.Length];
-        for (int i = 0; i < infos.Length; i++)
-            run[i] = new ShapedGlyph(infos[i].Codepoint, (int)infos[i].Cluster,
-                pos[i].XAdvance * scale, pos[i].XOffset * scale, pos[i].YOffset * scale,
-                pos[i].YAdvance * scale);
-        return run;
+        HbBuffer buffer = RentShapeBuffer();
+        try
+        {
+            float scale = Scale(pixelHeight);
+            Shape(buffer, text);
+            ReadOnlySpan<GlyphInfo> infos = buffer.GetGlyphInfoSpan();
+            ReadOnlySpan<GlyphPosition> pos = buffer.GetGlyphPositionSpan();
+            var run = new ShapedGlyph[infos.Length];
+            for (int i = 0; i < infos.Length; i++)
+                run[i] = new ShapedGlyph(infos[i].Codepoint, (int)infos[i].Cluster,
+                    pos[i].XAdvance * scale, pos[i].XOffset * scale, pos[i].YOffset * scale,
+                    pos[i].YAdvance * scale);
+            return run;
+        }
+        finally { _shapeBuffers.Add(buffer); }
     }
 
     /// <summary>コードポイントを収載しているか (フォールバック判定用。.notdef は不収載扱い)。</summary>
@@ -196,7 +210,7 @@ public sealed class VectorFont : IDisposable
     {
         if (_disposed) return;
         _disposed = true;
-        _buffer.Dispose();
+        while (_shapeBuffers.TryTake(out HbBuffer? buffer)) buffer.Dispose();
         _font.Dispose();
         _face.Dispose();
         _blob.Dispose();

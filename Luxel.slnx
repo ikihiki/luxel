@@ -148,6 +148,7 @@
   <Folder Name="/samples/">
     <Project Path="samples/LuxelAudio/LuxelAudio.csproj" />
     <Project Path="samples/LuxelAudioBrowser/LuxelAudioBrowser.csproj" />
+    <Project Path="samples/LuxelEditorBrowser/LuxelEditorBrowser.csproj" />
     <Project Path="samples/LuxelCavern/LuxelCavern.Core/LuxelCavern.Core.csproj" />
     <Project Path="samples/LuxelCavern/LuxelCavern/LuxelCavern.csproj" />
     <Project Path="samples/LuxelFramework/LuxelFramework.csproj" />
@@ -178,6 +179,7 @@
     <Project Path="tests/Editor/Luxel.Terminal.Tests/Luxel.Terminal.Tests.csproj" />
     <Project Path="tests/Editor/Luxel.Terminal.UI.Tests/Luxel.Terminal.UI.Tests.csproj" />
     <Project Path="tests/Editor/Luxel.Editor.Browser.Tests/Luxel.Editor.Browser.Tests.csproj" />
+    <Project Path="tests/Editor/Luxel.Editor.Browser.E2E.Tests/Luxel.Editor.Browser.E2E.Tests.csproj" />
     <Project Path="tests/Editor/Luxel.Editor.Native.Tests/Luxel.Editor.Native.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Framework/">

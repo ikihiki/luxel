@@ -2,6 +2,7 @@ using System.Runtime.InteropServices.JavaScript;
 using Luxel.Controls;
 using Luxel.Workbench;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Luxel.Editor.Browser;
 
@@ -47,12 +48,14 @@ public static partial class EditorBrowserApplication
 {
     private static EditorApplication? _application;
     private static BrowserProjectCoordinator? _coordinator;
+    private static BrowserDemoAutomation? _automation;
     private static BrowserJsServices? _js;
 
     public static IServiceCollection AddLuxelEditorBrowser(this IServiceCollection services)
     {
         services.AddSingleton<BrowserJsServices>();
         services.AddSingleton<IBrowserWorkspacePersistence, IndexedDbWorkspacePersistence>();
+        services.TryAddSingleton<IBrowserDemoProjectProvider, DefaultBrowserDemoProjectProvider>();
         services.AddSingleton(provider => new BrowserWorkspaceStorage(
             provider.GetRequiredService<IBrowserWorkspacePersistence>(), "default"));
         services.AddSingleton<BrowserProjectStorageProvider>();
@@ -64,6 +67,7 @@ public static partial class EditorBrowserApplication
         });
         services.AddSingleton<UnsupportedBrowserBuildService>();
         services.AddSingleton<BrowserProjectCoordinator>();
+        services.AddSingleton<BrowserDemoAutomation>();
         services.AddSingleton<IEditorHost, BrowserEditorHost>();
         services.AddSingleton(provider =>
         {
@@ -79,6 +83,7 @@ public static partial class EditorBrowserApplication
                 EditorSession session = EditorProductSessionFactory.Create(
                     files, host.Settings, host.SavePaths, host.AssetHost, capabilities, host.Builds);
                 coordinator.ConfigureSession(session);
+                provider.GetRequiredService<IBrowserDemoProjectProvider>().ConfigureSession(session);
                 return session;
             });
             coordinator.Attach(application);
@@ -94,21 +99,26 @@ public static partial class EditorBrowserApplication
         {
             BrowserWorkspaceStorage indexedDb = services.GetRequiredService<BrowserWorkspaceStorage>();
             await indexedDb.InitializeAsync();
+            IBrowserDemoProjectProvider demo = services.GetRequiredService<IBrowserDemoProjectProvider>();
+            await demo.InitializeAsync();
             BrowserProjectStorageProvider projects = services.GetRequiredService<BrowserProjectStorageProvider>();
-            projects.Register(BrowserProjectPicker.BuiltInDemo, static () => new MemoryFileStorage());
+            projects.Register(demo.ProjectId, () => demo.Storage);
             projects.Register(BrowserProjectPicker.IndexedDbWorkspace, () => indexedDb);
 
             _coordinator = services.GetRequiredService<BrowserProjectCoordinator>();
             _coordinator.AttachIndexedDb(indexedDb);
             projects.Activated += _coordinator.ProjectActivated;
             _application = services.GetRequiredService<EditorApplication>();
-            if (!_application.Restore()) _application.OpenProject(BrowserProjectPicker.BuiltInDemo);
+            _automation = services.GetRequiredService<BrowserDemoAutomation>();
+            _automation.Attach(_application);
+            if (!_application.Restore()) _application.OpenProject(demo.ProjectId);
 
             bool fileSystemAccess = _js.FileSystemAccessAvailable;
             var welcome = new EditorWelcomeActions(
                 OpenSample: _coordinator.OpenDemo,
                 ProjectActions:
                 [
+                    new("Reset Demo", () => _ = _automation.ResetAsync()),
                     new("Open IndexedDB Workspace", _coordinator.OpenIndexedDb),
                     new("Import Project Archive…", _coordinator.ImportArchive),
                     new("Open Browser Folder…", _coordinator.OpenFolder, fileSystemAccess,
@@ -138,6 +148,17 @@ public static partial class EditorBrowserApplication
 
     [JSExport]
     public static string StatusText() => _application?.Session?.StatusText.Peek() ?? _application?.WelcomeError.Peek() ?? "";
+
+    [JSExport]
+    public static string AutomationSnapshot() => _automation?.Snapshot() ?? "{}";
+
+    [JSExport]
+    public static string AutomationInvoke(string action, string value)
+        => _automation?.Invoke(action, value) ?? throw new InvalidOperationException("Editor automation is not ready.");
+
+    [JSExport]
+    public static Task<string> AutomationInvokeAsync(string action, string value)
+        => _automation?.InvokeAsync(action, value) ?? throw new InvalidOperationException("Editor automation is not ready.");
 
     [JSExport]
     public static bool RequestExit()

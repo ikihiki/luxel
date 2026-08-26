@@ -1,4 +1,5 @@
 using Luxel.Controls;
+using Luxel.SceneEdit;
 using Luxel.UI;
 using Luxel.Workbench;
 
@@ -61,6 +62,25 @@ public sealed class EditorSessionTests
     }
 
     [Fact]
+    public void CloseProjectDiscardingChangesBypassesDirtyDocumentConfirmation()
+    {
+        var host = new FakeEditorHost();
+        using var application = new EditorApplication(host, files =>
+        {
+            var document = new FakeDocument("dirty");
+            document.Dirty.Value = true;
+            return new EditorSession(files,
+                new Dictionary<string, IEditorDocument> { ["dirty"] = document }, DockTree.Single("dirty"));
+        });
+        Assert.True(application.OpenProject("sample"));
+
+        application.CloseProjectDiscardingChanges();
+
+        Assert.Null(application.Session);
+        Assert.Null(application.ProjectId);
+    }
+
+    [Fact]
     public void RequestExitNeverBypassesDirtyDocumentsWhenCleanConfirmationIsDisabled()
     {
         var host = new FakeEditorHost();
@@ -120,6 +140,21 @@ public sealed class EditorSessionTests
 
         Assert.True(application.ExitRequested);
         Assert.Null(application.Session);
+    }
+
+    [Fact]
+    public void SelectHierarchyEntitySynchronizesSceneAndEditorSelection()
+    {
+        SceneDoc source = SceneDoc.Of(SceneSpace.TwoD, [SceneEntity.Of(1, "A"), SceneEntity.Of(2, "B")]);
+        var scene = new SceneDocument("scene", source, doc => EditorKit.SceneEditorView(source: doc));
+        using var session = new EditorSession(
+            new Dictionary<string, IEditorDocument> { ["scene"] = scene },
+            DockTree.Single("scene"));
+
+        session.SelectHierarchyEntity(2);
+
+        Assert.Equal(2, session.SelectionService.Current.Peek().MainEntityId);
+        Assert.True(scene.View.IsSelected(2));
     }
 
     [Fact]
