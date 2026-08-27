@@ -49,6 +49,7 @@ public static partial class EditorBrowserApplication
     private static EditorApplication? _application;
     private static BrowserProjectCoordinator? _coordinator;
     private static BrowserDemoAutomation? _automation;
+    private static BrowserApiBackend? _browserApi;
     private static BrowserJsServices? _js;
 
     public static IServiceCollection AddLuxelEditorBrowser(this IServiceCollection services)
@@ -112,6 +113,12 @@ public static partial class EditorBrowserApplication
             _automation = services.GetRequiredService<BrowserDemoAutomation>();
             _automation.Attach(_application);
             if (!_application.Restore()) _application.OpenProject(demo.ProjectId);
+            _automation.EnsureCommandsRegistered();
+            _browserApi = new BrowserApiBackend(() =>
+            {
+                _automation?.EnsureCommandsRegistered();
+                return _application;
+            }, () => _automation?.Snapshot() ?? "{}");
 
             bool fileSystemAccess = _js.FileSystemAccessAvailable;
             var welcome = new EditorWelcomeActions(
@@ -124,7 +131,7 @@ public static partial class EditorBrowserApplication
                     new("Open Browser Folder…", _coordinator.OpenFolder, fileSystemAccess,
                         fileSystemAccess ? null : "File System Access API is unavailable; use Import Project Archive."),
                 ]);
-            await BrowserEditorRuntime.RunAsync(new EditorApplicationShell(_application, welcome), _coordinator, _js);
+            await BrowserEditorRuntime.RunAsync(new EditorApplicationShell(_application, welcome), _coordinator, _js, _application);
         }
         catch (Exception error)
         {
@@ -132,6 +139,16 @@ public static partial class EditorBrowserApplication
             Console.Error.WriteLine(error);
         }
     }
+
+    /// <summary>Versioned structured browser/DevTools entry point. Never executes source text.</summary>
+    [JSExport]
+    public static Task<string> BrowserApiInvokeAsync(string requestJson)
+        => (_browserApi ??= new BrowserApiBackend(() =>
+        {
+            _automation?.EnsureCommandsRegistered();
+            return _application;
+        }, () => _automation?.Snapshot() ?? "{}"))
+            .InvokeAsync(requestJson);
 
     [JSExport]
     public static bool RunCommand(string id) => _application?.Session?.Commands.Run(id) == true;

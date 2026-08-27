@@ -219,6 +219,158 @@ public sealed class EditorBrowserAcceptanceTests : PageTest
     }
 
     [Fact]
+    public async Task Scenario_12_devtools_facade_round_trips_command_macro_and_chord_arguments()
+    {
+        EditorPageFailures failures = Page.CollectFailures();
+        _ = await Page.OpenEditorAsync();
+
+        JsonElement surface = await Page.EvaluateAsync<JsonElement>("""
+            async () => {
+              const ready = await globalThis.luxelEditor.ready;
+              return {
+                ready,
+                version: globalThis.luxelEditor.version,
+                methods: {
+                  list: typeof globalThis.luxelEditor.commands.list,
+                  run: typeof globalThis.luxelEditor.commands.run,
+                  update: typeof globalThis.luxelEditor.keybindings.update,
+                  macro: typeof globalThis.luxelEditor.macros.run,
+                  snapshot: typeof globalThis.luxelEditor.snapshot,
+                  dispose: typeof globalThis.luxelEditor.dispose,
+                  compatibilityInvoke: typeof globalThis.luxelEditorAutomation.invoke
+                }
+              };
+            }
+            """);
+        Assert.Equal(1, surface.GetProperty("version").GetInt32());
+        Assert.Equal(1, surface.GetProperty("ready").GetProperty("version").GetInt32());
+        Assert.All(surface.GetProperty("methods").EnumerateObject().Where(method => method.Name != "$id"),
+            method => Assert.Equal("function", method.Value.GetString()));
+
+        JsonElement listed = await Page.EvaluateAsync<JsonElement>("() => globalThis.luxelEditor.commands.list()");
+        AssertEnvelope(listed, "commands.list");
+        JsonElement[] commands = listed.GetProperty("result").GetProperty("commands").EnumerateArray().ToArray();
+        Assert.Contains(commands, command => command.GetProperty("id").GetString() == "file.save");
+        JsonElement selectEntity = commands.Single(command =>
+            command.GetProperty("id").GetString() == "browser.demo.selectEntity");
+        JsonElement argumentDescriptor = selectEntity.GetProperty("arguments");
+        Assert.True(argumentDescriptor.GetProperty("required").GetBoolean());
+        Assert.True(argumentDescriptor.GetProperty("hasDefaultValue").GetBoolean());
+        Assert.True(argumentDescriptor.GetProperty("paletteExecutable").GetBoolean());
+        Assert.Contains("non-negative integer", argumentDescriptor.GetProperty("help").GetString());
+        Assert.Equal(2, argumentDescriptor.GetProperty("defaultValue").GetProperty("entityId").GetInt32());
+        Assert.Equal("integer", argumentDescriptor.GetProperty("schema").GetProperty("properties")
+            .GetProperty("entityId").GetProperty("type").GetString());
+
+        JsonElement selected = await Page.RunEditorCommandAsync(
+            "browser.demo.selectEntity", new { entityId = 2 });
+        AssertEnvelope(selected, "commands.run");
+        Assert.Equal("browser.demo.selectEntity", selected.GetProperty("result").GetProperty("commandId").GetString());
+        JsonElement selectedSnapshot = await Page.EvaluateAsync<JsonElement>("() => globalThis.luxelEditor.snapshot()");
+        AssertEnvelope(selectedSnapshot, "snapshot");
+        Assert.Equal(2, selectedSnapshot.GetProperty("result").GetProperty("selection").GetProperty("entityId").GetInt32());
+
+        const string marker = "\n// macro args round trip\n";
+        JsonElement macro = await Page.RunEditorMacroAsync(new
+        {
+            version = 2,
+            steps = new object[]
+            {
+                new { commandId = "browser.demo.openPath", args = new { path = "Scripts/Player.cs" } },
+                new { commandId = "browser.demo.editActiveText", args = new { text = marker } }
+            }
+        });
+        AssertEnvelope(macro, "macros.run");
+        JsonElement macroRun = macro.GetProperty("result");
+        Assert.Equal(2, macroRun.GetProperty("version").GetInt32());
+        Assert.True(macroRun.GetProperty("succeeded").GetBoolean());
+        Assert.Equal([0, 1], macroRun.GetProperty("steps").EnumerateArray()
+            .Select(step => step.GetProperty("index").GetInt32()));
+        JsonElement macroSnapshot = await Page.EvaluateAsync<JsonElement>("() => globalThis.luxelEditor.snapshot()");
+        AssertEnvelope(macroSnapshot, "snapshot");
+        Assert.Contains(marker.Trim(), macroSnapshot.GetProperty("result").GetProperty("activeText").GetString());
+        Assert.True(macroSnapshot.GetProperty("result").Document("Scripts/Player.cs").GetProperty("dirty").GetBoolean());
+
+        JsonElement legacyMacro = await Page.RunEditorMacroAsync(new
+        {
+            version = 1,
+            steps = new[] { new { commandId = "window.resetLayout" } }
+        });
+        AssertEnvelope(legacyMacro, "macros.run");
+        Assert.Equal(1, legacyMacro.GetProperty("result").GetProperty("version").GetInt32());
+        Assert.True(legacyMacro.GetProperty("result").GetProperty("succeeded").GetBoolean());
+
+        JsonElement incompatibleLegacyMacro = await Page.RunEditorMacroAsync(new
+        {
+            version = 1,
+            steps = new[]
+            {
+                new { commandId = "browser.demo.selectEntity", args = new { entityId = 2 } }
+            }
+        });
+        AssertEnvelope(incompatibleLegacyMacro, "macros.run");
+        JsonElement incompatibleRun = incompatibleLegacyMacro.GetProperty("result");
+        Assert.False(incompatibleRun.GetProperty("succeeded").GetBoolean());
+        Assert.Equal("invalid_arguments", incompatibleRun.GetProperty("steps")[0]
+            .GetProperty("error").GetProperty("code").GetString());
+
+        var chordBindings = new[]
+        {
+            new
+            {
+                key = "ctrl+k ctrl+e",
+                command = "browser.demo.selectEntity",
+                args = new { entityId = 1 }
+            }
+        };
+        JsonElement chord = await Page.UpdateEditorKeybindingsAsync(chordBindings);
+        AssertEnvelope(chord, "keybindings.update");
+        AssertKeybindingRoundTrip(chord, "browser.demo.selectEntity", "Ctrl+K Ctrl+E", 1);
+
+        JsonElement chordRead = await Page.GetEditorKeybindingsAsync();
+        AssertEnvelope(chordRead, "keybindings.get");
+        AssertKeybindingRoundTrip(chordRead, "browser.demo.selectEntity", "Ctrl+K Ctrl+E", 1);
+
+        JsonElement reset = await Page.EvaluateAsync<JsonElement>(
+            "commandId => globalThis.luxelEditor.keybindings.reset(commandId)",
+            "browser.demo.selectEntity");
+        AssertEnvelope(reset, "keybindings.reset");
+
+        JsonElement missing = await Page.RunEditorCommandAsync("missing.command");
+        Assert.False(missing.GetProperty("ok").GetBoolean());
+        Assert.Equal(1, missing.GetProperty("version").GetInt32());
+        Assert.Equal("commands.run", missing.GetProperty("operation").GetString());
+        Assert.Equal("unknown_command", missing.GetProperty("error").GetProperty("code").GetString());
+        Assert.False(string.IsNullOrWhiteSpace(missing.GetProperty("error").GetProperty("message").GetString()));
+        failures.AssertEmpty();
+    }
+
+    private static void AssertEnvelope(JsonElement envelope, string operation)
+    {
+        Assert.Equal(1, envelope.GetProperty("version").GetInt32());
+        Assert.Equal(operation, envelope.GetProperty("operation").GetString());
+        Assert.True(envelope.GetProperty("ok").GetBoolean());
+        Assert.True(envelope.TryGetProperty("result", out _));
+    }
+
+    private static void AssertKeybindingRoundTrip(
+        JsonElement envelope,
+        string commandId,
+        string expectedKey,
+        int expectedEntityId)
+    {
+        JsonElement binding = envelope.GetProperty("result").GetProperty("bindings").EnumerateArray()
+            .Single(candidate => candidate.GetProperty("command").GetString() == commandId);
+        Assert.Equal(expectedKey, binding.GetProperty("key").GetString());
+        Assert.Equal(expectedEntityId, binding.GetProperty("args").GetProperty("entityId").GetInt32());
+
+        JsonElement descriptor = envelope.GetProperty("result").GetProperty("commands").EnumerateArray()
+            .Single(candidate => candidate.GetProperty("command").GetString() == commandId);
+        Assert.Equal(expectedKey, descriptor.GetProperty("key").GetString());
+        Assert.Equal(expectedEntityId, descriptor.GetProperty("args").GetProperty("entityId").GetInt32());
+    }
+
+    [Fact]
     public async Task Nested_subpath_smoke_loads_framework_demo_assets_and_automation_relatively()
     {
         EditorPageFailures failures = Page.CollectFailures();

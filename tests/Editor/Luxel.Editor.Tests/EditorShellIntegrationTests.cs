@@ -69,6 +69,78 @@ public sealed class EditorShellIntegrationTests
     }
 
     [Fact]
+    public void CommandPaletteExposesArgumentMetadataAndOnlyRunsDefaultableCommands()
+    {
+        var commands = new CommandRegistry();
+        int requiredRuns = 0;
+        string? defaulted = null;
+        commands.Register("required", "Required", _ => requiredRuns++,
+            new CommandArgumentSchema("Choose a target", Required: true));
+        using var defaults = System.Text.Json.JsonDocument.Parse("{\"target\":\"local\"}");
+        commands.Register("defaulted", "Defaulted", invocation =>
+                defaulted = invocation.Arguments?.GetProperty("target").GetString(),
+            new CommandArgumentSchema("Optional target", Required: true,
+                DefaultValue: defaults.RootElement.Clone()));
+
+        IReadOnlyList<CommandDescriptor> descriptors = CommandPalette.Discover(commands);
+
+        CommandDescriptor required = Assert.Single(descriptors, x => x.Id == "required");
+        Assert.Equal("Choose a target", required.ArgumentHelp);
+        Assert.False(required.PaletteExecutable);
+        Assert.Null(CommandPalette.Execute(commands, "required"));
+        Assert.Equal(0, requiredRuns);
+
+        CommandDescriptor withDefault = Assert.Single(descriptors, x => x.Id == "defaulted");
+        Assert.True(withDefault.PaletteExecutable);
+        Assert.True(CommandPalette.Execute(commands, "defaulted")!.Executed);
+        Assert.Equal("local", defaulted);
+    }
+
+    [Fact]
+    public void ProductionShellDispatchesActiveDocumentBindingsAndOpensCommandPalette()
+    {
+        int firstRuns = 0, secondRuns = 0;
+        var first = new CommandDoc("first", "doc.first", "Ctrl+K Ctrl+S", () => firstRuns++);
+        var second = new CommandDoc("second", "doc.second", "Ctrl+L", () => secondRuns++);
+        var session = new EditorSession(
+            new Dictionary<string, IEditorDocument> { ["first"] = first, ["second"] = second },
+            DockTree.Single("first", "second"));
+        using var font = Luxel.Typography.VectorFont.LoadSystem();
+        using var canvas = new Luxel.Graphics.TwoD.RetainedCanvas();
+        using var host = new UiHost(canvas, font, 640, 480);
+        host.SetRoot(new EditorTestFixture { Session = session });
+
+        Assert.True(host.KeyDown(Key.K, ctrl: true));
+        Assert.Equal(0, firstRuns);
+        Assert.True(session.Keymap.HasPendingChord);
+        Assert.True(host.KeyDown(Key.S, ctrl: true));
+        Assert.Equal(1, firstRuns);
+
+        Assert.True(host.KeyDown(Key.K, ctrl: true));
+        Assert.True(session.Keymap.HasPendingChord);
+        session.Layout.Value = session.Layout.Peek().ActivateTab("second");
+        Assert.False(session.Keymap.HasPendingChord);
+        Assert.True(host.KeyDown(Key.L, ctrl: true));
+        Assert.Equal(1, secondRuns);
+
+        string? shellArgument = null;
+        session.Commands.Register("shell.argument", "Shell Argument", invocation =>
+                shellArgument = invocation.Arguments?.GetProperty("value").GetString(),
+            new CommandArgumentSchema(Required: true));
+        using var args = System.Text.Json.JsonDocument.Parse("{\"value\":\"from-keybinding\"}");
+        Assert.Empty(session.Keymap.Update(new EditorKeyBinding(
+            "shell.argument", "Ctrl+J Ctrl+K", args.RootElement.Clone())));
+        Assert.True(host.KeyDown(Key.J, ctrl: true));
+        Assert.True(host.KeyDown(Key.K, ctrl: true));
+        Assert.Equal("from-keybinding", shellArgument);
+
+        CommandDescriptor palette = Assert.Single(session.CommandDescriptors, x => x.Id == CommandPalette.CommandId);
+        Assert.True(palette.Enabled);
+        Assert.Equal("Ctrl+Shift+P", palette.EffectiveGestureText);
+        Assert.True(host.KeyDown(Key.P, shift: true, ctrl: true));
+    }
+
+    [Fact]
     public void ExternalChangesAreReachableThroughProductionDialogComposition()
     {
         var files = new MemoryFileStorage();
@@ -158,6 +230,26 @@ public sealed class EditorShellIntegrationTests
         public bool IsAvailable => false;
         public string? PickProject() => "picked";
         public void Build() { }
+    }
+
+    private sealed class CommandDoc(string title, string commandId, string gesture, Action run) : IEditorDocument
+    {
+        public string Kind => "command";
+        public string Title => title;
+        public Signal<bool> Dirty { get; } = new(false);
+        public bool CanUndo => false;
+        public bool CanRedo => false;
+        public IReadOnlyList<CommandContribution> Contributions { get; } =
+            [new(new Command(commandId, commandId, run,
+                Gesture: KeyGestures.ParseSequence(gesture) is { IsSingleStroke: true } sequence ? sequence[0] : null)
+            {
+                GestureSequence = KeyGestures.ParseSequence(gesture)
+            })];
+        public Widget CreateView() => new Spacer();
+        public void Undo() { }
+        public void Redo() { }
+        public string Serialize() => "";
+        public void LoadFrom(string content) { }
     }
 
     private sealed class Doc : IEditorDocument

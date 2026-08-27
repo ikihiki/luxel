@@ -15,7 +15,8 @@ namespace Luxel.Editor.Browser;
 [System.Runtime.Versioning.SupportedOSPlatform("browser")]
 internal static partial class BrowserEditorRuntime
 {
-    public static async Task RunAsync(Widget root, BrowserProjectCoordinator coordinator, BrowserJsServices js)
+    public static async Task RunAsync(Widget root, BrowserProjectCoordinator coordinator, BrowserJsServices js,
+        EditorApplication application)
     {
         using WebWindowBackend web = await WebWindowBackend.CreateAsync(new WebWindowBackendOptions
         {
@@ -64,7 +65,7 @@ internal static partial class BrowserEditorRuntime
 
             await RenderAsync();
             SetReady($"Luxel Editor ready — {device.Name}");
-            while (windows.Pump())
+            while (!application.ExitRequested && windows.Pump())
             {
                 if (resizePending)
                 {

@@ -37,7 +37,16 @@ public sealed partial class EditorShell : CompositeControl
     protected override void OnRealize(UiBuildContext ctx)
     {
         EditorSession session = Session.Get();
-        if (ctx.Host is { } host) ctx.Own(session.Commands.BindShortcuts(host));
+        session.ResetPendingChord();
+        Func<IReadOnlyList<CommandContribution>> contributions =
+            () => session.Workspace.Active.Value?.Contributions ?? [];
+        Action openCommandPalette = () => CommandPalette.Open(ctx, session.Commands, contributions(), session.Keymap);
+        session.CommandPaletteRequested = openCommandPalette;
+        ctx.Own(new CallbackLease(() =>
+        {
+            if (session.CommandPaletteRequested == openCommandPalette) session.CommandPaletteRequested = null;
+        }));
+        if (ctx.Host is { } host) ctx.Own(session.Keymap.BindShortcuts(host, contributions));
         ctx.AddAnimation(dt =>
         {
             session.PumpAutosave(TimeSpan.FromSeconds(MathF.Max(0, dt)));
@@ -59,6 +68,12 @@ public sealed partial class EditorShell : CompositeControl
             if (initialized) _toolbar?.Refresh();
             else initialized = true;
         }));
+    }
+
+    private sealed class CallbackLease(Action dispose) : IDisposable
+    {
+        private Action? _dispose = dispose;
+        public void Dispose() { _dispose?.Invoke(); _dispose = null; }
     }
 
     protected override Widget Build()
