@@ -1,0 +1,8 @@
+{
+  "name": "Luxel Browser Acceptance Demo",
+  "startScene": "Scenes/Main.scene",
+  "readme": "README.md",
+  "intentionalWarnings": [
+    "Materials/Coin.material.json references an optional normal map that is intentionally absent."
+  ]
+}
