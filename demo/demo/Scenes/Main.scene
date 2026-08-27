@@ -1,0 +1,31 @@
+{
+  "space": "2d",
+  "entities": [
+    {
+      "id": 1,
+      "name": "Camera",
+      "components": [
+        { "type": "transform2d", "pos": [0, 0], "rotation": 0, "scale": [1, 1] }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Player",
+      "components": [
+        { "type": "editor.hierarchy", "locked": false, "parent": 0, "visible": true },
+        { "type": "transform2d", "pos": [96, 112], "rotation": 0, "scale": [1, 1] },
+        { "type": "behaviour", "script": "Scripts/Player.cs" }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Coin",
+      "components": [
+        { "type": "editor.hierarchy", "locked": false, "parent": 2, "visible": true },
+        { "type": "transform2d", "pos": [48, 0], "rotation": 0, "scale": [1, 1] },
+        { "type": "sprite", "texture": "Assets/Textures/coin.svg", "material": "Materials/Coin.material.json" }
+      ]
+    }
+  ],
+  "tileLayers": []
+}
