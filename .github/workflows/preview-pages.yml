@@ -32,11 +32,13 @@ jobs:
         run: |
           dotnet restore gallery/GalleryBrowser/GalleryBrowser.csproj
           dotnet restore editor/EditorBrowser/EditorBrowser.csproj
-      - name: Publish Gallery and Editor
+          dotnet restore samples/LuxelEditorBrowser/LuxelEditorBrowser.csproj
+      - name: Publish Gallery, Editor, and Browser Editor demo
         if: github.event.action != 'closed'
         run: |
           dotnet publish gallery/GalleryBrowser/GalleryBrowser.csproj --no-restore --configuration Release -p:BlazorFingerprintBlazorJs=false
           dotnet publish editor/EditorBrowser/EditorBrowser.csproj --no-restore --configuration Release -p:BlazorFingerprintBlazorJs=false
+          dotnet publish samples/LuxelEditorBrowser/LuxelEditorBrowser.csproj --no-restore --configuration Release -p:BlazorFingerprintBlazorJs=false
       - name: Stage Pages
         if: github.event.action != 'closed'
         run: |
@@ -44,6 +46,7 @@ jobs:
             eng/pages/index.html \
             gallery/GalleryBrowser/bin/Release/net10.0/publish/wwwroot \
             editor/EditorBrowser/bin/Release/net10.0/publish/wwwroot \
+            samples/LuxelEditorBrowser/bin/Release/net10.0/publish/wwwroot \
             .pages
       - name: Smoke staged Pages over HTTP
         if: github.event.action != 'closed'
@@ -61,6 +64,7 @@ jobs:
 
           python3 - <<'PY'
           from html.parser import HTMLParser
+          import json
           from time import sleep
           from urllib.error import URLError
           from urllib.parse import urljoin, urlparse
@@ -97,21 +101,34 @@ jobs:
                       self.urls.append(values["href"])
 
           fetch(base, retries=120)
-          for route in ("", "gallery/", "editor/"):
+          for route in ("", "gallery/", "editor/", "demo/"):
               page_url = urljoin(base, route)
               html = fetch(page_url).decode("utf-8")
               parser = Assets()
               parser.feed(html)
               if route and not parser.urls:
                   raise RuntimeError(f"{page_url} did not expose startup assets")
+              if route == "demo/" and not any("_framework/blazor.webassembly" in asset for asset in parser.urls):
+                  raise RuntimeError(f"{page_url} did not expose the Blazor framework startup asset")
               for asset in parser.urls:
                   if urlparse(asset).scheme:
                       continue
                   fetch(urljoin(page_url, asset))
-          print("Staged Pages HTTP and startup-asset smoke passed.")
+
+          demo_page = urljoin(base, "demo/")
+          fixture = json.loads(fetch(urljoin(demo_page, "demo/luxel-demo.project.json")))
+          start_scene = fixture.get("startScene")
+          if not isinstance(start_scene, str) or not start_scene:
+              raise RuntimeError("Browser Editor demo fixture did not declare startScene")
+          fetch(urljoin(demo_page, f"demo/{start_scene}"))
+          main_js = fetch(urljoin(demo_page, "main.js")).decode("utf-8")
+          if './editor-api.js' not in main_js:
+              raise RuntimeError("Browser Editor demo main.js did not retain its relative editor-api.js import")
+          fetch(urljoin(demo_page, "editor-api.js"))
+          print("Staged Pages HTTP, startup assets, and Browser Editor demo fixture smoke passed.")
           PY
 
-          echo 'Staged Pages HTTP and startup-asset smoke passed.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Staged Pages HTTP, startup assets, and Browser Editor demo fixture smoke passed.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Pages smoke log on failure
         if: failure() && github.event.action != 'closed'
